@@ -53,6 +53,7 @@ button { font-family: inherit; }
 .tb-app.active::after { width: 16px; background: var(--accent); }
 #taskbar-right { position: absolute; right: 14px; top: 0; height: 100%; display: flex; align-items: center; }
 #clock { font-size: 12px; text-align: center; line-height: 1.25; }
+#sim-label { font-size: 10px; line-height: 1.2; text-align: center; color: #555; text-transform: uppercase; letter-spacing: .04em; margin-right: 14px; padding-right: 14px; border-right: 1px solid rgba(0,0,0,.15); }
 
 /* ---------- Start-meny ---------- */
 #startmenu { position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%); width: 600px; z-index: 60; background: rgba(243,246,251,.98); border: 1px solid #c8cdd6; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.35); padding: 22px 26px 14px; }
@@ -257,6 +258,7 @@ label { font-size: 13px; }
 .fso-box h1 { margin: 6px 0 12px; font-size: 34px; font-weight: 600; }
 .fso-box p { font-size: 19px; margin: 6px 0; }
 .fso-box .fso-tip { color: #dbe4f5; font-size: 13px; margin-top: 16px; }
+.fso-box .fso-sub { font-size: 14px; color: #dbe4f5; margin-bottom: 14px; }
 .fso-box kbd { color: #000; }
 .fs-btn { width: 36px; height: 36px; margin-right: 6px; }
 

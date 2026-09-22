@@ -119,7 +119,7 @@ const Fullscreen = {
      og ett klikk hvor som helst starter fullskjerm. */
   overlay() {
     if (document.fullscreenElement) return;
-    const o = el(`<div id="fs-overlay"><div class="fso-box"><div class="fso-logo">💻</div><h1>Datatrening</h1><p>Klikk hvor som helst for å starte i fullskjerm.</p><p class="fso-tip">Tips: <kbd>F11</kbd> slår fullskjerm av og på. <kbd>Esc</kbd> avslutter fullskjerm.</p></div></div>`);
+    const o = el(`<div id="fs-overlay"><div class="fso-box"><div class="fso-logo">💻</div><h1>Datatrening</h1><p class="fso-sub">Øvings-PC for skolen. Dette er en simulering i nettleseren, ikke en ekte PC.</p><p>Klikk hvor som helst for å starte i fullskjerm.</p><p class="fso-tip">Tips: <kbd>F11</kbd> slår fullskjerm av og på. <kbd>Esc</kbd> avslutter fullskjerm.</p></div></div>`);
     o.addEventListener('click', () => { o.remove(); Fullscreen.enter(); });
     document.body.appendChild(o);
   }

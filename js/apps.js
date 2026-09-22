@@ -168,9 +168,9 @@ const Nettleser = (() => {
   function open() {
     const root = el(`<div class="browser">
       <div class="br-tabs"><span class="br-tab">🏫 Skoleportalen</span></div>
-      <div class="br-addr"><button class="nav-btn">←</button><button class="nav-btn">→</button><button class="nav-btn">⟳</button><div class="url">🔒 https://skoleportalen.no/8a/oppgaver</div><button class="nav-btn dlb" title="Nedlastinger">⭳</button></div>
+      <div class="br-addr"><button class="nav-btn">←</button><button class="nav-btn">→</button><button class="nav-btn">⟳</button><div class="url">ovings-pc.simulering/skoleportalen/8a/oppgaver</div><button class="nav-btn dlb" title="Nedlastinger">⭳</button></div>
       <div class="br-page">
-        <div class="site-head">Skoleportalen <small>8A · Ukeplan og oppgaver</small></div>
+        <div class="site-head">Skoleportalen <small>8A · Ukeplan og oppgaver · Dette er en øvingsside i Datatrening, ikke en ekte nettside</small></div>
         <div class="site-body"><h2>Filer fra lærerne</h2><div class="cards"></div><p class="muted">Klikk «Last ned» for å hente en fil. Filen havner i mappen <b>Nedlastinger</b> på PC-en.</p></div>
         <div class="dl-flyout hidden"></div>
       </div>
@@ -185,7 +185,7 @@ const Nettleser = (() => {
           { label: 'Åpne lenke i ny fane', action: () => Toast.show('På en ekte PC åpnes lenken i en ny fane.') },
           '-',
           { label: 'Lagre lenke som …', action: () => saveLinkAs(l) },
-          { label: 'Kopier lenke', action: () => { if (navigator.clipboard) navigator.clipboard.writeText('https://skoleportalen.no/filer/' + l.file).catch(() => {}); Toast.show('Lenken er kopiert.'); } }
+          { label: 'Kopier lenke', action: () => { if (navigator.clipboard) navigator.clipboard.writeText('ovings-pc.simulering/skoleportalen/filer/' + l.file).catch(() => {}); Toast.show('Lenken er kopiert.'); } }
         ], 'link', 'nedlastingslenken «' + l.title + '»');
       });
       cards.appendChild(c);

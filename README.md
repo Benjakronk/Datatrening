@@ -15,6 +15,20 @@ Appen starter med et startbilde: ett klikk hvor som helst setter nettleseren i f
 øvings-PC-en fyller hele skjermen. (Nettlesere tillater ikke fullskjerm uten et klikk fra brukeren.)
 Knappen nederst til høyre i oppgavelinjen, eller F11, slår fullskjerm av og på. Esc avslutter fullskjerm.
 
+## Hvis Edge blokkerer siden (SmartScreen)
+
+En side som viser et Windows-lignende skrivebord i fullskjerm ligner på det svindelsider gjør, og nye
+adresser på gratis vertstjenester har lavt omdømme. Derfor er simuleringen tydelig merket («Øvings-PC ·
+simulering» i oppgavelinjen, på startbildet og i sidetittelen), og den simulerte nettleseren bruker en
+åpenbart fiktiv adresse uten hengelås. Blir siden likevel blokkert:
+
+- Legg den på et domene skolen eller kommunen eier, med HTTPS.
+- Rapporter feilklassifiseringen: klikk «Rapporter at dette nettstedet ikke inneholder trusler» på
+  blokkeringssiden, eller send inn adressen på Microsofts side for innsending av nettadresser
+  (søk etter «Microsoft report unsafe site»). Det tar vanligvis noen dager.
+- Sjekk om blokkeringen kommer fra skolens eget filter i stedet: da står organisasjonens navn i meldingen,
+  og IT-avdelingen må godkjenne adressen.
+
 ## Høyreklikkmenyer
 
 Alle elementer på øvings-PC-en har sin egen høyreklikkmeny, slik som i Windows: skrivebordet,
