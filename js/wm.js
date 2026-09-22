@@ -9,8 +9,17 @@ const WM = (() => {
   const FS_ICON = '<svg viewBox="0 0 16 16" width="18" height="18"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="#333" stroke-width="1.6"/></svg>';
 
   const layer = () => document.getElementById('windows');
+  const MAX_WINDOWS = 12;
+  /* Sjekk før et program åpner et vindu: for mange vinduer gjør siden treg */
+  function full() {
+    if (wins.length < MAX_WINDOWS) return false;
+    Toast.show('Du har for mange vinduer åpne (maks ' + MAX_WINDOWS + '). Lukk noen vinduer først.');
+    Bus.emit('window-limit', {});
+    return true;
+  }
 
   function create(o) {
+    if (wins.length >= MAX_WINDOWS + 1) throw new Error('For mange vinduer');
     const id = ++counter;
     const elm = document.createElement('div');
     elm.className = 'win';
@@ -201,5 +210,5 @@ const WM = (() => {
   function appName(app) { return APPNAMES[app] || app; }
   function setLaunchVia(v) { launchVia = v; }
 
-  return { create, setTitle, focus, minimize, toggleMax, close, list, getActive, deactivate, renderTaskbar, toggleStart, showStart, hideStart, showDesktop, appName, setLaunchVia, pinned: () => PINNED.slice() };
+  return { create, setTitle, focus, minimize, toggleMax, close, list, getActive, deactivate, renderTaskbar, toggleStart, showStart, hideStart, showDesktop, appName, setLaunchVia, full, MAX_WINDOWS, pinned: () => PINNED.slice() };
 })();

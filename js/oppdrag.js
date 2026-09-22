@@ -167,8 +167,8 @@ const KURS = [
         setup: F => { F.ensureFolder(P_NORSK); F.ensureFileAt(P_DOC, 'Dikt-analyse.docx', 'Analyse av diktet «Nordlys»\n\nDiktet handler om lyset som danser over himmelen om vinteren.'); },
         steps: [
           { text: 'Åpne Filutforsker og gå til <b>Dokumenter</b>.', check: S => S.ev('explorer-nav', d => d.name === 'Dokumenter') },
-          { text: 'Dra filen <b>Dikt-analyse</b> til mappen <b>Norsk</b>: hold venstre museknapp nede på filen, dra den til OneDrive › Skole › Norsk i menyen til venstre, og slipp.', hint: 'Klikk på ▸ ved OneDrive og Skole i menyen til venstre, så ser du Norsk der. Dra filen dit til mappen blir markert, og slipp.', check: S => S.fileIn('Dikt-analyse.docx', P_NORSK) },
-          { text: 'Gå til <b>OneDrive › Skole › Norsk</b> og sjekk at filen er der.', check: S => S.ev('explorer-nav', d => d.name === 'Norsk') },
+          { text: 'Dra filen <b>Dikt-analyse</b> til mappen <b>Norsk</b>: hold venstre museknapp nede på filen, dra den til OneDrive › Skole › Norsk i menyen til venstre, og slipp.', hint: 'Klikk på ▸ ved OneDrive og Skole i menyen til venstre, så ser du Norsk der. Dra filen dit til mappen blir markert, og slipp.', check: S => S.fileInNamed('Dikt-analyse.docx', 'Norsk') },
+          { text: 'Gå til mappen <b>Norsk</b> og sjekk at filen er der.', check: S => S.ev('explorer-nav', d => /norsk/i.test(d.name)) },
           { quiz: { q: 'Når du drar en fil til en annen mappe på samme PC, hva skjer?', options: ['Filen flyttes: den ligger bare i den nye mappen', 'Filen kopieres: du får to', 'Filen slettes'], answer: 0 } }
         ]
       },
@@ -178,8 +178,8 @@ const KURS = [
         steps: [
           { text: 'Gå til <b>Dokumenter</b> og klikk <i>én gang</i> på <b>Fotosyntese</b> for å velge den.', check: S => S.ev('select', d => d.names.includes('Fotosyntese.pptx')) },
           { text: 'Høyreklikk på filen og velg <b>Klipp ut</b> (eller trykk <kbd>Ctrl</kbd>+<kbd>X</kbd>). Filen blir litt gjennomsiktig.', check: S => S.ev('cut', d => d.names.includes('Fotosyntese.pptx')) },
-          { text: 'Gå til <b>OneDrive › Skole › Naturfag</b>.', check: S => S.ev('explorer-nav', d => d.name === 'Naturfag') },
-          { text: 'Høyreklikk på et tomt sted og velg <b>Lim inn</b> (eller trykk <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.fileIn('Fotosyntese.pptx', P_NAT) }
+          { text: 'Gå til <b>OneDrive › Skole › Naturfag</b>.', hint: 'Har du laget en egen Naturfag-mappe et annet sted, kan du bruke den.', check: S => S.ev('explorer-nav', d => /naturfag/i.test(d.name)) },
+          { text: 'Høyreklikk på et tomt sted og velg <b>Lim inn</b> (eller trykk <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.fileInNamed('Fotosyntese.pptx', 'Naturfag') }
         ]
       },
       {
@@ -199,9 +199,9 @@ const KURS = [
         steps: [
           { text: 'Gå til <b>Dokumenter</b> og velg <b>Matteprøve</b>.', check: S => S.ev('select', d => d.names.includes('Matteprøve.pdf')) },
           { text: 'Trykk <kbd>Ctrl</kbd>+<kbd>X</kbd> på tastaturet (hold Ctrl nede og trykk X).', hint: 'Ctrl er nederst til venstre på tastaturet. Klikk på filen først, så vinduet «hører» på tastaturet.', check: S => S.ev('shortcut', d => d.key === 'x' && d.app === 'explorer') },
-          { text: 'Gå til <b>OneDrive › Skole › Matte</b> og trykk <kbd>Ctrl</kbd>+<kbd>V</kbd>.', hint: 'Klikk på et tomt sted i mappen før du trykker Ctrl+V.', check: S => S.fileIn('Matteprøve.pdf', P_MATTE) && S.ev('shortcut', d => d.key === 'v') },
+          { text: 'Gå til <b>OneDrive › Skole › Matte</b> og trykk <kbd>Ctrl</kbd>+<kbd>V</kbd>.', hint: 'Klikk på et tomt sted i mappen før du trykker Ctrl+V.', check: S => S.fileInNamed('Matteprøve.pdf', 'Matte') && S.ev('shortcut', d => d.key === 'v') },
           { text: 'Prøv å angre: trykk <kbd>Ctrl</kbd>+<kbd>Z</kbd>. Filen flytter tilbake til Dokumenter!', check: S => S.ev('shortcut', d => d.key === 'z') && S.fileIn('Matteprøve.pdf', P_DOC) },
-          { text: 'Flytt den til <b>Matte</b> igjen (<kbd>Ctrl</kbd>+<kbd>X</kbd>, gå til Matte, <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.fileIn('Matteprøve.pdf', P_MATTE) }
+          { text: 'Flytt den til <b>Matte</b> igjen (<kbd>Ctrl</kbd>+<kbd>X</kbd>, gå til Matte, <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.fileInNamed('Matteprøve.pdf', 'Matte') }
         ]
       },
       {
@@ -244,7 +244,7 @@ const KURS = [
         steps: [
           { text: 'Åpne programmet <b>Skriv</b> (oppgavelinjen eller Start-menyen).', check: S => S.ev('window-open', d => d.app === 'skriv') },
           { text: 'Skriv minst én setning om hva du liker å gjøre på fritiden.', check: S => S.editorText().trim().length >= 20 },
-          { text: 'Klikk <b>Lagre</b> (eller trykk <kbd>Ctrl</kbd>+<kbd>S</kbd>). I vinduet som kommer opp: velg <b>OneDrive › Skole › Norsk</b> til venstre, skriv filnavnet <b>Mitt første dokument</b> og klikk Lagre.', hint: 'Klikk på ▸ ved OneDrive i menyen til venstre i vinduet, så Skole, så Norsk. Sjekk at adressefeltet øverst viser OneDrive › Skole › Norsk før du klikker Lagre.', check: S => S.fileIn('Mitt første dokument.docx', P_NORSK) },
+          { text: 'Klikk <b>Lagre</b> (eller trykk <kbd>Ctrl</kbd>+<kbd>S</kbd>). I vinduet som kommer opp: velg <b>OneDrive › Skole › Norsk</b> til venstre, skriv filnavnet <b>Mitt første dokument</b> og klikk Lagre.', hint: 'Klikk på ▸ ved OneDrive i menyen til venstre i vinduet, så Skole, så Norsk. Sjekk at adressefeltet øverst viser OneDrive › Skole › Norsk før du klikker Lagre.', check: S => S.fileInNamed('Mitt første dokument.docx', 'Norsk') },
           { text: 'Se på tittellinjen i Skriv: nå står filnavnet der. Skriv litt mer tekst.', check: S => S.ev('editor-input') },
           { text: 'Trykk <kbd>Ctrl</kbd>+<kbd>S</kbd> for å lagre endringene. Denne gangen spør ikke PC-en hvor, den lagrer i samme fil.', check: S => S.ev('save', d => d.via === 'shortcut' && !d.isNew) },
           { text: 'Lukk Skriv.', check: S => S.ev('window-close', d => d.app === 'skriv') }
@@ -254,7 +254,7 @@ const KURS = [
         id: 'k4o2', title: 'Åpne dokumentet igjen',
         setup: F => { F.ensureFile(P_NORSK, 'Mitt første dokument.docx', 'På fritiden liker jeg å ...'); },
         steps: [
-          { text: 'Åpne Filutforsker og gå til <b>OneDrive › Skole › Norsk</b>.', check: S => S.ev('explorer-nav', d => d.name === 'Norsk') },
+          { text: 'Åpne Filutforsker og gå til mappen <b>Norsk</b> (i OneDrive › Skole, eller der du lagret dokumentet).', check: S => S.ev('explorer-nav', d => /norsk/i.test(d.name)) },
           { text: 'Dobbeltklikk på <b>Mitt første dokument</b> for å åpne det i Skriv.', check: S => S.ev('open-file', d => d.name === 'Mitt første dokument.docx') },
           { text: 'Skriv en ny linje, og lagre med <kbd>Ctrl</kbd>+<kbd>S</kbd>.', check: S => S.ev('save', d => d.via === 'shortcut') },
           { text: 'Lukk Skriv. Legg merke til at den ikke spør om lagring, fordi alt allerede er lagret.', check: S => S.ev('window-close', d => d.app === 'skriv') }
@@ -304,7 +304,7 @@ const KURS = [
           { text: 'Åpne <b>Nettleser</b> fra oppgavelinjen.', check: S => S.ev('window-open', d => d.app === 'nettleser') },
           { text: 'Klikk <b>Last ned</b> ved «Oppgaveark om brøk».', check: S => S.ev('download', d => d.base === 'Oppgaveark-brøk.pdf') },
           { text: 'Klikk <b>Vis i mappe</b> i nedlastingsmeldingen (eller åpne Nedlastinger i Filutforsker).', check: S => S.ev('explorer-nav', d => d.name === 'Nedlastinger') },
-          { text: 'Flytt <b>Oppgaveark-brøk</b> til <b>OneDrive › Skole › Matte</b> (dra den, eller bruk <kbd>Ctrl</kbd>+<kbd>X</kbd> og <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.fileIn('Oppgaveark-brøk.pdf', P_MATTE) }
+          { text: 'Flytt <b>Oppgaveark-brøk</b> til <b>OneDrive › Skole › Matte</b> (dra den, eller bruk <kbd>Ctrl</kbd>+<kbd>X</kbd> og <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.fileInNamed('Oppgaveark-brøk.pdf', 'Matte') }
         ]
       },
       {
@@ -314,7 +314,7 @@ const KURS = [
           { text: 'I Nettleser: last ned <b>Mal for rapport</b>.', check: S => S.ev('download', d => d.base === 'Mal-rapport.docx') },
           { text: 'Klikk <b>Åpne fil</b> i nedlastingsmeldingen. Malen åpnes i Skriv.', check: S => S.ev('open-file', d => d.name === 'Mal-rapport.docx') },
           { text: 'Skriv inn en tittel etter «Tittel:» i malen.', check: S => S.ev('editor-input') },
-          { text: 'Velg <b>Lagre som</b> og lagre i <b>OneDrive › Skole › Naturfag</b> med navnet <b>Rapport-fotosyntese</b>. Nå har du en egen kopi, og malen i Nedlastinger er urørt.', hint: 'Bruk «Lagre som»-knappen, ikke «Lagre». Lagre ville skrevet over malen i Nedlastinger.', check: S => S.fileIn('Rapport-fotosyntese.docx', P_NAT) },
+          { text: 'Velg <b>Lagre som</b> og lagre i <b>OneDrive › Skole › Naturfag</b> med navnet <b>Rapport-fotosyntese</b>. Nå har du en egen kopi, og malen i Nedlastinger er urørt.', hint: 'Bruk «Lagre som»-knappen, ikke «Lagre». Lagre ville skrevet over malen i Nedlastinger.', check: S => S.fileInNamed('Rapport-fotosyntese.docx', 'Naturfag') },
           { text: 'Slett <b>Mal-rapport</b> fra Nedlastinger. Du trenger den ikke lenger.', check: S => !S.file('Mal-rapport.docx') },
           { quiz: { q: 'Hvor havner filer du laster ned fra internett?', options: ['I mappen Nedlastinger', 'I OneDrive', 'På skrivebordet'], answer: 0 } }
         ]
@@ -376,11 +376,11 @@ const KURS = [
           F.ensureFileAt(P_DOC, 'Norsk-fortelling.docx', 'Fortellingen om skogen');
         },
         steps: [
-          { text: 'Gå til <b>Dokumenter</b>. Der ligger fire filer som hører hjemme i fagmappene i OneDrive › Skole.', check: S => S.ev('explorer-nav', d => d.name === 'Dokumenter') },
-          { text: 'Flytt <b>Engelsk-gloser-uke-3</b> til mappen <b>Engelsk</b>.', hint: 'Dra filen til Engelsk i menyen til venstre (klikk på ▸ ved OneDrive og Skole først), eller bruk Ctrl+X og Ctrl+V.', check: S => S.fileIn('Engelsk-gloser-uke-3.docx', P_ENG) },
-          { text: 'Flytt <b>Naturfag-labrapport</b> til <b>Naturfag</b>.', check: S => S.fileIn('Naturfag-labrapport.docx', P_NAT) },
-          { text: 'Flytt <b>Matte-oppgaver-kap2</b> til <b>Matte</b>.', check: S => S.fileIn('Matte-oppgaver-kap2.pdf', P_MATTE) },
-          { text: 'Flytt <b>Norsk-fortelling</b> til <b>Norsk</b>.', check: S => S.fileIn('Norsk-fortelling.docx', P_NORSK) }
+          { text: 'Gå til <b>Dokumenter</b>. Der ligger fire filer som hører hjemme i fagmappene <b>OneDrive › Skole › Engelsk / Naturfag / Matte / Norsk</b>. Mappene finnes allerede.', check: S => S.ev('explorer-nav', d => d.name === 'Dokumenter') },
+          { text: 'Flytt <b>Engelsk-gloser-uke-3</b> til mappen <b>Engelsk</b> i OneDrive › Skole.', hint: 'Dra filen til Engelsk i menyen til venstre (klikk på ▸ ved OneDrive og Skole først), eller bruk Ctrl+X og Ctrl+V. Har du laget en egen Engelsk-mappe et annet sted, godtas den også.', check: S => S.fileInNamed('Engelsk-gloser-uke-3.docx', 'Engelsk') },
+          { text: 'Flytt <b>Naturfag-labrapport</b> til <b>Naturfag</b>.', check: S => S.fileInNamed('Naturfag-labrapport.docx', 'Naturfag') },
+          { text: 'Flytt <b>Matte-oppgaver-kap2</b> til <b>Matte</b>.', check: S => S.fileInNamed('Matte-oppgaver-kap2.pdf', 'Matte') },
+          { text: 'Flytt <b>Norsk-fortelling</b> til <b>Norsk</b>.', check: S => S.fileInNamed('Norsk-fortelling.docx', 'Norsk') }
         ]
       },
       {
@@ -411,7 +411,7 @@ const KURS = [
         steps: [
           { text: 'Gå til <b>Dokumenter</b> og åpne <b>Dokument1</b> for å se hva den inneholder.', check: S => S.ev('open-file', d => d.name === 'Dokument1.docx') },
           { text: 'Lukk Skriv, og gi filen et navn som forteller hva den inneholder, for eksempel <b>Norsk-bokrapport-Sofies-verden</b>.', hint: 'Klikk én gang på filen og trykk F2. Navnet må inneholde ordet «bok» eller «rapport» for å bli godkjent.', check: S => { const f = S.byContent('Bokrapport:'); return f && !/^dokument/i.test(f.name) && /bok|rapport/i.test(f.name); } },
-          { text: 'Flytt filen til <b>OneDrive › Skole › Norsk</b>.', check: S => { const f = S.byContent('Bokrapport:'); const n = S.folder(P_NORSK); return f && n && f.parent === n.id; } },
+          { text: 'Flytt filen til <b>OneDrive › Skole › Norsk</b>.', check: S => { const f = S.byContent('Bokrapport:'); const p = f && FS.get(f.parent); return !!p && /norsk/i.test(p.name); } },
           { quiz: { q: 'Hvilket filnavn er best for en engelsk-innlevering om London?', options: ['Dokument12.docx', 'ny.docx', 'Engelsk-London-tekst.docx'], answer: 2 } }
         ]
       }
@@ -451,7 +451,7 @@ const KURS = [
           { text: 'Marker all tekst med <kbd>Ctrl</kbd>+<kbd>A</kbd>.', check: S => S.ev('shortcut', d => d.key === 'a' && d.app === 'skriv') },
           { text: 'Kopier med <kbd>Ctrl</kbd>+<kbd>C</kbd>, klikk nederst i teksten, og lim inn to ganger med <kbd>Ctrl</kbd>+<kbd>V</kbd>.', check: S => S.ev('shortcut', d => d.key === 'c' && d.app === 'skriv') && S.evCount('shortcut', d => d.key === 'v' && d.app === 'skriv') >= 2 },
           { text: 'Angre det siste med <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', check: S => S.ev('shortcut', d => d.key === 'z' && d.app === 'skriv') },
-          { text: 'Lagre som <b>Tastatur-øving</b> i <b>OneDrive › Skole › Norsk</b>.', check: S => S.fileIn('Tastatur-øving.docx', P_NORSK) },
+          { text: 'Lagre som <b>Tastatur-øving</b> i <b>OneDrive › Skole › Norsk</b>.', check: S => S.fileInNamed('Tastatur-øving.docx', 'Norsk') },
           { text: 'Lukk Skriv.', check: S => S.ev('window-close', d => d.app === 'skriv') },
           { quiz: { q: 'Hvordan skriver du @ på et norsk tastatur?', options: ['Shift + 2', 'AltGr + 2', 'Ctrl + 2'], answer: 1 } },
           { quiz: { q: 'Hva gjør Ctrl+Z?', options: ['Angrer det siste du gjorde', 'Lagrer', 'Zoomer inn'], answer: 0 } },

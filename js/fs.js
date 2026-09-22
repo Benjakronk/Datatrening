@@ -5,6 +5,26 @@ const FS = (() => {
   let silent = false;
   const undoStack = [];
 
+  /* Grenser som hindrer at en elev låser siden ved å lage tusenvis av filer */
+  const LIMITS = { perFolder: 200, total: 1500, depth: 12, name: 120, content: 20000, storage: 2500000, undo: 200 };
+  function total() { return Object.keys(nodes).length; }
+  function depth(id) { let d = 0, n = nodes[id]; while (n && n.parent != null) { d++; n = nodes[n.parent]; } return d; }
+  function subtreeSize(id) { let c = 1; const n = nodes[id]; if (n && n.children) n.children.forEach(ch => { c += subtreeSize(ch); }); return c; }
+  function contentBytes() { let b = 0; for (const k in nodes) b += (nodes[k].content || '').length; return b; }
+  /* Returnerer feilmelding hvis noe ikke kan legges til i mappen pid, ellers null */
+  function canAdd(pid, n = 1, isFolder = false, countTotal = true) {
+    const p = nodes[pid]; if (!p || !p.children) return 'Fant ikke mappen.';
+    if (pid !== roots.bin && p.children.length + 1 > LIMITS.perFolder) return 'Mappen «' + p.name + '» er full (maks ' + LIMITS.perFolder + ' elementer). Slett noe, eller bruk en annen mappe.';
+    if (countTotal && total() + n > LIMITS.total) return 'Øvings-PC-en er full (maks ' + LIMITS.total + ' filer og mapper til sammen). Slett noe og tøm papirkurven.';
+    if (isFolder && depth(pid) + 1 >= LIMITS.depth) return 'Du kan ikke lage mapper dypere enn ' + LIMITS.depth + ' nivåer.';
+    return null;
+  }
+  function checkContent(content, oldLen = 0) {
+    if (contentBytes() - oldLen + content.length > LIMITS.storage) return 'Øvings-PC-en har ikke mer lagringsplass. Slett noen filer først.';
+    return null;
+  }
+  function pushUndo(u) { undoStack.push(u); if (undoStack.length > LIMITS.undo) undoStack.shift(); }
+
   function now() { return Date.now(); }
   function mk(name, type, parent, extra = {}) {
     const n = {
@@ -30,6 +50,7 @@ const FS = (() => {
     name = (name || '').trim();
     if (!name) return 'Du må skrive inn et navn.';
     if (INVALID.test(name)) return 'Et navn kan ikke inneholde disse tegnene:  \\ / : * ? " < > |';
+    if (name.length > LIMITS.name) return 'Navnet er for langt (maks ' + LIMITS.name + ' tegn).';
     return null;
   }
   function hasChild(pid, name, except) { return children(pid).some(c => c.id !== except && c.name.toLowerCase() === name.toLowerCase()); }
@@ -55,9 +76,10 @@ const FS = (() => {
     const err = validate(name); if (err) return { error: err };
     name = name.trim();
     if (hasChild(pid, name)) return { error: 'Det finnes allerede en mappe eller fil med navnet «' + name + '» her.' };
+    const lim = canAdd(pid, 1, true); if (lim) return { error: lim };
     const n = mk(name, 'folder', pid, { modified: now() });
     touch(pid);
-    undoStack.push({ type: 'create', id: n.id });
+    pushUndo({ type: 'create', id: n.id });
     emit('create', { id: n.id, name, parent: pid, kind: 'folder', via: opts.via });
     return n;
   }
@@ -65,16 +87,22 @@ const FS = (() => {
     const err = validate(name); if (err) return { error: err };
     name = name.trim();
     if (hasChild(pid, name)) return { error: 'Det finnes allerede en fil med navnet «' + name + '» her.' };
+    const lim = canAdd(pid, 1, false); if (lim) return { error: lim };
+    content = String(content || '').slice(0, LIMITS.content);
+    const cl = checkContent(content); if (cl) return { error: cl };
     const n = mk(name, 'file', pid, { content, size: Math.max(1024, content.length * 12), modified: now() });
     touch(pid);
-    undoStack.push({ type: 'create', id: n.id });
+    pushUndo({ type: 'create', id: n.id });
     emit('create', { id: n.id, name, parent: pid, kind: 'file', via: opts.via });
     return n;
   }
   function write(id, content) {
-    const n = nodes[id]; if (!n) return;
+    const n = nodes[id]; if (!n) return { error: 'Fant ikke filen.' };
+    content = String(content || '').slice(0, LIMITS.content);
+    const cl = checkContent(content, (n.content || '').length); if (cl) return { error: cl };
     n.content = content; n.size = Math.max(1024, content.length * 12); n.modified = now();
     emit('write', { id, name: n.name });
+    return n;
   }
   function rename(id, newName, opts = {}) {
     const n = nodes[id];
@@ -84,7 +112,7 @@ const FS = (() => {
     if (n.system) return { error: 'Denne mappen kan ikke få nytt navn.' };
     if (hasChild(n.parent, newName, id)) return { error: 'Det finnes allerede en fil eller mappe med navnet «' + newName + '» her.' };
     const old = n.name; n.name = newName; n.modified = now();
-    undoStack.push({ type: 'rename', id, old });
+    pushUndo({ type: 'rename', id, old });
     emit('rename', { id, old, name: newName, parent: n.parent, kind: n.type, via: opts.via });
     return n;
   }
@@ -95,11 +123,12 @@ const FS = (() => {
     if (id === pid || isDesc(pid, id)) return { error: 'Du kan ikke flytte en mappe inn i seg selv.' };
     if (n.system) return { error: 'Denne mappen kan ikke flyttes.' };
     if (pid === roots.bin) return remove(id, opts);
+    const lim = canAdd(pid, 0, n.type === 'folder', false); if (lim) return { error: lim };
     const from = n.parent;
     detach(id); n.name = uniqueName(pid, n.name); attach(id, pid);
     if (inBin(from)) n.origParent = null;
     touch(from); touch(pid);
-    undoStack.push({ type: 'move', id, from });
+    pushUndo({ type: 'move', id, from });
     emit('move', { id, name: n.name, from, to: pid, kind: n.type, via: opts.via });
     return n;
   }
@@ -113,10 +142,12 @@ const FS = (() => {
     const n = nodes[id];
     if (!n || !nodes[pid]) return { error: 'Fant ikke mappen.' };
     if (id === pid || isDesc(pid, id)) return { error: 'Du kan ikke kopiere en mappe inn i seg selv.' };
+    const lim = canAdd(pid, subtreeSize(id), n.type === 'folder'); if (lim) return { error: lim };
+    if (n.type === 'file') { const cl = checkContent(n.content || ''); if (cl) return { error: cl }; }
     const nm = uniqueName(pid, n.name, n.parent === pid);
     const c = clone(id, pid, nm);
     touch(pid);
-    undoStack.push({ type: 'create', id: c.id });
+    pushUndo({ type: 'create', id: c.id });
     emit('copy', { id: c.id, source: id, name: c.name, to: pid, kind: c.type, via: opts.via });
     return c;
   }
@@ -129,7 +160,7 @@ const FS = (() => {
     n.origParent = from;
     detach(id); n.name = uniqueName(roots.bin, n.name); attach(id, roots.bin);
     touch(from);
-    undoStack.push({ type: 'delete', id });
+    pushUndo({ type: 'delete', id });
     emit('delete', { id, name: n.name, from, kind: n.type, via: opts.via });
     return n;
   }
@@ -138,6 +169,7 @@ const FS = (() => {
     if (!n) return;
     let t = n.origParent;
     if (t == null || !nodes[t] || inBin(t)) t = roots.documents;
+    const lim = canAdd(t, 0, n.type === 'folder', false); if (lim) return { error: lim };
     detach(id); n.name = uniqueName(t, n.name); attach(id, t);
     n.origParent = null; touch(t);
     emit('restore', { id, name: n.name, to: t, kind: n.type });
@@ -239,12 +271,26 @@ const FS = (() => {
   function notify() { save(); Bus.emit('fs', { op: 'refresh' }); }
 
   function serialize() { return JSON.stringify({ nodes, nextId, roots }); }
-  function save() { try { localStorage.setItem('dt-fs', serialize()); } catch (e) { /* ignorer */ } }
+  /* Lagring utsettes litt, slik at hundre endringer på rad gir én lagring i stedet for hundre */
+  let saveTimer = null, saveFailed = false;
+  function save() { if (saveTimer) return; saveTimer = setTimeout(flush, 250); }
+  function flush() {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    try { localStorage.setItem('dt-fs', serialize()); saveFailed = false; }
+    catch (e) { if (!saveFailed) { saveFailed = true; if (window.Toast) Toast.show('Nettleseren har ikke plass til å lagre flere filer. Slett noe, eller tøm papirkurven.', 6000); } }
+  }
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('beforeunload', flush);
   function load() {
     try {
       const s = localStorage.getItem('dt-fs'); if (!s) return false;
       const d = JSON.parse(s);
       if (!d.nodes || !d.roots || !d.roots.pc) return false;
+      /* Ødelagt eller altfor stor lagret tilstand: start på nytt i stedet for å henge */
+      const ids = Object.keys(d.nodes);
+      if (ids.length > LIMITS.total * 2) return false;
+      for (const k in d.roots) if (!d.nodes[d.roots[k]]) return false;
+      for (const id of ids) { const n = d.nodes[id]; if (!n || typeof n.name !== 'string' || (n.parent != null && !d.nodes[n.parent])) return false; }
       nodes = d.nodes; nextId = d.nextId; roots = d.roots;
       return true;
     } catch (e) { return false; }
@@ -277,12 +323,12 @@ const FS = (() => {
     mk('Klassebilde.jpg', 'file', pics.id);
     mk('Tur-til-fjellet.jpg', 'file', pics.id);
   }
-  function init() { if (!load()) { seed(); save(); } }
+  function init() { if (!load()) { nodes = {}; nextId = 1; roots = {}; seed(); flush(); } }
 
   return {
     init, reset, roots: () => roots, get, children, path, pathString, ext, base, displayName, validate, hasChild, uniqueName,
     isDesc, inBin, createFolder, createFile, write, rename, move, copy, remove, restore, purge, emptyBin, undo,
     search, findAll, findByName, findInBin, resolve, ensureFolder, ensureFile, ensureFileAt, silentRemoveAll, silentRename, notify,
-    canUndo: () => undoStack.length > 0
+    canUndo: () => undoStack.length > 0, flush, total, LIMITS, canAdd
   };
 })();

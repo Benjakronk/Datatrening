@@ -46,10 +46,12 @@ const Desktop = (() => {
   function startRename(id) {
     const n = FS.get(id); if (!n || n.system) return;
     select([id]);
-    const d = root().querySelector(`[data-id="${id}"] .name`);
+    let d = root().querySelector(`[data-id="${id}"] .name`);
+    if (!d) { render(); select([id]); d = root().querySelector(`[data-id="${id}"] .name`); }
     if (d) Explorer.inlineRename(d, n, render);
   }
   function onKey(e) {
+    if (e.repeat) { if (e.ctrlKey || ['Delete', 'Enter', 'F2'].includes(e.key)) e.preventDefault(); return; }
     const k = e.key.toLowerCase();
     const ids = [...sel].filter(id => FS.get(id) && !FS.get(id).system);
     if (e.ctrlKey && ['c', 'x', 'v', 'a', 'z'].includes(k)) {
@@ -130,11 +132,46 @@ document.addEventListener('fullscreenchange', () => {
   Bus.emit('fullscreen', { on: !!document.fullscreenElement });
 });
 
+/* ---------- Nødhjelp: nullstilling og nødstripe ---------- */
+const Recovery = {
+  keys: ['dt-fs', 'dt-innlev', 'dt-pinned', 'dt-bg', 'dt-view', 'dt-showext'],
+  /* Sletter filene på øvings-PC-en (og valgfritt fremdriften) og laster siden på nytt */
+  hardReset(all) {
+    try { this.keys.forEach(k => localStorage.removeItem(k)); if (all) localStorage.removeItem('dt-progress'); } catch (e) { /* ignorer */ }
+    location.href = location.pathname;
+  },
+  bar(msg) {
+    if (document.getElementById('recovery')) return;
+    const b = el(`<div id="recovery"><span>${esc(msg)}</span><button class="btn small">Nullstill øvings-PC-en</button></div>`);
+    b.querySelector('button').addEventListener('click', () => Recovery.hardReset(false));
+    document.body.appendChild(b);
+  }
+};
+
 /* ---------- Oppstart ---------- */
 (function main() {
-  FS.init();
-  WM.renderTaskbar();
-  Desktop.init();
+  /* index.html?nullstill sletter filene, index.html?nullstill=alt sletter også fremdriften */
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.has('nullstill') || q.has('reset')) {
+      Recovery.keys.forEach(k => localStorage.removeItem(k));
+      if (q.get('nullstill') === 'alt' || q.get('reset') === 'all') localStorage.removeItem('dt-progress');
+      history.replaceState(null, '', location.pathname);
+    }
+  } catch (e) { /* ignorer */ }
+
+  let errors = 0;
+  window.addEventListener('error', () => { if (++errors === 8) Recovery.bar('Siden har fått flere feil. Hvis den henger, nullstill øvings-PC-en.'); });
+
+  try {
+    FS.init();
+    WM.renderTaskbar();
+    Desktop.init();
+  } catch (e) {
+    console.error(e);
+    Recovery.bar('Noe gikk galt under oppstart. Nullstill øvings-PC-en for å komme i gang igjen.');
+    return;
+  }
 
   function clock() {
     const d = new Date();
@@ -144,7 +181,7 @@ document.addEventListener('fullscreenchange', () => {
   clock(); setInterval(clock, 15000);
 
   Bus.on((type, d) => {
-    if (type === 'fs') Desktop.render();
+    if (type === 'fs') Coalesce.schedule(Desktop, () => Desktop.render());
   });
 
   document.addEventListener('keydown', e => {
@@ -159,6 +196,6 @@ document.addEventListener('fullscreenchange', () => {
   /* Hindre at nettleseren selv reagerer på Ctrl+S / Ctrl+P når fokus er på skrivebordet */
   document.addEventListener('keydown', e => { if (e.ctrlKey && ['s', 'p'].includes(e.key.toLowerCase()) && !(e.target.closest && e.target.closest('#coach'))) e.preventDefault(); });
 
-  Coach.init();
+  try { Coach.init(); } catch (e) { console.error(e); Recovery.bar('Veilederen kunne ikke starte. Nullstill øvings-PC-en for å komme i gang igjen.'); }
   if (!window.__noFullscreenOverlay) Fullscreen.overlay();
 })();

@@ -48,11 +48,16 @@ const Ctx = {
     m.style.left = x + 'px';
     m.style.top = y + 'px';
     this.el = m;
-    this._out = e => { if (!m.contains(e.target)) Ctx.hide('outside'); };
-    this._key = e => { if (e.key === 'Escape') { e.stopPropagation(); Ctx.hide('esc'); } };
-    setTimeout(() => {
-      document.addEventListener('pointerdown', this._out, true);
-      document.addEventListener('keydown', this._key, true);
+    const out = e => { if (!m.contains(e.target)) Ctx.hide('outside'); };
+    const key = e => { if (e.key === 'Escape') { e.stopPropagation(); Ctx.hide('esc'); } };
+    this._out = out; this._key = key;
+    /* Lytterne legges til rett etter at menyen er åpnet (så høyreklikket selv ikke lukker den).
+       Lukkes menyen før det, avbrytes tidsavbruddet, ellers ville lytterne blitt liggende igjen. */
+    this._timer = setTimeout(() => {
+      this._timer = null;
+      if (this.el !== m) return;
+      document.addEventListener('pointerdown', out, true);
+      document.addEventListener('keydown', key, true);
     }, 0);
     Bus.emit('ctxmenu', { where: where || '', label: label || '' });
   },
@@ -75,12 +80,13 @@ const Ctx = {
     });
   },
   hide(via) {
+    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+    if (this._out) { document.removeEventListener('pointerdown', this._out, true); this._out = null; }
+    if (this._key) { document.removeEventListener('keydown', this._key, true); this._key = null; }
     if (this.el) {
       this.el.remove(); this.el = null;
       if (via) Bus.emit('ctxmenu-close', { via });
     }
-    if (this._out) document.removeEventListener('pointerdown', this._out, true);
-    if (this._key) document.removeEventListener('keydown', this._key, true);
   }
 };
 
@@ -137,9 +143,31 @@ const DnD = {
 const Toast = {
   show(msg, ms = 3200) {
     const box = document.getElementById('toasts');
+    if (!box) return;
+    while (box.children.length >= 3) box.firstChild.remove();
     const t = el(`<div class="toast">${esc(msg)}</div>`);
     box.appendChild(t);
     setTimeout(() => t.remove(), ms);
+  }
+};
+
+/* ---------- Samler mange tegne-forespørsler til én ----------
+   Bruker setTimeout, ikke requestAnimationFrame, fordi rAF stopper helt i en skjult fane. */
+const Coalesce = {
+  pending: new Map(),
+  schedule(key, fn) {
+    if (this.pending.has(key)) return;
+    this.pending.set(key, fn);
+    setTimeout(() => {
+      const f = this.pending.get(key);
+      this.pending.delete(key);
+      try { f(); } catch (e) { console.error(e); }
+    }, 16);
+  },
+  flush() {
+    const items = [...this.pending.values()];
+    this.pending.clear();
+    items.forEach(f => { try { f(); } catch (e) { console.error(e); } });
   }
 };
 

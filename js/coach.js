@@ -18,6 +18,13 @@ const Coach = (() => {
     folder(path) { const n = FS.resolve(path); return n && n.type === 'folder' ? n : null; },
     file(name) { return FS.findByName(name, 'file'); },
     fileIn(name, path) { const f = FS.resolve(path); return !!f && FS.children(f.id).some(c => c.type === 'file' && c.name.toLowerCase() === name.toLowerCase()); },
+    /* Filen ligger i en mappe med dette navnet (f.eks. «Engelsk»), uansett hvor mappen ligger.
+       Brukes for fagmapper, så en elev som har laget sin egen fagmappe et annet sted også får godkjent. */
+    fileInNamed(name, folderName) {
+      const f = FS.findByName(name, 'file'); if (!f) return false;
+      const p = FS.get(f.parent); if (!p) return false;
+      return p.name.trim().toLowerCase().includes(folderName.toLowerCase());
+    },
     folderIn(name, path) { const f = FS.resolve(path); return !!f && FS.children(f.id).some(c => c.type === 'folder' && c.name.toLowerCase() === name.toLowerCase()); },
     inBin(name) { return !!FS.findInBin(name); },
     gone(name) { return !FS.findByName(name) && !FS.findInBin(name); },
@@ -195,6 +202,14 @@ const Coach = (() => {
     }));
     row.appendChild(btn('Nullstill fremdrift', 'small', async () => { if (await Dialog.confirm('Nullstill fremdrift', 'Er du sikker? Alle fullførte oppdrag blir slettet.')) resetProgress(); }));
     body.appendChild(row);
+    body.appendChild(el(`<h3>Hvis øvings-PC-en henger</h3><p class="muted">Knappen under sletter alle filer og mapper på øvings-PC-en og legger tilbake de opprinnelige. Fremdriften beholdes. Det samme skjer om du åpner siden med <code>?nullstill</code> bak adressen.</p>`));
+    const row2 = el('<div class="cbtns"></div>');
+    row2.appendChild(btn('Tilbakestill øvings-PC-en', 'small', () => {
+      if (!window.confirm('Slette alle filer og mapper på øvings-PC-en og starte den på nytt?')) return;
+      try { ['dt-fs', 'dt-innlev', 'dt-pinned', 'dt-bg'].forEach(k => localStorage.removeItem(k)); } catch (e) { /* ignorer */ }
+      location.href = location.pathname;
+    }));
+    body.appendChild(row2);
   }
 
   function resetProgress() {

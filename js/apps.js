@@ -31,11 +31,12 @@ const Skriv = (() => {
   let count = 0;
   const inst = [];
   function open(nodeId) {
+    if (WM.full()) return null;
     count++;
     const st = { nodeId: nodeId && FS.get(nodeId) ? nodeId : null, dirty: false, docName: 'Dokument' + count };
     const root = el(`<div class="skriv">
       <div class="menubar"><button data-a="new">Ny</button><button data-a="open">Åpne</button><button data-a="save">Lagre</button><button data-a="saveas">Lagre som</button><span class="spacer"></span><span class="hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> lagrer</span></div>
-      <textarea spellcheck="false" placeholder="Skriv her …"></textarea>
+      <textarea spellcheck="false" placeholder="Skriv her …" maxlength="${FS.LIMITS.content}"></textarea>
       <div class="sk-status"><span class="words">0 ord</span><span class="where"></span></div>
     </div>`);
     const ta = root.querySelector('textarea');
@@ -103,7 +104,8 @@ const Skriv = (() => {
     async function save(via) {
       if (!st.nodeId || !FS.get(st.nodeId)) { st.nodeId = null; return saveAs(via); }
       const n = FS.get(st.nodeId);
-      FS.write(n.id, ta.value);
+      const w = FS.write(n.id, ta.value);
+      if (w && w.error) { await Dialog.alert('Kunne ikke lagre', w.error); return false; }
       st.dirty = false; updTitle();
       Bus.emit('save', { id: n.id, name: n.name, folderId: n.parent, via, isNew: false });
       Toast.show('Lagret: ' + n.name);
@@ -119,7 +121,7 @@ const Skriv = (() => {
       });
       if (!r) return false;
       let n = FS.children(r.folderId).find(c => c.name.toLowerCase() === r.name.toLowerCase());
-      if (n) FS.write(n.id, ta.value);
+      if (n) { const w = FS.write(n.id, ta.value); if (w && w.error) { await Dialog.alert('Kunne ikke lagre', w.error); return false; } }
       else {
         n = FS.createFile(r.folderId, r.name, ta.value, { via: 'skriv' });
         if (n.error) { await Dialog.alert('Kunne ikke lagre', n.error); return false; }
@@ -166,6 +168,7 @@ const Nettleser = (() => {
     { fag: 'Samfunnsfag', title: 'Presentasjon om demokrati', desc: 'Lysbildene fra timen', file: 'Demokrati.pptx', content: 'Demokrati\nFolkestyre – alle over 18 år kan stemme.' }
   ];
   function open() {
+    if (WM.full()) return null;
     const root = el(`<div class="browser">
       <div class="br-tabs"><span class="br-tab">🏫 Skoleportalen</span></div>
       <div class="br-addr"><button class="nav-btn">←</button><button class="nav-btn">→</button><button class="nav-btn">⟳</button><div class="url">ovings-pc.simulering/skoleportalen/8a/oppgaver</div><button class="nav-btn dlb" title="Nedlastinger">⭳</button></div>
@@ -211,9 +214,10 @@ const Nettleser = (() => {
       const r = await Dialog.fileChooser({ mode: 'save', title: 'Lagre som', name: FS.base(l.file), types: [{ label: Icons.typeName({ type: 'file', name: l.file }) + ' (*.' + ext + ')', ext }], start: FS.roots().downloads });
       if (!r) return;
       let n = FS.children(r.folderId).find(c => c.name.toLowerCase() === r.name.toLowerCase());
-      if (n) FS.write(n.id, l.content);
+      if (n) { const w = FS.write(n.id, l.content); if (w && w.error) { Toast.show(w.error); return; } }
       else { n = FS.createFile(r.folderId, r.name, l.content, { via: 'download' }); if (n.error) { Toast.show(n.error); return; } }
       downloads.unshift({ id: n.id, name: n.name });
+      if (downloads.length > 20) downloads.length = 20;
       Bus.emit('download', { id: n.id, name: n.name, base: l.file, via: 'saveas', folderId: r.folderId });
       Toast.show('Lagret «' + n.name + '» i ' + FS.get(r.folderId).name);
       fly.classList.remove('hidden'); renderFly();
@@ -227,6 +231,7 @@ const Nettleser = (() => {
       const n = FS.createFile(dl, name, l.content, { via: 'download' });
       if (n.error) { Toast.show(n.error); return; }
       downloads.unshift({ id: n.id, name: n.name });
+      if (downloads.length > 20) downloads.length = 20;
       Bus.emit('download', { id: n.id, name: n.name, base: l.file });
       fly.classList.remove('hidden');
       renderFly();
@@ -263,6 +268,7 @@ const Innlevering = (() => {
   function st(id) { return state[id] || (state[id] = { files: [], submitted: null }); }
 
   function open() {
+    if (WM.full()) return null;
     let cur = null;
     const root = el(`<div class="teams"><div class="tm-side"><h3>Oppgaver</h3><div class="tm-list"></div></div><div class="tm-main"></div></div>`);
     const win = WM.create({ app: 'innlevering', title: 'Innleveringer', body: root, width: 900, height: 580 });
@@ -304,6 +310,7 @@ const Innlevering = (() => {
           const r = await Dialog.fileChooser({ mode: 'open', title: 'Legg til arbeid – velg en fil', types: [{ label: 'Alle filer (*.*)', ext: '' }], start: FS.roots().onedrive });
           if (!r) return;
           if (s.files.some(f => f.nodeId === r.nodeId)) { Toast.show('Filen er allerede lagt til.'); return; }
+          if (s.files.length >= 10) { Toast.show('Du kan legge ved maks 10 filer per oppgave.'); return; }
           s.files.push({ nodeId: r.nodeId, name: r.name }); save();
           Bus.emit('attach', { assignment: a.id, name: r.name, nodeId: r.nodeId });
           render();
@@ -333,7 +340,8 @@ const Viewer = (() => {
     return `<svg class="v-img" viewBox="0 0 520 340" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${hue},70%,75%)"/><stop offset="1" stop-color="hsl(${hue},60%,92%)"/></linearGradient></defs><rect width="520" height="340" fill="url(#sky)"/><circle cx="420" cy="70" r="36" fill="#ffd166"/><path d="M0 340L120 190l90 90 70-120 120 140 120-90v130z" fill="hsl(${(hue + 120) % 360},40%,40%)"/><path d="M0 340l160-110 110 110z" fill="hsl(${(hue + 120) % 360},45%,30%)"/><text x="16" y="326" font-size="13" fill="#fff" font-family="Segoe UI, sans-serif">${esc(name)}</text></svg>`;
   }
   function open(id) {
-    const n = FS.get(id); if (!n) return;
+    const n = FS.get(id); if (!n) return null;
+    if (WM.full()) return null;
     const e = FS.ext(n.name);
     let inner, app = 'viewer';
     if (['jpg', 'jpeg', 'png'].includes(e)) { inner = scene(n.name); app = 'bilder'; }
@@ -350,6 +358,7 @@ const Viewer = (() => {
 /* ---------- Innstillinger ---------- */
 const Innstillinger = (() => {
   function open() {
+    if (WM.full()) return null;
     const root = el(`<div class="settings">
       <h3>Innstillinger</h3>
       <div class="opt"><input type="checkbox" id="set-ext"${Explorer.settings.showExt ? ' checked' : ''}><div class="desc"><label for="set-ext">Vis filendelser i Filutforsker</label><small>Viser .docx, .pdf osv. bak filnavnet.</small></div></div>
@@ -367,6 +376,7 @@ const Innstillinger = (() => {
 /* ---------- Oppgavebehandling (liste over åpne programmer) ---------- */
 const TaskMgr = (() => {
   function open() {
+    if (WM.full()) return null;
     const root = el(`<div class="taskmgr"><h3>Prosesser</h3><div class="tk-rows"></div><p class="muted">På en ekte PC åpner du Oppgavebehandling med <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd>, eller ved å høyreklikke på oppgavelinjen. Her kan du avslutte programmer som har hengt seg.</p></div>`);
     const win = WM.create({ app: 'taskmgr', title: 'Oppgavebehandling', body: root, width: 600, height: 440 });
     function render() {

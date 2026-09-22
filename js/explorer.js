@@ -14,7 +14,7 @@ const Explorer = (() => {
     Bus.emit('show-ext', { on: settings.showExt, via });
     refreshAll();
   }
-  function refreshAll() { views.forEach(v => v.render()); if (window.Desktop) Desktop.render(); }
+  function refreshAll() { views.forEach(v => Coalesce.schedule(v, () => v.render())); if (window.Desktop) Coalesce.schedule(Desktop, () => Desktop.render()); }
 
   /* ---------- Felles handlinger (brukes også av skrivebordet) ---------- */
   function doCopy(ids, via) {
@@ -34,10 +34,11 @@ const Explorer = (() => {
     if (!ids.length) return [];
     const out = [];
     const mode = Clip.cut ? 'cut' : 'copy';
-    ids.forEach(id => {
+    for (const id of ids) {
       const r = Clip.cut ? FS.move(id, folderId, { via: 'paste' }) : FS.copy(id, folderId, { via: 'paste' });
-      if (r && r.error) Toast.show(r.error); else if (r) out.push(r.id);
-    });
+      if (r && r.error) { Toast.show(r.error); break; }
+      if (r) out.push(r.id);
+    }
     Bus.emit('paste', { mode, ids, names: ids.map(id => (FS.get(id) || {}).name), to: folderId, via });
     if (Clip.cut) { Clip.ids = []; Clip.cut = false; }
     refreshAll();
@@ -86,6 +87,7 @@ const Explorer = (() => {
     Bus.emit('rename-start', { id: n.id, name: n.name });
     let finished = false;
     const finish = async commit => {
+      Bus.emit('rename-finish', { id: n.id, commit: !!commit, value: input.value, already: finished, attached: input.isConnected });
       if (finished) return; finished = true;
       let v = input.value.trim();
       if (commit && v && v !== full) {
@@ -410,11 +412,15 @@ const Explorer = (() => {
     startRename(id) {
       const n = FS.get(id); if (!n || this.inBin) return;
       this.select([id]);
-      const d = this.root.querySelector(`[data-id="${id}"] .name`);
+      let d = this.root.querySelector(`[data-id="${id}"] .name`);
+      /* Nyopprettet element er kanskje ikke tegnet ennå (tegning samles per skjermbilde): tegn nå */
+      if (!d) { this.render(); this.select([id]); d = this.root.querySelector(`[data-id="${id}"] .name`); }
       if (!d) return;
       inlineRename(d, n, () => this.renderContent());
     }
     onKey(e) {
+      /* Tastetrykk som gjentas fordi tasten holdes nede, ignoreres. Ellers kan Ctrl+V holdt nede lage hundrevis av kopier. */
+      if (e.repeat) { if (e.ctrlKey || ['Delete', 'Enter', 'F2'].includes(e.key)) e.preventDefault(); return; }
       const k = e.key.toLowerCase();
       const ids = [...this.sel];
       if (e.ctrlKey && ['c', 'x', 'v', 'a', 'z', 'f', 'e', 's'].includes(k)) {
@@ -448,12 +454,16 @@ const Explorer = (() => {
     }
   }
 
-  function open(folderId, opts = {}) { return new View(folderId || FS.roots().pc, opts); }
+  function open(folderId, opts = {}) { if (WM.full()) return null; return new View(folderId || FS.roots().pc, opts); }
 
   Bus.on((type, d) => {
     if (type === 'fs') {
-      views.forEach(v => { if (!FS.get(v.cwd)) v.navigate(FS.roots().pc, false); else { v.sel = new Set([...v.sel].filter(id => FS.get(id) && FS.get(id).parent === v.cwd || v.query)); v.render(); } });
       Clip.ids = Clip.ids.filter(id => FS.get(id));
+      views.forEach(v => Coalesce.schedule(v, () => {
+        if (!views.includes(v)) return;
+        if (!FS.get(v.cwd)) v.navigate(FS.roots().pc, false);
+        else { v.sel = new Set([...v.sel].filter(id => FS.get(id) && (FS.get(id).parent === v.cwd || v.query))); v.render(); }
+      }));
     }
   });
 

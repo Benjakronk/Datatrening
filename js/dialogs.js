@@ -144,7 +144,7 @@ const Dialog = (() => {
     body.querySelector('.up').addEventListener('click', () => { const p = FS.get(cwd).parent; if (p != null) navigate(p); });
     body.querySelector('.newf').addEventListener('click', async () => {
       const name = await prompt('Ny mappe', 'Navn på mappen:', 'Ny mappe', v => FS.validate(v) || (FS.hasChild(cwd, v.trim()) ? 'Det finnes allerede en mappe med dette navnet.' : null));
-      if (name) { const r = FS.createFolder(cwd, name, { via: 'dialog' }); if (!r.error) navigate(r.id); }
+      if (name) { const r = FS.createFolder(cwd, name, { via: 'dialog' }); if (r.error) Toast.show(r.error); else navigate(r.id); }
     });
     nameIn.addEventListener('input', () => { err.textContent = ''; });
 

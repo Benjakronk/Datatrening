@@ -29,6 +29,22 @@ simulering» i oppgavelinjen, på startbildet og i sidetittelen), og den simuler
 - Sjekk om blokkeringen kommer fra skolens eget filter i stedet: da står organisasjonens navn i meldingen,
   og IT-avdelingen må godkjenne adressen.
 
+## Grenser og nødhjelp (mot elever som stresstester)
+
+Øvings-PC-en har faste grenser, så en elev ikke kan låse siden ved å lage tusenvis av filer:
+maks 200 elementer per mappe, 1500 filer og mapper totalt, 12 mappenivåer, 120 tegn i navn,
+20 000 tegn per dokument og 12 åpne vinduer. Eleven får en vennlig melding når en grense nås.
+Tastetrykk som gjentas når en tast holdes nede (for eksempel Ctrl+V) ignoreres, tegning av vinduer
+samles per skjermbilde, og lagring i nettleseren skjer forsinket.
+
+Hvis siden likevel skulle henge, eller lagret tilstand er ødelagt:
+
+- Åpne `index.html?nullstill` (sletter filer og mapper, beholder fremdriften) eller
+  `index.html?nullstill=alt` (sletter alt, inkludert fremdrift).
+- Fanen **Fremdrift** i veilederpanelet har knappen «Tilbakestill øvings-PC-en».
+- Ødelagt eller altfor stor lagret tilstand oppdages ved oppstart og tilbakestilles automatisk.
+- Får siden feil under oppstart, vises en rød stripe øverst med en nullstill-knapp.
+
 ## Høyreklikkmenyer
 
 Alle elementer på øvings-PC-en har sin egen høyreklikkmeny, slik som i Windows: skrivebordet,
