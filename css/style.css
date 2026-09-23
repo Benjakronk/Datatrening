@@ -270,6 +270,35 @@ label { font-size: 13px; }
 .tkr .t { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tkr .ico { width: 20px; height: 20px; display: inline-flex; }
 
+/* ---------- Programmeringssiden: eget utseende så det er tydelig at det er et annet kurs ---------- */
+body.page-prog { --coach: #0f766e; }
+body.page-prog #desktop {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 40px),
+    radial-gradient(ellipse at 20% 15%, #2a9d8f 0%, #1b5e5a 35%, #0f2f3a 70%, #08161f 100%);
+}
+body.page-prog #fs-overlay { background: radial-gradient(ellipse at 20% 15%, #2a9d8f 0%, #1b5e5a 35%, #0f2f3a 70%, #08161f 100%); }
+body.page-prog .fso-box h1::after { content: ' · programmering'; font-weight: 400; font-size: 22px; color: #a7f3d0; }
+body.page-prog #taskbar { background: rgba(14, 40, 44, .94); border-top-color: rgba(255,255,255,.08); }
+body.page-prog .tb-app:hover { background: rgba(255,255,255,.1); }
+body.page-prog .tb-app.active { background: rgba(255,255,255,.14); }
+body.page-prog .tb-app.open::after { background: #bbb; }
+body.page-prog .tb-app.active::after { background: #5eead4; }
+body.page-prog .fs-btn svg path { stroke: #e5e7eb; }
+body.page-prog #clock { color: #e5e7eb; }
+body.page-prog #sim-label { color: #9ca3af; border-right-color: rgba(255,255,255,.15); }
+body.page-prog .ctab.active { border-bottom-color: #0f766e; color: #0f766e; }
+body.page-prog .step.active { border-color: #0f766e; background: #ecfdf5; box-shadow: 0 2px 8px rgba(15,118,110,.15); }
+body.page-prog .step.active .num { background: #0f766e; }
+body.page-prog .step .txt b { color: #0f766e; }
+body.page-prog .kurs-card.open { border-color: #5eead4; background: #f0fdfa; }
+body.page-prog .opp-row .play { color: #0f766e; }
+body.page-prog .opp-row:hover { background: #ecfdf5; }
+body.page-prog .laer { background: #f0fdfa; border-color: #99f6e4; }
+body.page-prog .btn.primary { background: #0f766e; border-color: #0f766e; }
+body.page-prog .btn.primary:hover { background: #115e59; }
+
 /* ---------- Terminal (PowerShell) ---------- */
 .term { flex: 1; background: #0c0c0c; color: #cccccc; font: 14px/1.4 Consolas, "Cascadia Mono", "Courier New", monospace; padding: 8px 12px; overflow: auto; user-select: text; cursor: text; }
 .term-l { white-space: pre-wrap; word-break: break-all; min-height: 1.4em; }
