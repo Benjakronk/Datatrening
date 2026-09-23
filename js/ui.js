@@ -151,6 +151,8 @@ const Toast = {
   }
 };
 
+window.Toast = Toast;
+
 /* ---------- Samler mange tegne-forespørsler til én ----------
    Bruker setTimeout, ikke requestAnimationFrame, fordi rAF stopper helt i en skjult fane. */
 const Coalesce = {

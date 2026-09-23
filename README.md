@@ -87,6 +87,29 @@ mot tilstanden på øvings-PC-en, så eleven får umiddelbar tilbakemelding. Kur
 Fanen **Fremdrift** viser hva eleven har fullført, og knappen «Kopier rapport» lager en tekst
 eleven kan sende til læreren.
 
+## Programmeringskurset (programmering.html)
+
+`programmering.html` er et eget kurssett for programmeringselever, på samme øvings-PC. Det forutsetter
+grunnkurset og legger til to programmer:
+
+- **Terminal**: en PowerShell-simulering med ekte kommandoer mot det virtuelle filsystemet:
+  `pwd`, `cd`, `ls`, `mkdir`, `New-Item`, `Remove-Item`, `Move-Item`, `Copy-Item`, `Rename-Item`, `Get-Content`,
+  `Set-Content`, `echo … > fil`, `tree`, `Get-Help`, `Get-Alias`, `code .`, `explorer .`, `python fil.py`,
+  `.\skript.ps1`, Tab-fullføring, kommandohistorikk og Ctrl+C. Mappene har engelske navn slik ekte Windows
+  viser dem i terminalen (Documents, Desktop …), og feilmeldingene er PowerShells egne.
+- **Kode**: en VS Code-lignende editor med filtre, faner, linjenumre, syntaksfarger, Tab-innrykk,
+  Ctrl+S og en ▶ Kjør-knapp som kjører filen i terminalen.
+- **Python**: `js/pyth.js` er en liten Python 3-tolk skrevet i JavaScript, uten avhengigheter. Den kjører
+  elevenes programmer med `print`, `input`, variabler, f-strenger, `if/elif/else`, `while`, `for`, `range`,
+  lister, dict, funksjoner, `try/except`, `import random/math/time` og `open()` mot filene på øvings-PC-en.
+  Feilmeldinger ser ut som ekte Python (traceback med linjenummer), `input()` venter på eleven i terminalen,
+  og uendelige løkker må stoppes med Ctrl+C. PowerShell-skript med `Write-Host`, `Read-Host` og variabler
+  kjøres også.
+
+Kursene (7 kurs, 11 oppdrag) ligger i `js/oppdrag-prog.js`: terminalen, filer fra terminalen, stier,
+Kode-editoren, feilsøking, prosjektstruktur og PowerShell-skript. Fremdriften lagres separat fra grunnkurset,
+og veilederpanelet lenker mellom de to sidene.
+
 ## Tilpasse innholdet
 
 Alt kursinnhold ligger i `js/oppdrag.js`. Et oppdrag ser slik ut:

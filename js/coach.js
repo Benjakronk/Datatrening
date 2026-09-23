@@ -1,7 +1,11 @@
 /* Veileder-panelet: kurs, oppdrag, automatisk sjekking av steg og fremdrift */
 const Coach = (() => {
+  /* Kurssettet og lagringsnøkkelen avhenger av siden: index.html = grunnkurset, programmering.html = KURS_PROG */
+  const KL = window.KURS_ACTIVE || KURS;
+  const PKEY = 'dt-progress' + (window.DT_PAGE ? '-' + window.DT_PAGE : '');
   let P = { name: '', done: {}, active: null, tab: 'kurs', openKurs: null, collapsed: false };
-  try { Object.assign(P, JSON.parse(localStorage.getItem('dt-progress') || '{}')); } catch (e) { /* ignorer */ }
+  try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch (e) { /* ignorer */ }
+  if (!P.name && window.DT_PAGE) { try { const b = JSON.parse(localStorage.getItem('dt-progress') || '{}'); if (b.name) P.name = b.name; } catch (e) { /* ignorer */ } }
   let stepStart = 0, checking = false, pending = false, hintOpen = false, wrongOpt = null;
 
   /* Hjelpeobjekt som oppdragene bruker i check(S) */
@@ -31,20 +35,24 @@ const Coach = (() => {
     content(name) { const f = FS.findByName(name, 'file'); return f ? (f.content || '') : ''; },
     byContent(prefix) { return FS.findAll(c => c.type === 'file' && (c.content || '').startsWith(prefix))[0] || null; },
     editorText() { return Skriv.activeText(); },
+    kodeText() { return window.Kode ? Kode.activeText() : ''; },
+    kodeFile() { return window.Kode ? Kode.activeFile() : ''; },
+    lastRun() { return window.Terminal ? Terminal.lastRun : null; },
+    termCwd() { const t = window.Terminal && Terminal.active(); return t ? t.cwdPath : ''; },
     wins(app) { return WM.list(app).length; }
   };
 
-  function save() { try { localStorage.setItem('dt-progress', JSON.stringify(P)); } catch (e) { /* ignorer */ } }
-  function kurs(id) { return KURS.find(k => k.id === id); }
+  function save() { try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) { /* ignorer */ } }
+  function kurs(id) { return KL.find(k => k.id === id); }
   function oppOf(a) { const k = a && kurs(a.kurs); return k ? k.oppdrag.find(o => o.id === a.opp) : null; }
   function kursDone(k) { return k.oppdrag.filter(o => P.done[o.id]).length; }
-  function totalOpp() { return KURS.reduce((n, k) => n + k.oppdrag.length, 0); }
-  function totalDone() { return KURS.reduce((n, k) => n + kursDone(k), 0); }
+  function totalOpp() { return KL.reduce((n, k) => n + k.oppdrag.length, 0); }
+  function totalDone() { return KL.reduce((n, k) => n + kursDone(k), 0); }
   function nextOppdrag(a) {
     const k = kurs(a.kurs); const i = k.oppdrag.findIndex(o => o.id === a.opp);
     if (i < k.oppdrag.length - 1) return { kurs: k.id, opp: k.oppdrag[i + 1].id };
-    const ki = KURS.indexOf(k);
-    if (ki < KURS.length - 1) return { kurs: KURS[ki + 1].id, opp: KURS[ki + 1].oppdrag[0].id };
+    const ki = KL.indexOf(k);
+    if (ki < KL.length - 1) return { kurs: KL[ki + 1].id, opp: KL[ki + 1].oppdrag[0].id };
     return null;
   }
 
@@ -120,7 +128,7 @@ const Coach = (() => {
       return;
     }
     const k = kurs(a.kurs), o = oppOf(a);
-    const ki = KURS.indexOf(k) + 1, oi = k.oppdrag.indexOf(o) + 1;
+    const ki = KL.indexOf(k) + 1, oi = k.oppdrag.indexOf(o) + 1;
     body.appendChild(el(`<div class="ktag">Kurs ${ki} · ${esc(k.title)}</div><h2>Oppdrag ${ki}.${oi}: ${esc(o.title)}</h2>`));
     if (k.laer) body.appendChild(el(`<details class="laer"${a.step === 0 && oi === 1 && !P.done[o.id] ? ' open' : ''}><summary>📖 Les først: ${esc(k.laerTitle || k.title)}</summary>${k.laer}</details>`));
     const done = a.step >= o.steps.length;
@@ -167,7 +175,7 @@ const Coach = (() => {
 
   function renderKurs(body) {
     body.appendChild(el('<p class="muted">Velg et kurs. Det er lurt å ta dem i rekkefølge. Klikk på et oppdrag for å starte det.</p>'));
-    KURS.forEach((k, i) => {
+    KL.forEach((k, i) => {
       const dn = kursDone(k), tot = k.oppdrag.length;
       const open = P.openKurs === k.id;
       const card = el(`<div class="kurs-card${open ? ' open' : ''}"><div class="kt"><span>${i + 1}. ${esc(k.title)}</span><small>${dn}/${tot} ${dn === tot ? '✓' : ''}</small></div><div class="muted">${esc(k.desc || '')}</div><div class="bar"><div style="width:${tot ? (100 * dn / tot) : 0}%"></div></div></div>`);
@@ -184,6 +192,9 @@ const Coach = (() => {
       }
       body.appendChild(card);
     });
+    body.appendChild(el(window.DT_PAGE === 'prog'
+      ? '<p class="muted" style="margin-top:16px">Dette er kurssettet for programmering. <a href="index.html">← Til grunnkurset</a> (filer, mapper, lagring, innlevering).</p>'
+      : '<p class="muted" style="margin-top:16px">For programmeringselever finnes et eget kurssett med terminal (PowerShell), Kode-editor og Python: <a href="programmering.html">Programmeringskurset →</a></p>'));
   }
 
   function renderFremdrift(body) {
@@ -192,11 +203,11 @@ const Coach = (() => {
     body.appendChild(nm);
     const tot = totalOpp(), dn = totalDone();
     body.appendChild(el(`<h3>${dn} av ${tot} oppdrag fullført</h3><div class="bar"><div style="width:${100 * dn / tot}%"></div></div>`));
-    KURS.forEach((k, i) => body.appendChild(el(`<div class="frem-row"><span>${i + 1}. ${esc(k.title)}</span><span>${kursDone(k)}/${k.oppdrag.length} ${kursDone(k) === k.oppdrag.length ? '✓' : ''}</span></div>`)));
+    KL.forEach((k, i) => body.appendChild(el(`<div class="frem-row"><span>${i + 1}. ${esc(k.title)}</span><span>${kursDone(k)}/${k.oppdrag.length} ${kursDone(k) === k.oppdrag.length ? '✓' : ''}</span></div>`)));
     if (dn === tot) body.appendChild(el(`<div class="diplom"><h2>🏆 Diplom</h2><div><b>${esc(P.name || 'Elev')}</b> har fullført alle kursene i Datatrening og kan bruke PC-en til skolearbeid!</div><div class="muted">${fmtDate(Date.now())}</div></div>`));
     const row = el('<div class="cbtns"></div>');
     row.appendChild(btn('Kopier rapport', 'small', async () => {
-      const text = `Datatrening – fremdrift for ${P.name || 'Elev'} (${fmtDate(Date.now())})\n${dn} av ${tot} oppdrag fullført\n` + KURS.map((k, i) => `${i + 1}. ${k.title}: ${kursDone(k)}/${k.oppdrag.length}` + k.oppdrag.map(o => `\n   ${P.done[o.id] ? '[x]' : '[ ]'} ${o.title}`).join('')).join('\n');
+      const text = `Datatrening – fremdrift for ${P.name || 'Elev'} (${fmtDate(Date.now())})\n${dn} av ${tot} oppdrag fullført\n` + KL.map((k, i) => `${i + 1}. ${k.title}: ${kursDone(k)}/${k.oppdrag.length}` + k.oppdrag.map(o => `\n   ${P.done[o.id] ? '[x]' : '[ ]'} ${o.title}`).join('')).join('\n');
       try { await navigator.clipboard.writeText(text); Toast.show('Rapporten er kopiert. Lim den inn i en melding til læreren.'); }
       catch (e) { Dialog.show({ title: 'Rapport', body: `<textarea style="width:420px;height:260px;font:12px monospace">${esc(text)}</textarea>`, buttons: [{ label: 'Lukk', value: true, primary: true }] }); }
     }));
@@ -213,7 +224,7 @@ const Coach = (() => {
   }
 
   function resetProgress() {
-    P = { name: P.name, done: {}, active: null, tab: 'kurs', openKurs: KURS[0].id, collapsed: false };
+    P = { name: P.name, done: {}, active: null, tab: 'kurs', openKurs: KL[0].id, collapsed: false };
     save(); render();
     Toast.show('Fremdriften er nullstilt.');
   }
@@ -230,13 +241,13 @@ const Coach = (() => {
     if (!P.name) {
       Dialog.show({
         title: 'Velkommen til Datatrening!',
-        body: `<div class="welcome"><p>Her lærer du å bruke en PC slik vi gjør på skolen: filer og mapper, lagring, nedlastinger og innlevering. Alt skjer på en <b>øvings-PC</b> i nettleseren, så du kan ikke ødelegge noe.</p><p>Panelet til høyre viser oppdragene dine. Stegene blir grønne av seg selv når du gjør dem riktig.</p><label>Hva heter du?</label><input class="txt" id="welcome-name" autofocus placeholder="Fornavn og etternavn"></div>`,
+        body: `<div class="welcome">${window.DT_WELCOME || '<p>Her lærer du å bruke en PC slik vi gjør på skolen: filer og mapper, lagring, nedlastinger og innlevering. Alt skjer på en <b>øvings-PC</b> i nettleseren, så du kan ikke ødelegge noe.</p>'}<p>Panelet til høyre viser oppdragene dine. Stegene blir grønne av seg selv når du gjør dem riktig.</p><label>Hva heter du?</label><input class="txt" id="welcome-name" autofocus placeholder="Fornavn og etternavn"></div>`,
         buttons: [{ label: 'Start', value: 'ok', primary: true }],
         validate: () => { const v = document.getElementById('welcome-name').value.trim(); return v || 'Elev'; },
         escapeValue: 'Elev'
       }).then(v => {
         P.name = v || 'Elev'; save();
-        if (!P.active) startOppdrag(KURS[0].id, KURS[0].oppdrag[0].id); else render();
+        if (!P.active) startOppdrag(KL[0].id, KL[0].oppdrag[0].id); else render();
       });
     }
   }

@@ -93,6 +93,7 @@ const Dialog = (() => {
     </div>`);
     const nameIn = body.querySelector('.fname'), typeSel = body.querySelector('.ftype'), err = body.querySelector('.dlg-err');
     nameIn.value = o.name || '';
+    if (mode === 'folder') { nameIn.placeholder = 'Velg en mappe i listen, eller stå i mappen du vil bruke'; nameIn.readOnly = true; typeSel.classList.add('hidden'); }
     types.forEach((t, i) => typeSel.appendChild(el(`<option value="${i}">${esc(t.label)}</option>`)));
     typeSel.addEventListener('change', renderList);
 
@@ -132,6 +133,7 @@ const Dialog = (() => {
           selected = n.id;
           list.querySelectorAll('.row').forEach(x => x.classList.toggle('selected', x === r));
           if (n.type === 'file') nameIn.value = mode === 'save' ? FS.base(n.name) : n.name;
+          if (mode === 'folder') nameIn.value = n.type === 'folder' ? n.name : '';
         });
         r.addEventListener('dblclick', () => {
           if (n.type === 'folder') navigate(n.id);
@@ -152,9 +154,15 @@ const Dialog = (() => {
     return show({
       title: o.title || (mode === 'save' ? 'Lagre som' : 'Åpne'),
       body, cls: 'dlg-fc',
-      buttons: [{ label: mode === 'save' ? 'Lagre' : 'Åpne', value: 'ok', primary: true }, { label: 'Avbryt', value: null }],
+      buttons: [{ label: mode === 'save' ? 'Lagre' : mode === 'folder' ? 'Velg mappe' : 'Åpne', value: 'ok', primary: true }, { label: 'Avbryt', value: null }],
       validate: async () => {
         let name = nameIn.value.trim();
+        if (mode === 'folder') {
+          const sel = selected ? FS.get(selected) : null;
+          const fid = sel && sel.type === 'folder' ? sel.id : cwd;
+          Bus.emit('dialog-open-folder', { folderId: fid, name: FS.get(fid).name });
+          return { folderId: fid, name: FS.get(fid).name };
+        }
         if (mode === 'save') {
           const v = FS.validate(name); if (v) { err.textContent = v; return false; }
           const exts = curExts();

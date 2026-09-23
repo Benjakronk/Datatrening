@@ -270,6 +270,59 @@ label { font-size: 13px; }
 .tkr .t { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tkr .ico { width: 20px; height: 20px; display: inline-flex; }
 
+/* ---------- Terminal (PowerShell) ---------- */
+.term { flex: 1; background: #0c0c0c; color: #cccccc; font: 14px/1.4 Consolas, "Cascadia Mono", "Courier New", monospace; padding: 8px 12px; overflow: auto; user-select: text; cursor: text; }
+.term-l { white-space: pre-wrap; word-break: break-all; min-height: 1.4em; }
+.term-l.err { color: #f87171; } .term-l.warn { color: #fbbf24; } .term-l.dim { color: #8b8b8b; } .term-l.cmdline { color: #e5e5e5; }
+.term-line { display: flex; align-items: baseline; white-space: pre-wrap; }
+.term-prompt { color: #e5e5e5; white-space: pre; flex-shrink: 0; }
+.term-in { flex: 1; background: transparent; border: 0; outline: none; color: #fff; font: inherit; padding: 0; margin: 0; caret-color: #fff; min-width: 40px; }
+
+/* ---------- Kode (editor) ---------- */
+.kode { display: flex; flex-direction: column; height: 100%; background: #1e1e1e; color: #d4d4d4; font-size: 13px; }
+.k-menu { display: flex; align-items: center; gap: 2px; padding: 4px 8px; background: #2d2d2d; border-bottom: 1px solid #3c3c3c; }
+.k-menu button { border: 0; background: transparent; color: #ccc; padding: 5px 10px; border-radius: 4px; font: inherit; font-size: 13px; }
+.k-menu button:hover { background: #3c3c3c; }
+.k-menu .k-run { background: #0e639c; color: #fff; font-weight: 600; }
+.k-menu .k-run:hover { background: #1177bb; }
+.k-spacer { flex: 1; }
+.k-hint { font-size: 11px; color: #888; padding-right: 10px; }
+.k-hint kbd { background: #3c3c3c; border-color: #555; color: #ddd; }
+.k-body { flex: 1; display: flex; min-height: 0; }
+.k-side { width: 220px; background: #252526; border-right: 1px solid #3c3c3c; display: flex; flex-direction: column; flex-shrink: 0; }
+.k-side-h { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 6px; font-size: 11px; letter-spacing: .06em; color: #bbb; }
+.k-side-btns button { border: 0; background: transparent; color: #ccc; font-size: 14px; padding: 0 4px; border-radius: 3px; }
+.k-side-btns button:hover { background: #3c3c3c; }
+.k-tree { flex: 1; overflow: auto; padding-bottom: 20px; }
+.k-tree-root { font-size: 11px; font-weight: 700; color: #ccc; padding: 4px 10px; letter-spacing: .04em; }
+.k-tree-empty { padding: 14px 12px; color: #999; font-size: 12px; line-height: 1.5; }
+.k-tree-empty code, .k-empty code { background: #3c3c3c; padding: 1px 5px; border-radius: 3px; color: #fff; }
+.k-row { display: flex; align-items: center; gap: 4px; padding: 3px 8px; cursor: default; white-space: nowrap; color: #ccc; }
+.k-row:hover { background: #2a2d2e; }
+.k-row.active { background: #37373d; color: #fff; }
+.k-tw { width: 12px; font-size: 10px; color: #999; text-align: center; }
+.k-ico { width: 16px; height: 14px; display: inline-flex; align-items: center; }
+.k-nm { overflow: hidden; text-overflow: ellipsis; }
+.k-dot { color: #fff; margin-left: auto; font-size: 10px; }
+.k-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.k-tabs { display: flex; background: #252526; overflow-x: auto; flex-shrink: 0; min-height: 35px; }
+.k-tab { display: flex; align-items: center; gap: 6px; padding: 8px 10px 8px 12px; background: #2d2d2d; color: #999; border-right: 1px solid #252526; font-size: 13px; white-space: nowrap; cursor: default; }
+.k-tab.active { background: #1e1e1e; color: #fff; border-top: 1px solid #0e639c; }
+.k-close { margin-left: 4px; padding: 0 4px; border-radius: 3px; font-size: 11px; }
+.k-close:hover { background: #3c3c3c; }
+.k-editor { flex: 1; display: flex; position: relative; min-height: 0; overflow: hidden; }
+.k-gutter { width: 48px; padding: 10px 10px 10px 0; text-align: right; color: #858585; font: 14px/1.5 Consolas, "Cascadia Mono", "Courier New", monospace; white-space: pre; user-select: none; flex-shrink: 0; overflow: hidden; background: #1e1e1e; }
+.k-wrap { flex: 1; position: relative; overflow: hidden; }
+.k-hl, .k-ta { position: absolute; inset: 0; margin: 0; padding: 10px 14px; font: 14px/1.5 Consolas, "Cascadia Mono", "Courier New", monospace; white-space: pre; tab-size: 4; border: 0; }
+.k-hl { color: #d4d4d4; pointer-events: none; overflow: hidden; width: max-content; min-width: 100%; }
+.k-ta { background: transparent; color: transparent; caret-color: #fff; resize: none; outline: none; overflow: auto; }
+.k-ta::selection { background: rgba(38, 79, 120, .7); }
+.k-editor:not(.has-file) .k-gutter, .k-editor:not(.has-file) .k-wrap { display: none; }
+.k-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #888; font-size: 14px; text-align: center; padding: 20px; line-height: 1.6; }
+.k-status { display: flex; align-items: center; gap: 16px; padding: 3px 12px; background: #0e639c; color: #fff; font-size: 12px; flex-shrink: 0; }
+.k-status .k-file { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.k-c { color: #6a9955; } .k-s { color: #ce9178; } .k-n { color: #b5cea8; } .k-k { color: #569cd6; } .k-b { color: #dcdcaa; } .k-f { color: #dcdcaa; } .k-p { color: #d4d4d4; } .k-v { color: #9cdcfe; } .k-o { color: #9cdcfe; }
+
 /* ---------- Nødstripe ved feil ---------- */
 #recovery { position: fixed; top: 0; left: 0; right: 0; z-index: 60000; background: #c42b1c; color: #fff; padding: 10px 16px; display: flex; gap: 14px; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
 #recovery .btn { min-width: 0; }

@@ -3,9 +3,10 @@ const WM = (() => {
   const wins = [];
   let zTop = 100, active = null, counter = 0;
   let launchVia = null;
-  let PINNED = (() => { try { return JSON.parse(localStorage.getItem('dt-pinned') || 'null') || null; } catch (e) { return null; } })() || ['explorer', 'skriv', 'nettleser', 'innlevering'];
-  function savePinned() { try { localStorage.setItem('dt-pinned', JSON.stringify(PINNED)); } catch (e) { /* ignorer */ } }
-  const APPNAMES = { explorer: 'Filutforsker', skriv: 'Skriv', nettleser: 'Nettleser', innlevering: 'Innleveringer', papirkurv: 'Papirkurv', bilder: 'Bilder', viewer: 'Filvisning', innstillinger: 'Innstillinger', taskmgr: 'Oppgavebehandling' };
+  const PIN_KEY = 'dt-pinned' + (window.DT_PAGE ? '-' + window.DT_PAGE : '');
+  let PINNED = (() => { try { return JSON.parse(localStorage.getItem(PIN_KEY) || 'null') || null; } catch (e) { return null; } })() || (window.DT_PINNED || ['explorer', 'skriv', 'nettleser', 'innlevering']).slice();
+  function savePinned() { try { localStorage.setItem(PIN_KEY, JSON.stringify(PINNED)); } catch (e) { /* ignorer */ } }
+  const APPNAMES = { explorer: 'Filutforsker', skriv: 'Skriv', nettleser: 'Nettleser', innlevering: 'Innleveringer', papirkurv: 'Papirkurv', bilder: 'Bilder', viewer: 'Filvisning', innstillinger: 'Innstillinger', taskmgr: 'Oppgavebehandling', terminal: 'Terminal', kode: 'Kode' };
   const FS_ICON = '<svg viewBox="0 0 16 16" width="18" height="18"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="#333" stroke-width="1.6"/></svg>';
 
   const layer = () => document.getElementById('windows');
@@ -197,7 +198,10 @@ const WM = (() => {
     const m = document.getElementById('startmenu');
     const g = m.querySelector('.sm-grid');
     g.innerHTML = '';
-    [['explorer', 'Filutforsker'], ['skriv', 'Skriv'], ['nettleser', 'Nettleser'], ['innlevering', 'Innleveringer'], ['bilder', 'Bilder'], ['papirkurv', 'Papirkurv'], ['innstillinger', 'Innstillinger']].forEach(([app, name]) => {
+    const apps = [['explorer', 'Filutforsker'], ['skriv', 'Skriv'], ['nettleser', 'Nettleser'], ['innlevering', 'Innleveringer'], ['bilder', 'Bilder'], ['papirkurv', 'Papirkurv'], ['innstillinger', 'Innstillinger']];
+    if (window.Kode) apps.splice(1, 0, ['kode', 'Kode']);
+    if (window.Terminal) apps.splice(2, 0, ['terminal', 'Terminal']);
+    apps.forEach(([app, name]) => {
       const a = el(`<div class="sm-app">${Icons.app(app, 36)}<span>${esc(name)}</span></div>`);
       a.addEventListener('click', () => { hideStart(); Apps.launch(app, { via: 'startmenu' }); });
       g.appendChild(a);

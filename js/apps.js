@@ -11,15 +11,19 @@ const Apps = (() => {
       case 'innlevering': return Innlevering.open();
       case 'innstillinger': return Innstillinger.open();
       case 'taskmgr': return TaskMgr.open();
+      case 'terminal': return window.Terminal ? Terminal.open(args.folderId) : null;
+      case 'kode': return window.Kode ? Kode.open(args) : null;
       case 'bilder': return args.nodeId ? Viewer.open(args.nodeId) : Explorer.open(FS.roots().pictures);
       default: WM.setLaunchVia(null);
     }
   }
+  const CODE_EXT = ['py', 'ps1', 'js', 'html', 'css', 'json', 'md', 'csv', 'txt'];
   function openFile(id, opts = {}) {
     const n = FS.get(id); if (!n) return;
     if (n.type === 'folder') return Explorer.open(id);
     const e = FS.ext(n.name);
     Bus.emit('open-file', { id, name: n.name, ext: e, via: opts.via });
+    if (window.Kode && CODE_EXT.includes(e)) return Kode.open({ fileId: id, via: opts.via });
     if (['txt', 'docx', 'doc', 'md'].includes(e)) return Skriv.open(id);
     return Viewer.open(id);
   }

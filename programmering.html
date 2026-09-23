@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datatrening – programmering (øvings-PC, simulering)</title>
+<meta name="description" content="Kurssett for programmeringselever: terminal (PowerShell), Kode-editor og Python på en simulert øvings-PC i nettleseren. Ingen innlogging, ingen data sendes.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  /* Denne siden bruker programmeringskursene og har Terminal og Kode i oppgavelinjen */
+  window.DT_PAGE = 'prog';
+  window.DT_PINNED = ['explorer', 'kode', 'terminal', 'nettleser'];
+  window.DT_WELCOME = '<p>Dette er <b>programmeringskurset</b> i Datatrening. Her lærer du å bruke terminalen (PowerShell), skrive kode i en editor og kjøre programmene dine. Kurset forutsetter at du kan det grunnleggende om filer og mapper fra grunnkurset.</p><p>Alt skjer på en <b>øvings-PC</b> i nettleseren, så du kan ikke ødelegge noe.</p>';
+</script>
+</head>
+<body>
+<div id="app">
+  <div id="desktop">
+    <div id="desktop-icons"></div>
+    <div id="windows"></div>
+    <div id="startmenu" class="hidden">
+      <div class="sm-title">Alle programmer</div>
+      <div class="sm-grid"></div>
+      <div class="sm-foot"><span class="sm-user">👤 <span id="sm-name">Elev</span></span><span class="sm-tip">Tips: Windows-tasten ⊞ åpner også Start-menyen på en ekte PC.</span></div>
+    </div>
+    <div id="taskbar">
+      <div id="taskbar-center"></div>
+      <div id="taskbar-right"><div id="sim-label">Øvings-PC<br>simulering</div><div id="clock"></div></div>
+    </div>
+    <div id="toasts"></div>
+    <div id="modal-layer" class="hidden"></div>
+  </div>
+  <aside id="coach">
+    <div id="coach-head">
+      <div class="coach-logo">⌨️</div>
+      <div class="coach-title"><div>Datatrening: programmering</div><div class="coach-sub" id="coach-name">Terminal, Kode og Python</div></div>
+      <button id="coach-toggle" title="Skjul/vis veilederen">›</button>
+    </div>
+    <div id="coach-tabs">
+      <button class="ctab" data-tab="oppdrag">Oppdrag</button>
+      <button class="ctab" data-tab="kurs">Kurs</button>
+      <button class="ctab" data-tab="fremdrift">Fremdrift</button>
+    </div>
+    <div id="coach-body"></div>
+  </aside>
+</div>
+<script src="js/ui.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/fs.js"></script>
+<script src="js/wm.js"></script>
+<script src="js/dialogs.js"></script>
+<script src="js/explorer.js"></script>
+<script src="js/apps.js"></script>
+<script src="js/pyth.js"></script>
+<script src="js/terminal.js"></script>
+<script src="js/kode.js"></script>
+<script src="js/oppdrag.js"></script>
+<script src="js/oppdrag-prog.js"></script>
+<script src="js/coach.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -3,16 +3,19 @@ const Icons = (() => {
   const fileMap = {
     docx: ['#2b579a', 'W'], doc: ['#2b579a', 'W'], pptx: ['#c43e1c', 'P'], xlsx: ['#217346', 'X'],
     pdf: ['#d93025', 'PDF'], txt: ['#6b7280', 'TXT'], mp4: ['#0f766e', 'MP4'], mp3: ['#7c3aed', 'MP3'],
-    zip: ['#b45309', 'ZIP'], jpg: ['#0e7490', 'JPG'], jpeg: ['#0e7490', 'JPG'], png: ['#0e7490', 'PNG'], exe: ['#374151', 'EXE']
+    zip: ['#b45309', 'ZIP'], jpg: ['#0e7490', 'JPG'], jpeg: ['#0e7490', 'JPG'], png: ['#0e7490', 'PNG'], exe: ['#374151', 'EXE'],
+    py: ['#3572a5', 'PY'], ps1: ['#012456', 'PS'], js: ['#b7950b', 'JS'], html: ['#e34c26', 'HTML'], css: ['#264de4', 'CSS'], json: ['#6b7280', 'JSON'], md: ['#374151', 'MD'], csv: ['#217346', 'CSV']
   };
   const typeNames = {
     docx: 'Microsoft Word-dokument', doc: 'Microsoft Word-dokument', pptx: 'Microsoft PowerPoint-presentasjon',
     xlsx: 'Microsoft Excel-regneark', pdf: 'PDF-dokument', txt: 'Tekstdokument', mp4: 'MP4-videofil', mp3: 'MP3-lydfil',
-    zip: 'ZIP-komprimert mappe', jpg: 'JPG-bilde', jpeg: 'JPG-bilde', png: 'PNG-bilde', exe: 'Program'
+    zip: 'ZIP-komprimert mappe', jpg: 'JPG-bilde', jpeg: 'JPG-bilde', png: 'PNG-bilde', exe: 'Program',
+    py: 'Python-fil', ps1: 'PowerShell-skript', js: 'JavaScript-fil', html: 'HTML-dokument', css: 'CSS-fil', json: 'JSON-fil', md: 'Markdown-fil', csv: 'CSV-fil'
   };
   const programs = {
     docx: 'Word', doc: 'Word', pptx: 'PowerPoint', xlsx: 'Excel', pdf: 'Microsoft Edge (PDF-leser)', txt: 'Notisblokk',
-    mp4: 'Filmer og TV', mp3: 'Mediespiller', zip: 'Filutforsker (pakk ut først)', jpg: 'Bilder', jpeg: 'Bilder', png: 'Bilder'
+    mp4: 'Filmer og TV', mp3: 'Mediespiller', zip: 'Filutforsker (pakk ut først)', jpg: 'Bilder', jpeg: 'Bilder', png: 'Bilder',
+    py: 'Visual Studio Code (kjøres med python)', ps1: 'PowerShell', js: 'Visual Studio Code', html: 'Nettleseren', css: 'Visual Studio Code', json: 'Visual Studio Code', md: 'Visual Studio Code', csv: 'Excel'
   };
 
   const svg = (inner, size, vb = 48) => `<svg viewBox="0 0 ${vb} ${vb}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
@@ -51,6 +54,8 @@ const Icons = (() => {
     pc: s => svg(`<rect x="4" y="8" width="40" height="26" rx="3" fill="#1f4e8c"/><rect x="7" y="11" width="34" height="20" fill="#6fb1ff"/><rect x="18" y="36" width="12" height="4" fill="#7a8794"/><rect x="12" y="40" width="24" height="3" rx="1" fill="#7a8794"/>`, s),
     bilder: s => svg(`<rect x="5" y="9" width="38" height="30" rx="3" fill="#fff" stroke="#b9bec7"/><rect x="8" y="12" width="32" height="24" fill="#bfe3f5"/><path d="M8 36l10-12 7 8 5-5 10 9z" fill="#2e8b57"/><circle cx="32" cy="18" r="3" fill="#f4c542"/>`, s),
     viewer: s => svg(`<rect x="8" y="4" width="32" height="40" rx="3" fill="#fff" stroke="#b9bec7"/><rect x="14" y="12" width="20" height="3" fill="#9aa4b2"/><rect x="14" y="19" width="20" height="3" fill="#9aa4b2"/><rect x="14" y="26" width="14" height="3" fill="#9aa4b2"/>`, s),
+    terminal: s => svg(`<rect x="4" y="6" width="40" height="36" rx="5" fill="#1e1e2e" stroke="#4b5563" stroke-width="1.5"/><path d="M12 17l8 7-8 7" fill="none" stroke="#7dd3fc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="23" y="29" width="13" height="3" rx="1.5" fill="#e5e7eb"/>`, s),
+    kode: s => svg(`<rect x="4" y="4" width="40" height="40" rx="7" fill="#0e639c"/><path d="M18 15l-8 9 8 9M30 15l8 9-8 9M27 12l-6 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`, s),
     taskmgr: s => svg(`<rect x="5" y="5" width="38" height="38" rx="4" fill="#fff" stroke="#6b7280" stroke-width="2"/><rect x="11" y="26" width="6" height="11" fill="#0a64c8"/><rect x="21" y="18" width="6" height="19" fill="#0a64c8"/><rect x="31" y="11" width="6" height="26" fill="#0a64c8"/>`, s),
     innstillinger: s => svg(`<circle cx="24" cy="24" r="18" fill="#6b7280"/><circle cx="24" cy="24" r="7" fill="#fff"/><g stroke="#fff" stroke-width="4"><path d="M24 4v6M24 38v6M4 24h6M38 24h6M10 10l4 4M34 34l4 4M10 38l4-4M34 14l4-4"/></g>`, s),
     onedrive: s => svg(`<path d="M14 34a7 7 0 0 1-1-13.9A10 10 0 0 1 32 17a8 8 0 0 1 4 17z" fill="#0a64c8"/>`, s),

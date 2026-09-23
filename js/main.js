@@ -126,6 +126,9 @@ const Fullscreen = {
     document.body.appendChild(o);
   }
 };
+/* Toppnivå-const er ikke egenskaper på window; eksporter det andre filer sjekker med window.X */
+window.Desktop = Desktop;
+window.Fullscreen = Fullscreen;
 document.addEventListener('fullscreenchange', () => {
   const b = document.querySelector('.fs-btn');
   if (b) b.title = document.fullscreenElement ? 'Avslutt fullskjerm (Esc eller F11)' : 'Fullskjerm (F11)';

@@ -61,8 +61,14 @@ const Explorer = (() => {
     { kind: 'file', label: 'Microsoft PowerPoint-presentasjon', icon: Icons.file('pptx', 16), name: 'Ny Microsoft PowerPoint-presentasjon.pptx' },
     { kind: 'file', label: 'Microsoft Excel-regneark', icon: Icons.file('xlsx', 16), name: 'Nytt Microsoft Excel-regneark.xlsx' }
   ];
+  function newItems() {
+    if (!window.Kode) return NEW_ITEMS;
+    return NEW_ITEMS.concat(['-',
+      { kind: 'file', label: 'Python-fil', icon: Icons.file('py', 16), name: 'ny.py' },
+      { kind: 'file', label: 'PowerShell-skript', icon: Icons.file('ps1', 16), name: 'nytt-skript.ps1' }]);
+  }
   function newMenu(folderId, via, then) {
-    return NEW_ITEMS.map(it => it === '-' ? '-' : ({
+    return newItems().map(it => it === '-' ? '-' : ({
       label: it.label, icon: it.icon,
       action: () => {
         const name = FS.uniqueName(folderId, it.name);
