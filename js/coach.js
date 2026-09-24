@@ -118,9 +118,15 @@ const Coach = (() => {
       save();
       Bus.emit('quiz-lock', { opp: P.active.opp });
       render();
-      const body = document.getElementById('coach-body'); const laer = body.querySelector('.laer');
-      if (laer) body.scrollTop = Math.max(0, laer.offsetTop - 12);
     } else render();
+  }
+  /* Eleven velger selv når den vil gå til teksten: åpner «Les først» og ruller dit */
+  function goToLaer() {
+    const body = document.getElementById('coach-body'); const det = body.querySelector('details.laer');
+    if (!det) return;
+    det.open = true;
+    body.scrollTop = Math.max(0, det.offsetTop - 12);
+    Bus.emit('laer-goto', {});
   }
   function unlock() {
     if (!P.lock || Date.now() < P.lock.until) return;
@@ -190,7 +196,11 @@ const Coach = (() => {
             b.addEventListener('click', () => answer(j));
             txt.appendChild(b);
           });
-          if (locked) txt.appendChild(el('<div class="hintbox">Ikke riktig. Spørsmålet er låst: åpne <b>«Les først»</b> øverst, les teksten, og trykk på knappen nederst i teksten for å komme tilbake og svare på nytt.</div>'));
+          if (locked) {
+            const hb = el('<div class="hintbox">Ikke riktig. Spørsmålet er låst til du har lest teksten. Trykk på knappen nederst i teksten for å komme tilbake og svare på nytt.<div><button class="btn primary small goto-laer">📖 Gå til «Les først»-teksten</button></div></div>');
+            hb.querySelector('.goto-laer').addEventListener('click', goToLaer);
+            txt.appendChild(hb);
+          }
           else if (wrongOpt != null) txt.appendChild(el(`<div class="hintbox">Ikke helt riktig. ${esc(st.hint || 'Prøv igjen!')}</div>`));
         } else if (i < a.step) {
           txt.appendChild(el(`<div class="muted">Svar: ${esc(st.quiz.options[st.quiz.answer])}</div>`));

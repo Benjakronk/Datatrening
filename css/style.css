@@ -411,6 +411,7 @@ body.page-prog .btn.primary:hover { background: #115e59; }
 .quiz-opt.right { border-color: #16a34a; background: #f0fdf4; }
 .quiz-opt:disabled { opacity: .45; background: #f3f4f6; }
 .quiz-opt.wrong:disabled { opacity: .8; }
+.goto-laer { margin-top: 8px; }
 .laer-lockbox { margin-top: 12px; padding: 8px 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; font-size: 13px; }
 .laer-unlock { margin-top: 8px; width: 100%; }
 .laer-unlock:disabled { background: #9ca3af; border-color: #9ca3af; color: #fff; }
