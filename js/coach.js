@@ -7,6 +7,12 @@ const Coach = (() => {
   try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch (e) { /* ignorer */ }
   if (!P.name && window.DT_PAGE) { try { const b = JSON.parse(localStorage.getItem('dt-progress') || '{}'); if (b.name) P.name = b.name; } catch (e) { /* ignorer */ } }
   let stepStart = 0, checking = false, pending = false, hintOpen = false, wrongOpt = null;
+  /* Svaralternativene vises i tilfeldig rekkefølge (quizOrder). Feil svar på et teorispørsmål låser
+     spørsmålet (P.lock) til eleven har åpnet «Les først», kommet til bunnen og ventet ut lesetiden. */
+  let quizOrder = null, quizKey = '', unlockTimer = null;
+  function shuffled(n) { const a = [...Array(n).keys()]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function readSeconds(html) { const words = (html || '').replace(/<[^>]+>/g, ' ').trim().split(/\s+/).length; return Math.max(10, Math.min(30, Math.round(words / 4))); }
+  function isLocked() { const a = P.active; return !!(P.lock && a && P.lock.opp === a.opp && P.lock.step === a.step); }
 
   /* Hjelpeobjekt som oppdragene bruker i check(S) */
   const S = {
@@ -62,7 +68,7 @@ const Coach = (() => {
     if (!o) return;
     P.active = { kurs: kid, opp: oid, step: 0 };
     P.openKurs = kid;
-    stepStart = Bus.log.length; hintOpen = false; wrongOpt = null;
+    stepStart = Bus.log.length; hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
     if (o.setup) { try { o.setup(FS); } catch (e) { console.error('setup', e); } FS.notify(); }
     P.tab = 'oppdrag';
     save(); render();
@@ -71,7 +77,7 @@ const Coach = (() => {
   }
   function advance() {
     const a = P.active; const o = oppOf(a);
-    a.step++; stepStart = Bus.log.length; hintOpen = false; wrongOpt = null;
+    a.step++; stepStart = Bus.log.length; hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
     if (a.step >= o.steps.length) {
       P.done[a.opp] = true;
       Toast.show('🎉 Oppdrag fullført: ' + o.title);
@@ -102,9 +108,27 @@ const Coach = (() => {
   }
   function answer(j) {
     const o = oppOf(P.active); const st = o.steps[P.active.step];
-    if (!st || !st.quiz) return;
-    if (j === st.quiz.answer) { Bus.emit('quiz', { correct: true }); advance(); render(); check(); }
-    else { wrongOpt = j; Bus.emit('quiz', { correct: false }); render(); }
+    if (!st || !st.quiz || isLocked()) return;
+    if (j === st.quiz.answer) { Bus.emit('quiz', { correct: true, laer: !!st.laer }); advance(); render(); check(); return; }
+    wrongOpt = j;
+    Bus.emit('quiz', { correct: false, laer: !!st.laer });
+    if (st.laer) {
+      const k = kurs(P.active.kurs);
+      P.lock = { opp: P.active.opp, step: P.active.step, until: Date.now() + readSeconds(k.laer) * 1000 };
+      save();
+      Bus.emit('quiz-lock', { opp: P.active.opp });
+      render();
+      const body = document.getElementById('coach-body'); const laer = body.querySelector('.laer');
+      if (laer) body.scrollTop = Math.max(0, laer.offsetTop - 12);
+    } else render();
+  }
+  function unlock() {
+    if (!P.lock || Date.now() < P.lock.until) return;
+    P.lock = null; wrongOpt = null; quizOrder = null; save();
+    Bus.emit('quiz-unlock', {});
+    render();
+    const body = document.getElementById('coach-body'); const act = body.querySelector('.step.active');
+    if (act) body.scrollTop = Math.max(0, act.offsetTop - 12);
   }
 
   /* ---------- Tegning ---------- */
@@ -132,8 +156,25 @@ const Coach = (() => {
     const ki = KL.indexOf(k) + 1, oi = k.oppdrag.indexOf(o) + 1;
     body.appendChild(el(`<div class="ktag">Kurs ${ki} · ${esc(k.title)}</div><h2>Oppdrag ${ki}.${oi}: ${esc(o.title)}</h2>`));
     const curStep = o.steps[a.step];
-    const laerOpen = (curStep && curStep.laer) || (a.step === 0 && oi === 1 && !P.done[o.id]);
-    if (k.laer) body.appendChild(el(`<details class="laer"${laerOpen ? ' open' : ''}><summary>📖 Les først: ${esc(k.laerTitle || k.title)}</summary>${k.laer}</details>`));
+    const locked = isLocked();
+    const laerOpen = (curStep && curStep.laer) || locked || (a.step === 0 && oi === 1 && !P.done[o.id]);
+    if (unlockTimer) { clearInterval(unlockTimer); unlockTimer = null; }
+    if (k.laer) {
+      const det = el(`<details class="laer"${laerOpen ? ' open' : ''}><summary>📖 Les først: ${esc(k.laerTitle || k.title)}</summary>${k.laer}</details>`);
+      if (locked) {
+        const btn = el('<button class="btn primary laer-unlock" disabled>Jeg har lest teksten</button>');
+        const upd = () => {
+          const left = Math.ceil((P.lock.until - Date.now()) / 1000);
+          if (left > 0) { btn.disabled = true; btn.textContent = `Les teksten over … (${left} s)`; }
+          else { btn.disabled = false; btn.textContent = 'Jeg har lest teksten, tilbake til spørsmålet'; if (unlockTimer) { clearInterval(unlockTimer); unlockTimer = null; } }
+        };
+        upd(); unlockTimer = setInterval(upd, 500);
+        btn.addEventListener('click', unlock);
+        det.appendChild(el('<div class="laer-lockbox">Spørsmålet er låst til du har lest teksten. Knappen under blir aktiv når lesetiden er over.</div>'));
+        det.appendChild(btn);
+      }
+      body.appendChild(det);
+    }
     const done = a.step >= o.steps.length;
     o.steps.forEach((st, i) => {
       const cls = i < a.step ? 'done' : i === a.step ? 'active' : 'locked';
@@ -142,12 +183,15 @@ const Coach = (() => {
       if (st.quiz) {
         txt.innerHTML = `<div><b>${st.laer ? 'Teori' : 'Spørsmål'}:</b> ${esc(st.quiz.q)}</div>`;
         if (i === a.step) {
-          st.quiz.options.forEach((optText, j) => {
-            const b = el(`<button class="quiz-opt${wrongOpt === j ? ' wrong' : ''}">${esc(optText)}</button>`);
+          const key = a.opp + ':' + i;
+          if (!quizOrder || quizKey !== key || quizOrder.length !== st.quiz.options.length) { quizOrder = shuffled(st.quiz.options.length); quizKey = key; }
+          quizOrder.forEach(j => {
+            const b = el(`<button class="quiz-opt${wrongOpt === j ? ' wrong' : ''}" data-idx="${j}"${locked ? ' disabled' : ''}>${esc(st.quiz.options[j])}</button>`);
             b.addEventListener('click', () => answer(j));
             txt.appendChild(b);
           });
-          if (wrongOpt != null) txt.appendChild(el(`<div class="hintbox">Ikke helt riktig. ${esc(st.hint || (st.laer ? 'Svaret står i «Les først»-boksen øverst.' : 'Prøv igjen!'))}</div>`));
+          if (locked) txt.appendChild(el('<div class="hintbox">Ikke riktig. Spørsmålet er låst: åpne <b>«Les først»</b> øverst, les teksten, og trykk på knappen nederst i teksten for å komme tilbake og svare på nytt.</div>'));
+          else if (wrongOpt != null) txt.appendChild(el(`<div class="hintbox">Ikke helt riktig. ${esc(st.hint || 'Prøv igjen!')}</div>`));
         } else if (i < a.step) {
           txt.appendChild(el(`<div class="muted">Svar: ${esc(st.quiz.options[st.quiz.answer])}</div>`));
         }

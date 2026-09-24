@@ -74,7 +74,11 @@ skolens webserver) eller del mappen via OneDrive/Teams og be elevene åpne `inde
 
 Veileder-panelet til høyre inneholder 9 kurs med til sammen 28 oppdrag. Hvert kurs starter med
 to eller tre teorispørsmål som bare kan besvares ved å lese «Les først»-teksten (merket `laer: true`
-i koden). «Les først»-boksen holdes åpen så lenge et teorispørsmål er aktivt. Hvert steg sjekkes automatisk
+i koden). «Les først»-boksen holdes åpen så lenge et teorispørsmål er aktivt. Svaralternativene vises i
+tilfeldig rekkefølge. Svarer eleven feil på et teorispørsmål, låses spørsmålet: «Les først» åpnes, og eleven
+må trykke på knappen nederst i teksten, som først blir aktiv etter en lesetid på 10 til 30 sekunder
+(beregnet ut fra tekstlengden). Etter opplåsingen blandes alternativene på nytt. Vanlige spørsmål på slutten
+av oppdragene låses ikke. Hvert steg sjekkes automatisk
 mot tilstanden på øvings-PC-en, så eleven får umiddelbar tilbakemelding. Kursene:
 
 1. Bli kjent med PC-en (mus, vinduer, Start-meny, høyreklikk)

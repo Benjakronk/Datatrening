@@ -409,6 +409,11 @@ body.page-prog .btn.primary:hover { background: #115e59; }
 .quiz-opt:hover { background: #f1f5f9; }
 .quiz-opt.wrong { border-color: #dc2626; background: #fef2f2; }
 .quiz-opt.right { border-color: #16a34a; background: #f0fdf4; }
+.quiz-opt:disabled { opacity: .45; background: #f3f4f6; }
+.quiz-opt.wrong:disabled { opacity: .8; }
+.laer-lockbox { margin-top: 12px; padding: 8px 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; font-size: 13px; }
+.laer-unlock { margin-top: 8px; width: 100%; }
+.laer-unlock:disabled { background: #9ca3af; border-color: #9ca3af; color: #fff; }
 .done-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 14px; margin: 12px 0; text-align: center; font-weight: 600; }
 .done-box .big { font-size: 34px; }
 .cbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
