@@ -1,0 +1,4 @@
+# Normaliser linjeskift: LF i repoet, plattformens standard i arbeidskopien
+* text=auto
+*.png binary
+*.jpg binary
