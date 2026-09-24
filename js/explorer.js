@@ -90,18 +90,27 @@ const Explorer = (() => {
     input.focus();
     const selEnd = (n.type === 'file' && showExt && e) ? full.length - e.length - 1 : full.length;
     input.setSelectionRange(0, selEnd);
+    /* Noen ganger stjeler noe annet fokus rett etter at feltet ble laget (menyen som lukkes, vinduet som aktiveres). Prøv igjen. */
+    setTimeout(() => { if (input.isConnected && document.activeElement !== input) { input.focus(); input.setSelectionRange(0, selEnd); } }, 40);
     Bus.emit('rename-start', { id: n.id, name: n.name });
     let finished = false;
     const finish = async commit => {
       Bus.emit('rename-finish', { id: n.id, commit: !!commit, value: input.value, already: finished, attached: input.isConnected });
       if (finished) return; finished = true;
       let v = input.value.trim();
+      let renamed = false;
       if (commit && v && v !== full) {
         if (n.type === 'file' && !showExt && e) v = v + '.' + e;
         const r = FS.rename(n.id, v, { via: 'inline' });
-        if (r.error) { await Dialog.alert('Gi nytt navn', r.error); }
+        if (r.error) { await Dialog.alert('Gi nytt navn', r.error); } else renamed = true;
       }
       if (onDone) onDone();
+      /* Ble mappen stående med standardnavnet? Fortell hvordan man gir nytt navn etterpå. */
+      const cur = FS.get(n.id);
+      if (!renamed && cur && /^(Ny mappe|Nytt tekstdokument|Nytt Microsoft|Ny Microsoft|ny\.py|nytt-skript)/i.test(cur.name)) {
+        Toast.show((cur.type === 'folder' ? 'Mappen' : 'Filen') + ' heter fortsatt «' + FS.displayName(cur, showExt) + '». Gi nytt navn: klikk én gang på ' + (cur.type === 'folder' ? 'mappen' : 'filen') + ', trykk F2, skriv navnet og trykk Enter. (Eller høyreklikk → Gi nytt navn.)', 7000);
+        Bus.emit('rename-skipped', { id: n.id, name: cur.name });
+      }
     };
     input.addEventListener('keydown', ev => {
       ev.stopPropagation();

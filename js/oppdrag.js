@@ -30,11 +30,16 @@ const KURS = [
       <p><b>Menyen er forskjellig etter hva du høyreklikker på.</b> En fil, en mappe, skrivebordet og oppgavelinjen har hver sin meny. Derfor: høyreklikk alltid på <i>tingen</i> du vil gjøre noe med. Trykk <kbd>Esc</kbd> for å lukke menyen uten å velge noe.</p>
       <h4>Vinduer</h4>
       <p>Hvert program åpnes i et <b>vindu</b>. Øverst til høyre i vinduet finner du tre knapper:
-      <b>—</b> minimerer (gjemmer vinduet i oppgavelinjen), <b>☐</b> maksimerer (fyller hele skjermen), <b>✕</b> lukker. Du flytter et vindu ved å dra i <b>tittellinjen</b> øverst.</p>`,
+      <b>—</b> minimerer (gjemmer vinduet i oppgavelinjen), <b>☐</b> maksimerer (fyller hele skjermen), <b>✕</b> lukker. Du flytter et vindu ved å dra i <b>tittellinjen</b> øverst.</p>
+      <h4>Gi nytt navn</h4>
+      <p>En ny mappe får standardnavnet «Ny mappe», med navnet markert. Skriv det nye navnet med en gang og trykk <kbd>Enter</kbd>. Klikket du bort først? Klikk <i>én gang</i> på mappen, trykk <kbd>F2</kbd> (eller høyreklikk → Gi nytt navn), skriv navnet og trykk <kbd>Enter</kbd>.</p>`,
     oppdrag: [
       {
         id: 'k1o1', title: 'Åpne, flytt og lukk et vindu',
         steps: [
+          { laer: true, quiz: { q: 'Hva er oppgavelinjen?', options: ['Stripen nederst på skjermen med Start-knappen og programmer', 'Menyen som kommer når du høyreklikker', 'Vinduet til Filutforsker'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva gjør knappen — (minimer) øverst i et vindu?', options: ['Lukker programmet', 'Gjemmer vinduet i oppgavelinjen, programmet er fortsatt åpent', 'Gjør vinduet større'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hvordan flytter du et vindu?', options: ['Dobbeltklikker på ✕', 'Trykker Enter', 'Drar i tittellinjen øverst i vinduet'], answer: 2 } },
           { text: 'Klikk på det gule mappe-ikonet (<b>Filutforsker</b>) i oppgavelinjen nederst på skjermen.', hint: 'Oppgavelinjen er den lyse stripen helt nederst. Filutforsker er den gule mappen ved siden av Start-knappen.', check: S => S.ev('window-open', d => d.app === 'explorer') },
           { text: 'Maksimer vinduet: klikk på <b>☐</b> øverst til høyre i vinduet.', hint: 'Knappen i midten av de tre knappene øverst til høyre i vinduet. Du kan også dobbeltklikke på tittellinjen.', check: S => S.ev('window-max') },
           { text: 'Gjør vinduet mindre igjen: klikk på den samme knappen (<b>❐</b>).', check: S => S.ev('window-restore') },
@@ -60,7 +65,8 @@ const KURS = [
         setup: F => { const f = F.resolve([...P_DESK, 'Min mappe']); if (f) F.silentRemoveAll('Min mappe'); },
         steps: [
           { text: 'Høyreklikk på et tomt sted på <b>skrivebordet</b> (bakgrunnen). En meny dukker opp.', hint: 'Bruk høyre museknapp. På styreflaten: trykk med to fingre samtidig.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') },
-          { text: 'Velg <b>Ny → Mappe</b> i menyen. Skriv navnet <b>Min mappe</b> og trykk <kbd>Enter</kbd>.', hint: 'Hold musen over «Ny», så kommer det en undermeny. Klikk på «Mappe». Skriv navnet med en gang og trykk Enter.', check: S => S.folderIn('Min mappe', P_DESK) },
+          { text: 'Velg <b>Ny → Mappe</b> i menyen. En mappe som heter «Ny mappe» dukker opp på skrivebordet.', hint: 'Hold musen over «Ny», så kommer det en undermeny til høyre. Klikk på «Mappe».', check: S => S.ev('fs', d => d.op === 'create' && d.kind === 'folder' && d.parent === FS.roots().desktop) || FS.children(FS.roots().desktop).some(c => c.type === 'folder') },
+          { text: 'Gi mappen navnet <b>Min mappe</b>. Rett etter at mappen er laget, kan du bare skrive navnet og trykke <kbd>Enter</kbd>. Rakk du ikke det? Klikk <i>én gang</i> på mappen, trykk <kbd>F2</kbd>, skriv navnet og trykk <kbd>Enter</kbd>.', hint: 'F2 ligger øverst på tastaturet. Du kan også høyreklikke på mappen og velge «Gi nytt navn». Mappen heter «Ny mappe» helt til du har endret navnet.', check: S => S.folderIn('Min mappe', P_DESK) },
           { text: '<b>Dobbeltklikk</b> på mappen «Min mappe» på skrivebordet for å åpne den.', hint: 'To raske trykk med venstre museknapp.', check: S => S.ev('explorer-nav', d => d.name === 'Min mappe') },
           { text: 'Mappen er tom. Lukk vinduet.', check: S => S.ev('window-close', d => d.app === 'explorer') },
           { quiz: { q: 'Du vil se flere valg for en fil. Hva gjør du?', options: ['Holder musen stille over filen', 'Høyreklikker på filen', 'Dobbeltklikker på filen'], answer: 1 }, hint: 'Dobbeltklikk åpner. Hvilken knapp gir en meny?' }
@@ -107,6 +113,9 @@ const KURS = [
         id: 'k2o1', title: 'Finn frem i Filutforsker',
         setup: F => { F.ensureFolder([...P_DOC, 'Gammelt', 'Prosjekter']); },
         steps: [
+          { laer: true, quiz: { q: 'Hva er en filtype (filendelse)?', options: ['Mappen filen ligger i', 'Delen av navnet etter punktum, for eksempel .docx, som sier hva slags fil det er', 'Hvor stor filen er'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hvor bør skolearbeid lagres?', options: ['I OneDrive: skylagring som følger deg på alle enheter', 'På skrivebordet', 'I Nedlastinger'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva gjør ↑-knappen (Opp) i Filutforsker?', options: ['Ruller opp i listen', 'Går til forrige side', 'Går til mappen som ligger over den du står i'], answer: 2 } },
           { text: 'Åpne <b>Filutforsker</b>.', check: S => S.wins('explorer') > 0 && S.ev('window-open', d => d.app === 'explorer') },
           { text: 'Klikk på <b>Dokumenter</b> i menyen til venstre.', check: S => S.ev('explorer-nav', d => d.name === 'Dokumenter') },
           { text: 'Åpne mappen <b>Gammelt</b> (dobbeltklikk på den).', hint: 'Hvis du ikke ser mappen «Gammelt», heter den kanskje «7. trinn» fordi du har gitt den nytt navn tidligere.', check: S => S.ev('explorer-nav', d => d.name === 'Gammelt' || d.name === '7. trinn') },
@@ -122,7 +131,7 @@ const KURS = [
         id: 'k2o2', title: 'Lag mapper for fagene',
         steps: [
           { text: 'Gå til <b>OneDrive › Skole</b> i Filutforsker.', hint: 'Klikk på ▸ ved OneDrive i menyen til venstre for å vise mappene, eller dobbeltklikk deg frem.', check: S => S.ev('explorer-nav', d => d.name === 'Skole') },
-          { text: 'Lag en ny mappe som heter <b>Norsk</b>. Bruk <b>Ny</b>-knappen øverst, eller høyreklikk på et tomt sted → Ny → Mappe. Skriv navnet og trykk <kbd>Enter</kbd>.', hint: 'Den nye mappen heter «Ny mappe» og navnet er markert. Bare skriv «Norsk» og trykk Enter.', check: S => S.folderIn('Norsk', P_SK) },
+          { text: 'Lag en ny mappe som heter <b>Norsk</b>. Bruk <b>Ny</b>-knappen øverst, eller høyreklikk på et tomt sted → Ny → Mappe. Skriv navnet og trykk <kbd>Enter</kbd>.', hint: 'Den nye mappen heter «Ny mappe» og navnet er markert. Bare skriv «Norsk» og trykk Enter. Klikket du bort før du skrev navnet? Klikk én gang på mappen, trykk F2, skriv navnet og trykk Enter.', check: S => S.folderIn('Norsk', P_SK) },
           { text: 'Lag tre mapper til: <b>Matte</b>, <b>Engelsk</b> og <b>Naturfag</b>.', check: S => S.folderIn('Matte', P_SK) && S.folderIn('Engelsk', P_SK) && S.folderIn('Naturfag', P_SK) },
           { text: 'Åpne mappen <b>Norsk</b> og lag en mappe <i>inni</i> den som heter <b>Dikt</b>.', check: S => S.folderIn('Dikt', P_NORSK) },
           { text: 'Gå inn i mappen <b>Dikt</b>. Adressefeltet skal nå vise OneDrive › Skole › Norsk › Dikt.', check: S => S.ev('explorer-nav', d => d.name === 'Dikt') },
@@ -166,6 +175,9 @@ const KURS = [
         id: 'k3o1', title: 'Dra og slipp',
         setup: F => { F.ensureFolder(P_NORSK); F.ensureFileAt(P_DOC, 'Dikt-analyse.docx', 'Analyse av diktet «Nordlys»\n\nDiktet handler om lyset som danser over himmelen om vinteren.'); },
         steps: [
+          { laer: true, quiz: { q: 'Hva er forskjellen på å flytte og å kopiere en fil?', options: ['Flytte: filen finnes bare på det nye stedet. Kopiere: du får to like filer', 'Det er det samme', 'Kopiere sletter originalen'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hvilken snarvei limer inn?', options: ['Ctrl+C', 'Ctrl+X', 'Ctrl+V'], answer: 2 } },
+          { laer: true, quiz: { q: 'Hva skjer når du tømmer papirkurven?', options: ['Filene flyttes til Dokumenter', 'Filene er borte for alltid', 'Ingenting'], answer: 1 } },
           { text: 'Åpne Filutforsker og gå til <b>Dokumenter</b>.', check: S => S.ev('explorer-nav', d => d.name === 'Dokumenter') },
           { text: 'Dra filen <b>Dikt-analyse</b> til mappen <b>Norsk</b>: hold venstre museknapp nede på filen, dra den til OneDrive › Skole › Norsk i menyen til venstre, og slipp.', hint: 'Klikk på ▸ ved OneDrive og Skole i menyen til venstre, så ser du Norsk der. Dra filen dit til mappen blir markert, og slipp.', check: S => S.fileInNamed('Dikt-analyse.docx', 'Norsk') },
           { text: 'Gå til mappen <b>Norsk</b> og sjekk at filen er der.', check: S => S.ev('explorer-nav', d => /norsk/i.test(d.name)) },
@@ -242,6 +254,9 @@ const KURS = [
         id: 'k4o1', title: 'Skriv og lagre et dokument',
         setup: F => { F.ensureFolder(P_NORSK); F.silentRemoveAll('Mitt første dokument.docx'); F.silentRemoveAll('Mitt første dokument.txt'); },
         steps: [
+          { laer: true, quiz: { q: 'Hva er forskjellen på Lagre og Lagre som?', options: ['De er like', 'Lagre som lar deg velge sted og navn. Lagre lagrer i samme fil som før', 'Lagre som lager en snarvei'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hva betyr en stjerne * i tittellinjen til et program?', options: ['Filen er stor', 'Filen er delt med andre', 'Det finnes endringer som ikke er lagret'], answer: 2 } },
+          { laer: true, quiz: { q: 'Hvilken filtype hører til PowerPoint?', options: ['.docx', '.xlsx', '.pptx'], answer: 2 } },
           { text: 'Åpne programmet <b>Skriv</b> (oppgavelinjen eller Start-menyen).', check: S => S.ev('window-open', d => d.app === 'skriv') },
           { text: 'Skriv minst én setning om hva du liker å gjøre på fritiden.', check: S => S.editorText().trim().length >= 20 },
           { text: 'Klikk <b>Lagre</b> (eller trykk <kbd>Ctrl</kbd>+<kbd>S</kbd>). I vinduet som kommer opp: velg <b>OneDrive › Skole › Norsk</b> til venstre, skriv filnavnet <b>Mitt første dokument</b> og klikk Lagre.', hint: 'Klikk på ▸ ved OneDrive i menyen til venstre i vinduet, så Skole, så Norsk. Sjekk at adressefeltet øverst viser OneDrive › Skole › Norsk før du klikker Lagre.', check: S => S.fileInNamed('Mitt første dokument.docx', 'Norsk') },
@@ -301,6 +316,9 @@ const KURS = [
         id: 'k5o1', title: 'Last ned og flytt',
         setup: F => { F.ensureFolder(P_MATTE); F.silentRemoveAll('Oppgaveark-brøk.pdf'); },
         steps: [
+          { laer: true, quiz: { q: 'Hvor havner filer du laster ned fra internett, hvis du ikke velger noe annet?', options: ['I Papirkurven', 'I Nedlastinger', 'I OneDrive'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hva gjør «Vis i mappe» i nedlastingsmeldingen?', options: ['Åpner Nedlastinger i Filutforsker med filen markert', 'Sletter filen', 'Laster ned filen på nytt'], answer: 0 } },
+          { laer: true, quiz: { q: 'Du åpner en nedlastet mal og skriver i den. Hva bør du gjøre?', options: ['Trykke Lagre og la den ligge i Nedlastinger', 'Ingenting, det lagres automatisk', 'Lagre som i riktig mappe i OneDrive, så malen i Nedlastinger er urørt'], answer: 2 } },
           { text: 'Åpne <b>Nettleser</b> fra oppgavelinjen.', check: S => S.ev('window-open', d => d.app === 'nettleser') },
           { text: 'Klikk <b>Last ned</b> ved «Oppgaveark om brøk».', check: S => S.ev('download', d => d.base === 'Oppgaveark-brøk.pdf') },
           { text: 'Klikk <b>Vis i mappe</b> i nedlastingsmeldingen (eller åpne Nedlastinger i Filutforsker).', check: S => S.ev('explorer-nav', d => d.name === 'Nedlastinger') },
@@ -336,6 +354,8 @@ const KURS = [
         id: 'k6o1', title: 'Lever inn dikt-analysen',
         setup: F => { F.ensureFileAt(P_NORSK, 'Dikt-analyse.docx', 'Analyse av diktet «Nordlys»'); Innlevering.reset('norsk-dikt'); },
         steps: [
+          { laer: true, quiz: { q: 'I hvilken rekkefølge leverer du i Teams?', options: ['Lever inn → Legg til arbeid → åpne oppgaven', 'Åpne oppgaven → Legg til arbeid → velg filen → Lever inn', 'Velg filen → slett den → Lever inn'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hva ligner vinduet der du velger filen på, og hva betyr det for deg?', options: ['Nettleseren, så du må ha internett', 'Papirkurven, så filen må være slettet', 'Filutforsker, så du må vite hvor filen ligger'], answer: 2 } },
           { text: 'Åpne <b>Innleveringer</b> fra oppgavelinjen.', check: S => S.ev('window-open', d => d.app === 'innlevering') },
           { text: 'Klikk på oppgaven <b>Norsk: Dikt-analyse</b>.', check: S => S.ev('assignment-open', d => d.id === 'norsk-dikt') },
           { text: 'Klikk <b>Legg til arbeid</b>. Finn filen <b>Dikt-analyse</b> i OneDrive › Skole › Norsk, velg den og klikk Åpne.', hint: 'Klikk på ▸ ved OneDrive til venstre i vinduet, så Skole, så Norsk. Klikk på filen og så på Åpne (eller dobbeltklikk filen).', check: S => S.ev('attach', d => d.assignment === 'norsk-dikt' && d.name === 'Dikt-analyse.docx') },
@@ -376,6 +396,9 @@ const KURS = [
           F.ensureFileAt(P_DOC, 'Norsk-fortelling.docx', 'Fortellingen om skogen');
         },
         steps: [
+          { laer: true, quiz: { q: 'Hva er et godt filnavn for en naturfagrapport om fotosyntese?', options: ['Dokument (7).docx', 'rapport.docx', 'Naturfag-rapport-fotosyntese.docx'], answer: 2 } },
+          { laer: true, quiz: { q: 'Hvor leter søkefeltet i Filutforsker?', options: ['I mappen du står i og alle undermappene', 'På hele internett', 'Bare på skrivebordet'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hvilken visning viser dato, type og størrelse i kolonner?', options: ['Store ikoner', 'Detaljer', 'Forhåndsvisning'], answer: 1 } },
           { text: 'Gå til <b>Dokumenter</b>. Der ligger fire filer som hører hjemme i fagmappene <b>OneDrive › Skole › Engelsk / Naturfag / Matte / Norsk</b>. Mappene finnes allerede.', check: S => S.ev('explorer-nav', d => d.name === 'Dokumenter') },
           { text: 'Flytt <b>Engelsk-gloser-uke-3</b> til mappen <b>Engelsk</b> i OneDrive › Skole.', hint: 'Dra filen til Engelsk i menyen til venstre (klikk på ▸ ved OneDrive og Skole først), eller bruk Ctrl+X og Ctrl+V. Har du laget en egen Engelsk-mappe et annet sted, godtas den også.', check: S => S.fileInNamed('Engelsk-gloser-uke-3.docx', 'Engelsk') },
           { text: 'Flytt <b>Naturfag-labrapport</b> til <b>Naturfag</b>.', check: S => S.fileInNamed('Naturfag-labrapport.docx', 'Naturfag') },
@@ -445,6 +468,9 @@ const KURS = [
         id: 'k8o1', title: 'Skriv med tastaturet',
         setup: F => { F.ensureFolder(P_NORSK); F.silentRemoveAll('Tastatur-øving.docx'); },
         steps: [
+          { laer: true, quiz: { q: 'Hvilken tast gir stor bokstav, eller tegnet øverst på en tast?', options: ['Shift', 'Ctrl', 'Tab'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva gjør Caps Lock?', options: ['Sletter et tegn', 'Slår på STORE BOKSTAVER til du slår den av igjen', 'Lagrer dokumentet'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hva gjør Tab-tasten i et skjema?', options: ['Lager stor bokstav', 'Sletter feltet', 'Hopper til neste felt'], answer: 2 } },
           { text: 'Åpne <b>Skriv</b>.', check: S => S.ev('window-open', d => d.app === 'skriv') },
           { text: 'Skriv setningen: <b>Jeg lærer å bruke PC!</b> (med stor J, stor PC og utropstegn). <kbd>Shift</kbd> gir stor bokstav og tegnet øverst på tasten.', hint: 'Utropstegnet ligger på 1-tasten: hold Shift og trykk 1.', check: S => S.editorText().includes('Jeg lærer å bruke PC!') },
           { text: 'Trykk <kbd>Enter</kbd> for ny linje, og skriv en e-postadresse, for eksempel <b>test@skole.no</b>. Krøllalfa (@) skriver du med <kbd>AltGr</kbd>+<kbd>2</kbd>.', hint: 'AltGr er tasten til høyre for mellomromstasten. Hold den nede og trykk 2. (På noen tastaturer: Ctrl+Alt+2.)', check: S => S.editorText().includes('@') && S.editorText().includes('\n') },

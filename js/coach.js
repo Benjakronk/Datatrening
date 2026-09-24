@@ -130,21 +130,23 @@ const Coach = (() => {
     const k = kurs(a.kurs), o = oppOf(a);
     const ki = KL.indexOf(k) + 1, oi = k.oppdrag.indexOf(o) + 1;
     body.appendChild(el(`<div class="ktag">Kurs ${ki} · ${esc(k.title)}</div><h2>Oppdrag ${ki}.${oi}: ${esc(o.title)}</h2>`));
-    if (k.laer) body.appendChild(el(`<details class="laer"${a.step === 0 && oi === 1 && !P.done[o.id] ? ' open' : ''}><summary>📖 Les først: ${esc(k.laerTitle || k.title)}</summary>${k.laer}</details>`));
+    const curStep = o.steps[a.step];
+    const laerOpen = (curStep && curStep.laer) || (a.step === 0 && oi === 1 && !P.done[o.id]);
+    if (k.laer) body.appendChild(el(`<details class="laer"${laerOpen ? ' open' : ''}><summary>📖 Les først: ${esc(k.laerTitle || k.title)}</summary>${k.laer}</details>`));
     const done = a.step >= o.steps.length;
     o.steps.forEach((st, i) => {
       const cls = i < a.step ? 'done' : i === a.step ? 'active' : 'locked';
       const d = el(`<div class="step ${cls}"><div class="num">${i < a.step ? '✓' : i + 1}</div><div class="txt"></div></div>`);
       const txt = d.querySelector('.txt');
       if (st.quiz) {
-        txt.innerHTML = `<div><b>Spørsmål:</b> ${esc(st.quiz.q)}</div>`;
+        txt.innerHTML = `<div><b>${st.laer ? 'Teori' : 'Spørsmål'}:</b> ${esc(st.quiz.q)}</div>`;
         if (i === a.step) {
           st.quiz.options.forEach((optText, j) => {
             const b = el(`<button class="quiz-opt${wrongOpt === j ? ' wrong' : ''}">${esc(optText)}</button>`);
             b.addEventListener('click', () => answer(j));
             txt.appendChild(b);
           });
-          if (wrongOpt != null) txt.appendChild(el(`<div class="hintbox">Ikke helt riktig. ${esc(st.hint || 'Prøv igjen!')}</div>`));
+          if (wrongOpt != null) txt.appendChild(el(`<div class="hintbox">Ikke helt riktig. ${esc(st.hint || (st.laer ? 'Svaret står i «Les først»-boksen øverst.' : 'Prøv igjen!'))}</div>`));
         } else if (i < a.step) {
           txt.appendChild(el(`<div class="muted">Svar: ${esc(st.quiz.options[st.quiz.answer])}</div>`));
         }

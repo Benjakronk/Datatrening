@@ -72,7 +72,9 @@ skolens webserver) eller del mappen via OneDrive/Teams og be elevene åpne `inde
 | **Innleveringer** | Teams-lignende oppgaveliste: «Legg til arbeid» → velg fil fra OneDrive → «Lever inn» |
 | **Papirkurv / Innstillinger** | Gjenopprett, tøm, tilbakestill øvings-PC-en |
 
-Veileder-panelet til høyre inneholder 8 kurs med til sammen 25 oppdrag. Hvert steg sjekkes automatisk
+Veileder-panelet til høyre inneholder 8 kurs med til sammen 25 oppdrag. Hvert kurs starter med
+to eller tre teorispørsmål som bare kan besvares ved å lese «Les først»-teksten (merket `laer: true`
+i koden). «Les først»-boksen holdes åpen så lenge et teorispørsmål er aktivt. Hvert steg sjekkes automatisk
 mot tilstanden på øvings-PC-en, så eleven får umiddelbar tilbakemelding. Kursene:
 
 1. Bli kjent med PC-en (mus, vinduer, Start-meny, høyreklikk)
