@@ -67,12 +67,12 @@ skolens webserver) eller del mappen via OneDrive/Teams og be elevene åpne `inde
 | Program | Brukes til |
 |---|---|
 | **Filutforsker** | Mapper, filer, dra og slipp, klipp ut/kopier/lim inn, gi nytt navn, slette, papirkurv, søk, sortering, filendelser |
-| **Skriv** | Enkel tekstbehandler med Lagre / Lagre som, Ctrl+S, «Vil du lagre endringene?»-dialog |
+| **Skriv** | Tekstbehandler (Word-lite) med skrifttype, størrelse, fet/kursiv/understreket, farge, overskriftstiler, lister, justering, Lagre / Lagre som, Ctrl+S og «Vil du lagre endringene?»-dialog. Dokumenter (.docx) lagres med formateringen, .txt som ren tekst |
 | **Nettleser** | Simulert skoleportal der elevene laster ned filer som havner i Nedlastinger |
 | **Innleveringer** | Teams-lignende oppgaveliste: «Legg til arbeid» → velg fil fra OneDrive → «Lever inn» |
 | **Papirkurv / Innstillinger** | Gjenopprett, tøm, tilbakestill øvings-PC-en |
 
-Veileder-panelet til høyre inneholder 8 kurs med til sammen 25 oppdrag. Hvert kurs starter med
+Veileder-panelet til høyre inneholder 9 kurs med til sammen 28 oppdrag. Hvert kurs starter med
 to eller tre teorispørsmål som bare kan besvares ved å lese «Les først»-teksten (merket `laer: true`
 i koden). «Les først»-boksen holdes åpen så lenge et teorispørsmål er aktivt. Hvert steg sjekkes automatisk
 mot tilstanden på øvings-PC-en, så eleven får umiddelbar tilbakemelding. Kursene:
@@ -81,10 +81,11 @@ mot tilstanden på øvings-PC-en, så eleven får umiddelbar tilbakemelding. Kur
 2. Filer og mapper (navigasjon, adressefelt, lage mapper, gi nytt navn)
 3. Flytte, kopiere og slette (dra og slipp, Ctrl+X/C/V/Z, papirkurv)
 4. Lagre og åpne dokumenter (Lagre som, Ctrl+S, filtyper og filendelser)
-5. Nedlastinger og internett
-6. Levere inn arbeid (Teams-flyten)
-7. Rydd og finn (rydde i Dokumenter, søk, sortering, gode filnavn)
-8. Tastaturet (Shift, AltGr for @, snarveier)
+5. Formatering av tekst (skrifttype, størrelse, fet/kursiv/understreket, farge, overskrifter, lister, justering)
+6. Nedlastinger og internett
+7. Levere inn arbeid (Teams-flyten)
+8. Rydd og finn (rydde i Dokumenter, søk, sortering, gode filnavn)
+9. Tastaturet (Shift, AltGr for @, snarveier)
 
 Fanen **Fremdrift** viser hva eleven har fullført, og knappen «Kopier rapport» lager en tekst
 eleven kan sende til læreren.

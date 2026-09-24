@@ -304,6 +304,67 @@ const KURS = [
   },
   /* ============================================================ */
   {
+    id: 'kf', title: 'Formatering av tekst', laerTitle: 'skrifttype, størrelse og fet/kursiv/understreket',
+    desc: 'Skrifttype, størrelse, fet, kursiv, understreket, overskrifter, lister og justering i Skriv.',
+    laer: `
+      <h4>Marker først, formater etterpå</h4>
+      <p>Formatering virker på teksten du har <b>markert</b>. Dra over teksten med musen (eller hold <kbd>Shift</kbd> nede og bruk piltastene), og trykk deretter på knappen. Klikker du på en knapp uten å ha markert noe, gjelder den for det du skriver videre.</p>
+      <h4>Skrifttype (font)</h4>
+      <p>En <b>skrifttype</b> er utseendet på bokstavene. <span style="font-family:Calibri,sans-serif">Calibri</span> og <span style="font-family:Arial,sans-serif">Arial</span> er enkle og lette å lese. <span style="font-family:'Times New Roman',serif">Times New Roman</span> har små «føtter» på bokstavene og brukes ofte i bøker. <span style="font-family:'Comic Sans MS',cursive">Comic Sans</span> ser uformell ut og passer ikke til skolearbeid. Bruk én skrifttype i hele dokumentet.</p>
+      <h4>Størrelse</h4>
+      <p>Skriftstørrelse måles i <b>punkt</b> (pt). Vanlig tekst er <b>11 eller 12 pt</b>. Overskrifter er større, for eksempel 16 til 20 pt. Ikke bruk stor skrift for å fylle sider.</p>
+      <table><tr><th>Knapp</th><th>Snarvei</th><th>Brukes til</th></tr>
+      <tr><td><b>Fet</b></td><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>Fremheve viktige ord og overskrifter</td></tr>
+      <tr><td><i>Kursiv</i></td><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Titler på bøker og filmer, fremmedord, sitater</td></tr>
+      <tr><td><u>Understreket</u></td><td><kbd>Ctrl</kbd>+<kbd>U</kbd></td><td>Brukes sjelden i dag, fordi det ligner på lenker</td></tr></table>
+      <h4>Overskrifter, lister og justering</h4>
+      <p><b>Stiler</b> som «Overskrift 1» gir overskriftene riktig størrelse og farge automatisk, så dokumentet blir ryddig og likt hele veien. <b>Punktliste</b> og <b>nummerert liste</b> brukes til oppramsing. <b>Justering</b> bestemmer om teksten står til venstre (vanlig), i midten (titler) eller til høyre.</p>`,
+    oppdrag: [
+      {
+        id: 'kfo1', title: 'Fet, kursiv og understreket',
+        setup: F => { F.ensureFolder(P_NORSK); F.silentRemoveAll('Formatering.docx'); },
+        steps: [
+          { laer: true, quiz: { q: 'Hva er en skrifttype?', options: ['Hvor stor teksten er', 'Utseendet på bokstavene, for eksempel Calibri eller Arial', 'Fargen på teksten'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hvilken størrelse passer til vanlig tekst i en skoleoppgave?', options: ['11 eller 12 pt', '24 pt', '6 pt'], answer: 0 } },
+          { laer: true, quiz: { q: 'Du vil gjøre et ord fett. Hva gjør du først?', options: ['Trykker Ctrl+B og skriver ordet på nytt', 'Sletter ordet', 'Markerer ordet'], answer: 2 } },
+          { text: 'Åpne <b>Skriv</b> og skriv tre korte setninger om favorittboken eller favorittfilmen din. Ta med tittelen.', check: S => S.wins('skriv') > 0 && S.editorText().trim().length >= 30 },
+          { text: 'Marker et viktig ord (dra over det med musen) og gjør det <b>fett</b> med <kbd>Ctrl</kbd>+<kbd>B</kbd> eller <b>F</b>-knappen.', hint: 'Hold venstre museknapp nede i starten av ordet, dra til slutten og slipp. Ordet blir blått. Trykk så Ctrl+B.', check: S => S.skriv().bold },
+          { text: 'Marker tittelen på boken eller filmen og gjør den <i>kursiv</i> (<kbd>Ctrl</kbd>+<kbd>I</kbd>).', check: S => S.skriv().italic },
+          { text: 'Marker noe annet og gjør det <u>understreket</u> (<kbd>Ctrl</kbd>+<kbd>U</kbd>). Se at det ligner en lenke. Fjern understrekingen igjen: marker teksten og trykk <kbd>Ctrl</kbd>+<kbd>U</kbd> en gang til.', hint: 'Samme knapp slår formateringen av og på.', check: S => S.evCount('format', d => d.cmd === 'underline') >= 2 && !S.skriv().underline },
+          { text: 'Lagre dokumentet som <b>Formatering</b> i <b>OneDrive › Skole › Norsk</b>.', check: S => S.fileInNamed('Formatering.docx', 'Norsk') },
+          { quiz: { q: 'Hva bruker du kursiv til?', options: ['Alt som er viktig', 'Titler på bøker og filmer, fremmedord og sitater', 'Overskrifter'], answer: 1 } }
+        ]
+      },
+      {
+        id: 'kfo2', title: 'Skrifttype og størrelse',
+        setup: F => { F.ensureFolder(P_NORSK); F.ensureFile(P_NORSK, 'Formatering.docx', 'Min favorittfilm\nJeg liker filmen fordi den er spennende.\nDen handler om en gutt som finner et kart.'); },
+        steps: [
+          { text: 'Åpne <b>Formatering</b> fra OneDrive › Skole › Norsk (dobbeltklikk i Filutforsker, eller Åpne i Skriv). Sørg for at første linje er en kort overskrift, for eksempel «Min favorittfilm».', check: S => S.wins('skriv') > 0 && S.editorText().trim().split('\n').length >= 2 },
+          { text: 'Marker overskriften (første linje) og sett størrelsen til <b>20</b> i størrelse-menyen.', hint: 'Dra over hele første linje med musen, eller klikk i linjen og trykk Shift+End. Velg så 20 i menyen ved siden av skrifttypen.', check: S => S.skriv().sizes.some(s => s >= 18) },
+          { text: 'Marker all tekst med <kbd>Ctrl</kbd>+<kbd>A</kbd> og velg skrifttypen <b>Arial</b>.', check: S => S.skriv().fonts.length > 0 && S.skriv().fonts.every(f => /arial/i.test(f)) },
+          { text: 'Prøv <b>Comic Sans MS</b> på hele teksten og se hvordan det ser ut. Bytt så tilbake til Arial. Comic Sans passer ikke til skolearbeid.', check: S => S.ev('format', d => d.cmd === 'fontName' && /comic/i.test(d.value)) && S.skriv().fonts.every(f => /arial|calibri/i.test(f)) },
+          { text: 'Marker overskriften og gjør teksten <b>blå</b> med farge-menyen.', check: S => S.skriv().colors.some(c => /rgb\(0, 112, 192\)/.test(c)) },
+          { text: 'Lagre med <kbd>Ctrl</kbd>+<kbd>S</kbd>.', check: S => S.ev('save', d => d.via === 'shortcut') },
+          { quiz: { q: 'Hvilken skrifttype passer dårligst til en skoleoppgave?', options: ['Calibri', 'Arial', 'Comic Sans MS'], answer: 2 } },
+          { quiz: { q: 'Overskriften er 20 pt og resten 11 pt. Hva betyr pt?', options: ['Punkt, enheten for skriftstørrelse', 'Prosent', 'Antall bokstaver'], answer: 0 } }
+        ]
+      },
+      {
+        id: 'kfo3', title: 'Overskrifter, lister og justering',
+        setup: F => { F.ensureFolder(P_NORSK); F.silentRemoveAll('Ukeplan.docx'); },
+        steps: [
+          { text: 'Åpne et nytt dokument i Skriv (<b>Ny</b>). Skriv «Ukeplan» på første linje. Klikk i linjen og velg stilen <b>Overskrift 1</b> i stil-menyen.', hint: 'Stil-menyen står «Normal» i, mellom fargen og justeringsknappene.', check: S => S.skriv().headings.includes('h1') },
+          { text: 'Trykk <kbd>Enter</kbd>, skriv «Mandag» og gi linjen stilen <b>Overskrift 2</b>.', check: S => S.skriv().headings.includes('h2') },
+          { text: 'Trykk <kbd>Enter</kbd>, sett stilen tilbake til <b>Normal</b>, og lag en <b>punktliste</b> med minst tre ting du skal gjøre på mandag: klikk punktliste-knappen og skriv ett punkt per linje.', hint: 'Punktliste-knappen er den med tre prikker og streker. Enter gir et nytt punkt.', check: S => S.skriv().lists.includes('ul') && S.skriv().listItems >= 3 },
+          { text: 'Skriv navnet ditt på en egen linje nederst (trykk Enter to ganger for å avslutte listen), og <b>midtstill</b> linjen.', check: S => S.skriv().aligns.includes('center') },
+          { text: 'Lagre som <b>Ukeplan</b> i <b>OneDrive › Skole › Norsk</b>.', check: S => S.fileInNamed('Ukeplan.docx', 'Norsk') },
+          { quiz: { q: 'Hvorfor bruke stilen Overskrift 1 i stedet for bare å velge stor skrift?', options: ['Det er det samme', 'Fordi det går raskere å skrive', 'Overskriftene blir like og ryddige, og programmet vet at det er en overskrift'], answer: 2 } }
+        ]
+      }
+    ]
+  },
+  /* ============================================================ */
+  {
     id: 'k5', title: 'Nedlastinger og internett', laerTitle: 'nedlastinger',
     desc: 'Hvor havner filer du laster ned, og hva gjør du med dem?',
     laer: `
