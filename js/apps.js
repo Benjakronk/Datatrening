@@ -11,6 +11,9 @@ const Apps = (() => {
       case 'innlevering': return Innlevering.open();
       case 'innstillinger': return Innstillinger.open();
       case 'taskmgr': return TaskMgr.open();
+      case 'notater': return window.Notater ? Notater.open() : null;
+      case 'epost': return window.Epost ? Epost.open() : null;
+      case 'skrivetrening': return window.Skrivetrening ? Skrivetrening.open() : null;
       case 'terminal': return window.Terminal ? Terminal.open(args.folderId) : null;
       case 'kode': return window.Kode ? Kode.open(args) : null;
       case 'bilder': return args.nodeId ? Viewer.open(args.nodeId) : Explorer.open(FS.roots().pictures);

@@ -25,7 +25,7 @@ const Skriv = (() => {
     const node0 = nodeId && FS.get(nodeId) ? FS.get(nodeId) : null;
     const st = { nodeId: node0 ? node0.id : null, dirty: false, docName: 'Dokument' + count, plain: node0 ? FS.ext(node0.name) === 'txt' : false };
     const root = el(`<div class="skriv">
-      <div class="menubar"><button data-a="new">Ny</button><button data-a="open">Åpne</button><button data-a="save">Lagre</button><button data-a="saveas">Lagre som</button><span class="spacer"></span><span class="hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> lagre · <kbd>Ctrl</kbd>+<kbd>B</kbd> fet · <kbd>Ctrl</kbd>+<kbd>I</kbd> kursiv · <kbd>Ctrl</kbd>+<kbd>U</kbd> understreket</span></div>
+      <div class="menubar"><button data-a="new">Ny</button><button data-a="open">Åpne</button><button data-a="save">Lagre</button><button data-a="saveas">Lagre som</button><button data-a="print">Skriv ut</button><span class="spacer"></span><span class="hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> lagre · <kbd>Ctrl</kbd>+<kbd>B</kbd> fet · <kbd>Ctrl</kbd>+<kbd>P</kbd> skriv ut</span></div>
       <div class="sk-tools">
         <select class="sk-font" title="Skrifttype">${FONTS.map(f => `<option value="${f}" style="font-family:'${f}'">${f}</option>`).join('')}</select>
         <select class="sk-size" title="Skriftstørrelse (punkt)">${SIZES.map(s => `<option value="${s}">${s}</option>`).join('')}</select>
@@ -43,7 +43,7 @@ const Skriv = (() => {
         <button class="sk-b" data-cmd="insertUnorderedList" title="Punktliste">${ico.ul}</button><button class="sk-b" data-cmd="insertOrderedList" title="Nummerert liste">${ico.ol}</button>
       </div>
       <div class="sk-scroll"><div class="sk-page" contenteditable="true" spellcheck="false"></div></div>
-      <div class="sk-status"><span class="words">0 ord</span><span class="where"></span><span class="spacer"></span><span class="fmt"></span></div>
+      <div class="sk-status"><span class="words">0 ord</span><span class="where"></span><span class="auto"></span><span class="spacer"></span><span class="zoom"></span><span class="fmt"></span></div>
     </div>`);
     const ed = root.querySelector('.sk-page'), tools = root.querySelector('.sk-tools');
     const fontSel = root.querySelector('.sk-font'), sizeSel = root.querySelector('.sk-size'), colorSel = root.querySelector('.sk-color'), styleSel = root.querySelector('.sk-style');
@@ -70,15 +70,37 @@ const Skriv = (() => {
     win.onClosed = () => { const i = inst.findIndex(x => x.win === win); if (i >= 0) inst.splice(i, 1); document.removeEventListener('selectionchange', onSel); };
     win.onKey = e => { if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); Bus.emit('shortcut', { key: 's', ctrl: true, app: 'skriv' }); save('shortcut'); } };
 
+    /* Autolagring: filer i OneDrive lagres av seg selv, som i Word. Lokale filer må lagres med Ctrl+S. */
+    function inOneDrive() { const n = st.nodeId && FS.get(st.nodeId); return !!n && FS.isDesc(n.id, FS.roots().onedrive); }
+    let autoTimer = null;
     function updTitle() {
       WM.setTitle(win, (st.dirty ? '*' : '') + title() + ' - Skriv');
       const t = text().trim();
       const w = t ? t.split(/\s+/).length : 0;
       root.querySelector('.words').textContent = w + ' ord';
       root.querySelector('.where').textContent = st.nodeId && FS.get(st.nodeId) ? 'Lagret i: ' + FS.pathString(FS.get(st.nodeId).parent) : 'Ikke lagret ennå';
+      const a = root.querySelector('.auto');
+      if (!st.nodeId) { a.textContent = ''; a.className = 'auto'; }
+      else if (inOneDrive()) { a.textContent = st.dirty ? '🔄 Autolagrer …' : '☁ Autolagret i OneDrive'; a.className = 'auto on'; }
+      else { a.textContent = st.dirty ? '⚠ Ikke lagret (Ctrl+S)' : '💾 Lagret lokalt · ingen autolagring'; a.className = 'auto off'; }
+      root.querySelector('.zoom').textContent = st.zoom && st.zoom !== 100 ? st.zoom + ' %' : '';
     }
-    function onInput() { st.dirty = true; updTitle(); Bus.emit('editor-input', { text: text() }); }
+    function onInput() {
+      st.dirty = true; updTitle(); Bus.emit('editor-input', { text: text() });
+      if (autoTimer) clearTimeout(autoTimer);
+      if (inOneDrive()) autoTimer = setTimeout(() => { if (st.dirty && inOneDrive()) { const n = FS.get(st.nodeId); const w = FS.write(n.id, getValue()); if (!(w && w.error)) { st.dirty = false; updTitle(); Bus.emit('save', { id: n.id, name: n.name, folderId: n.parent, via: 'auto', isNew: false }); Bus.emit('autosave', { name: n.name }); } } }, 1500);
+    }
     ed.addEventListener('input', onInput);
+    /* Zoom med Ctrl og rullehjul, som i Word */
+    st.zoom = 100;
+    root.querySelector('.sk-scroll').addEventListener('wheel', e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      st.zoom = Math.max(50, Math.min(250, st.zoom + (e.deltaY < 0 ? 10 : -10)));
+      ed.style.zoom = st.zoom / 100;
+      updTitle();
+      Bus.emit('zoom', { app: 'skriv', level: st.zoom });
+    }, { passive: false });
 
     /* ---- markering og formatering ---- */
     let savedRange = null;
@@ -140,6 +162,8 @@ const Skriv = (() => {
       if (e.ctrlKey && !e.altKey) {
         Bus.emit('shortcut', { key: k, ctrl: true, app: 'skriv', shift: e.shiftKey });
         if (k === 's') { e.preventDefault(); save('shortcut'); return; }
+        if (k === 'p') { e.preventDefault(); print('shortcut'); return; }
+        if (k === '0') { e.preventDefault(); st.zoom = 100; ed.style.zoom = 1; updTitle(); Bus.emit('zoom', { app: 'skriv', level: 100 }); return; }
         if (k === 'b' || k === 'i' || k === 'u') { e.preventDefault(); if (!st.plain) exec(k === 'b' ? 'bold' : k === 'i' ? 'italic' : 'underline', null, 'shortcut'); return; }
       }
       if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertText', false, '\t'); return; }
@@ -217,6 +241,44 @@ const Skriv = (() => {
       Toast.show('Lagret «' + n.name + '» i ' + FS.get(r.folderId).name);
       return true;
     }
+    /* Skriv ut: velg skriver eller lag en PDF-fil */
+    async function print(via) {
+      const pages = Math.max(1, Math.ceil(text().length / 1800));
+      const body = el(`<div class="print-dlg">
+        <div class="pd-left"><label>Skriver:</label>
+          <select class="txt pd-target"><option value="skriver">Skolens skriver (Kopirom 2. etasje)</option><option value="pdf">Microsoft Print to PDF (lag PDF-fil)</option></select>
+          <label>Eksemplarer:</label><input class="txt pd-copies" type="number" value="1" min="1" max="5">
+          <div class="muted">Dokumentet er på ${pages} side${pages === 1 ? '' : 'r'}.</div>
+          <div class="muted">Velger du «Print to PDF», lages det en PDF-fil på PC-en i stedet for papir. PDF ser lik ut overalt og kan ikke redigeres.</div>
+        </div>
+        <div class="pd-prev"><div class="pd-paper">${st.plain ? esc(text()).replace(/\n/g, '<br>') : getValue()}</div></div>
+      </div>`);
+      Bus.emit('print-dialog', { pages });
+      const r = await Dialog.show({ title: 'Skriv ut', body, buttons: [{ label: 'Skriv ut', value: 'ok', primary: true }, { label: 'Avbryt', value: null }], validate: () => ({ target: body.querySelector('.pd-target').value, copies: +body.querySelector('.pd-copies').value }) });
+      if (!r) return;
+      if (r.target === 'skriver') { Toast.show(`Sendt til skriveren (${r.copies} eksemplar${r.copies === 1 ? '' : 'er'}). Hent utskriften i kopirommet.`); Bus.emit('print', { target: 'skriver', copies: r.copies, via }); return; }
+      const cur = st.nodeId ? FS.get(st.nodeId) : null;
+      const s = await Dialog.fileChooser({ mode: 'save', title: 'Lagre PDF som', name: cur ? FS.base(cur.name) : st.docName, types: [{ label: 'PDF-dokument (*.pdf)', ext: 'pdf' }], start: cur ? cur.parent : FS.roots().documents });
+      if (!s) return;
+      let n = FS.children(s.folderId).find(c => c.name.toLowerCase() === s.name.toLowerCase());
+      if (n) { const w = FS.write(n.id, text()); if (w && w.error) { Toast.show(w.error); return; } }
+      else { n = FS.createFile(s.folderId, s.name, text(), { via: 'print' }); if (n.error) { Toast.show(n.error); return; } }
+      Toast.show('PDF-filen «' + n.name + '» ble lagret i ' + FS.get(s.folderId).name + '.');
+      Bus.emit('print', { target: 'pdf', name: n.name, folderId: s.folderId, via });
+    }
+    /* Samskriving: en delt fil får en medelev som skriver i den mens du ser på */
+    function maybeCoEdit() {
+      const n = st.nodeId && FS.get(st.nodeId);
+      if (!n || !n.shared || st.plain || st.coEdit) return;
+      st.coEdit = setTimeout(() => {
+        if (!inst.some(x => x.win === win) || !FS.get(st.nodeId)) return;
+        const line = el('<div><span style="background:#fff2b8">Kari (skriver nå): Jeg la til et avsnitt om kildene våre her.</span></div>');
+        ed.appendChild(line);
+        onInput();
+        Toast.show('Kari redigerer dokumentet samtidig som deg. Dere ser endringene til hverandre med én gang.', 6000);
+        Bus.emit('coedit', { name: n.name });
+      }, 3500);
+    }
     async function openDoc() {
       const r = await Dialog.fileChooser({ mode: 'open', title: 'Åpne', types: [{ label: 'Dokumenter (*.docx, *.txt)', ext: 'docx,txt' }, { label: 'Alle filer (*.*)', ext: '' }], start: FS.roots().documents });
       if (!r) return;
@@ -229,6 +291,7 @@ const Skriv = (() => {
       else if (a === 'open') openDoc();
       else if (a === 'save') save('menu');
       else if (a === 'saveas') saveAs('menu');
+      else if (a === 'print') print('menu');
     });
 
     /* Leser av formateringen i dokumentet, brukt av oppdragene */
@@ -272,6 +335,7 @@ const Skriv = (() => {
     updTitle();
     setTimeout(() => { ed.focus(); updateToolbar(); }, 50);
     inst.push({ win, st, api });
+    maybeCoEdit();
     return win;
   }
   function active() { const a = WM.getActive(); let i = inst.find(x => x.win === a); if (!i) i = inst[inst.length - 1]; return i || null; }

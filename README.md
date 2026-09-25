@@ -70,9 +70,16 @@ skolens webserver) eller del mappen via OneDrive/Teams og be elevene åpne `inde
 | **Skriv** | Tekstbehandler (Word-lite) med skrifttype, størrelse, fet/kursiv/understreket, farge, overskriftstiler, lister, justering, Lagre / Lagre som, Ctrl+S og «Vil du lagre endringene?»-dialog. Dokumenter (.docx) lagres med formateringen, .txt som ren tekst |
 | **Nettleser** | Simulert skoleportal der elevene laster ned filer som havner i Nedlastinger |
 | **Innleveringer** | Teams-lignende oppgaveliste: «Legg til arbeid» → velg fil fra OneDrive → «Lever inn» |
+| **Notater** | En forenklet OneNote: notatblokk, inndeling og side, med søk, flytting av sider og automatisk lagring |
+| **E-post** | Outlook-lignende innboks med vedlegg, «lagre som», svar og svar alle, og ny melding med vedlegg fra øvings-PC-en |
+| **Skrivetrening** | Skriveøvelser som måler ord per minutt og treffsikkerhet, med hjemmerad-veiledning |
 | **Papirkurv / Innstillinger** | Gjenopprett, tøm, tilbakestill øvings-PC-en |
 
-Veileder-panelet til høyre inneholder 9 kurs med til sammen 28 oppdrag. Hvert kurs starter med
+I tillegg: utskrift til papir eller PDF fra Skriv, deling av filer i OneDrive med lenke (med simulert samskriving),
+autolagring for filer i OneDrive mot manuell lagring lokalt, vindussnapping ved å dra et vindu mot skjermkanten,
+og zoom med Ctrl og rullehjulet.
+
+Veileder-panelet til høyre inneholder 12 kurs med til sammen 36 oppdrag. Hvert kurs starter med
 to eller tre teorispørsmål som bare kan besvares ved å lese «Les først»-teksten (merket `laer: true`
 i koden). «Les først»-boksen holdes åpen så lenge et teorispørsmål er aktivt. Svaralternativene vises i
 tilfeldig rekkefølge. Svarer eleven feil på et teorispørsmål, låses spørsmålet: «Les først» åpnes, og eleven
@@ -87,12 +94,41 @@ mot tilstanden på øvings-PC-en, så eleven får umiddelbar tilbakemelding. Kur
 4. Lagre og åpne dokumenter (Lagre som, Ctrl+S, filtyper og filendelser)
 5. Formatering av tekst (skrifttype, størrelse, fet/kursiv/understreket, farge, overskrifter, lister, justering)
 6. Nedlastinger og internett
-7. Levere inn arbeid (Teams-flyten)
-8. Rydd og finn (rydde i Dokumenter, søk, sortering, gode filnavn)
-9. Tastaturet (Shift, AltGr for @, snarveier)
+7. E-post og deling (vedlegg, svar og svar alle, lenke mot kopi, samskriving)
+8. Levere inn arbeid (Teams-flyten)
+9. Notater (OneNote: notatblokk, inndeling, side, søk)
+10. Rydd og finn (rydde i Dokumenter, søk, sortering, gode filnavn)
+11. Tastaturet (Shift, AltGr for @, snarveier og skrivetrening med måling)
+12. Når noe ikke virker (finne tapte filer, papirkurv, angre, Oppgavebehandling)
 
-Fanen **Fremdrift** viser hva eleven har fullført, og knappen «Kopier rapport» lager en tekst
-eleven kan sende til læreren.
+## Mesterprøver, repetisjon og «gjør det på ekte»
+
+Tre ting sikrer at ferdigheten sitter igjen, ikke bare at oppdraget ble huket av:
+
+- **Mesterprøve** til slutt i hvert kurs. Eleven får bare *mål*, ingen steg og ingen hint, for eksempel
+  «flytt denne filen dit den hører hjemme og lever den inn». Målene hukes av etter hvert, i den rekkefølgen
+  eleven vil. Tid og antall forsøk lagres.
+- **Ukens øving** trekker fem tilfeldige oppgaver fra kurs eleven har fullført, uten hint. Kortet i
+  Kurs-fanen minner på det når det har gått en uke. Oppgavebanken ligger i `REPETISJON` i `js/oppdrag-mer.js`.
+- **Gjør det på din egen PC**: en avkryssingsliste som dukker opp når kurset er ferdig, med de samme
+  handlingene utført på den ekte maskinen.
+
+Fanen **Fremdrift** viser hva eleven har fullført, og knappen «Kopier rapport til læreren» lager en tekst
+med en rapportkode eleven kan sende til læreren.
+
+## Klasseoversikt for læreren (laerer.html)
+
+Åpne `laerer.html` og lim inn rapportene fra elevene, gjerne mange meldinger om gangen. Siden plukker ut
+kodene selv og viser:
+
+- en tabell over klassen med fullførte oppdrag, beståtte mesterprøver, tid brukt og hvor mye hjelp hver elev
+  har trengt, sorterbar på alle kolonner
+- hvor stor andel av klassen som er ferdig med hvert kurs
+- **«Hva stopper flest?»**: oppdragene rangert etter feilsvar, hint, omstarter og steg som tar lang tid, med
+  det tregeste steget sitert
+- en seksjon per elev, og eksport til regneark (CSV)
+
+Alt regnes ut lokalt i nettleseren. Ingenting sendes noe sted, og klassen lagres bare i lærerens egen nettleser.
 
 ## Programmeringskurset (programmering.html)
 
@@ -144,7 +180,9 @@ skoleportalen ligger i `LINKS` i `js/apps.js`, og innleveringsoppgavene i `ASSIG
 ## Filstruktur
 
 ```
-index.html        – siden
+index.html        – grunnkurset
+programmering.html – programmeringskurset
+laerer.html       – klasseoversikt for læreren
 css/style.css     – utseende (Windows 11-inspirert)
 js/ui.js          – hendelsesbuss, kontekstmeny, dra og slipp, varsler, mappetre
 js/icons.js       – SVG-ikoner
@@ -152,11 +190,19 @@ js/fs.js          – virtuelt filsystem (lagres i localStorage)
 js/wm.js          – vinduer, oppgavelinje, Start-meny
 js/dialogs.js     – dialoger, «Lagre som» / «Åpne», Egenskaper
 js/explorer.js    – Filutforsker
-js/apps.js        – Skriv, Nettleser, Innleveringer, filvisning, Innstillinger
-js/oppdrag.js     – kurs og oppdrag
-js/coach.js       – veileder-panelet og automatisk sjekking
+js/apps.js        – Nettleser, Innleveringer, filvisning, Innstillinger, Oppgavebehandling
+js/skriv.js       – tekstbehandleren med formatering, utskrift og autolagring
+js/notater.js     – Notater (OneNote)
+js/epost.js       – E-post med vedlegg
+js/skrivetrening.js – skriveøvelser med måling
+js/oppdrag.js     – kurs 1 til 6 og 8, 10 og 11
+js/oppdrag-mer.js – nye kurs, mesterprøver, gjør-det-på-ekte og repetisjonsbanken
+js/coach.js       – veileder-panelet, mesterprøver, repetisjon og måling
 js/main.js        – skrivebordet og oppstart
 ```
+
+Programmeringssiden laster i tillegg `js/pyth.js` (Python-tolk), `js/terminal.js`, `js/kode.js` og
+`js/oppdrag-prog.js`.
 
 ## Tips til undervisningen
 

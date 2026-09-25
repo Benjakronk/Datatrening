@@ -6,7 +6,7 @@ const WM = (() => {
   const PIN_KEY = 'dt-pinned' + (window.DT_PAGE ? '-' + window.DT_PAGE : '');
   let PINNED = (() => { try { return JSON.parse(localStorage.getItem(PIN_KEY) || 'null') || null; } catch (e) { return null; } })() || (window.DT_PINNED || ['explorer', 'skriv', 'nettleser', 'innlevering']).slice();
   function savePinned() { try { localStorage.setItem(PIN_KEY, JSON.stringify(PINNED)); } catch (e) { /* ignorer */ } }
-  const APPNAMES = { explorer: 'Filutforsker', skriv: 'Skriv', nettleser: 'Nettleser', innlevering: 'Innleveringer', papirkurv: 'Papirkurv', bilder: 'Bilder', viewer: 'Filvisning', innstillinger: 'Innstillinger', taskmgr: 'Oppgavebehandling', terminal: 'Terminal', kode: 'Kode' };
+  const APPNAMES = { explorer: 'Filutforsker', skriv: 'Skriv', nettleser: 'Nettleser', innlevering: 'Innleveringer', papirkurv: 'Papirkurv', bilder: 'Bilder', viewer: 'Filvisning', innstillinger: 'Innstillinger', taskmgr: 'Oppgavebehandling', terminal: 'Terminal', kode: 'Kode', notater: 'Notater', epost: 'E-post', skrivetrening: 'Skrivetrening' };
   const FS_ICON = '<svg viewBox="0 0 16 16" width="18" height="18"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="#333" stroke-width="1.6"/></svg>';
 
   const layer = () => document.getElementById('windows');
@@ -58,15 +58,36 @@ const WM = (() => {
       if (e.target.closest('.wc') || win.maximized || e.button !== 0) return;
       const sx = e.clientX, sy = e.clientY, ox = elm.offsetLeft, oy = elm.offsetTop;
       let moved = false;
+      /* Vindussnapping: dra vinduet mot en kant, så legger det seg halvt eller helt, som i Windows */
+      let snap = null;
+      const ghost = el('<div class="snap-ghost hidden"></div>');
+      layer().appendChild(ghost);
       const mv = ev => {
         const dx = ev.clientX - sx, dy = ev.clientY - sy;
         if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
         elm.style.left = Math.max(-elm.offsetWidth + 120, Math.min(area.width - 60, ox + dx)) + 'px';
         elm.style.top = Math.max(0, Math.min(area.height - 40, oy + dy)) + 'px';
+        const r = layer().getBoundingClientRect();
+        const px = ev.clientX - r.left, py = ev.clientY - r.top;
+        snap = py <= 4 ? 'max' : px <= 4 ? 'left' : px >= r.width - 4 ? 'right' : null;
+        ghost.classList.toggle('hidden', !snap);
+        if (snap === 'max') { ghost.style.cssText = 'left:0;top:0;width:100%;height:100%'; }
+        else if (snap === 'left') { ghost.style.cssText = 'left:0;top:0;width:50%;height:100%'; }
+        else if (snap === 'right') { ghost.style.cssText = 'left:50%;top:0;width:50%;height:100%'; }
       };
       const up = () => {
         document.removeEventListener('pointermove', mv);
         document.removeEventListener('pointerup', up);
+        ghost.remove();
+        if (snap) {
+          if (snap === 'max') { if (!win.maximized) toggleMax(win); }
+          else {
+            if (win.maximized) toggleMax(win);
+            elm.style.left = (snap === 'left' ? 0 : area.width / 2) + 'px';
+            elm.style.top = '0px'; elm.style.width = (area.width / 2) + 'px'; elm.style.height = area.height + 'px';
+          }
+          Bus.emit('window-snap', { app: win.app, side: snap });
+        }
         if (moved) Bus.emit('window-move', { app: win.app });
       };
       document.addEventListener('pointermove', mv);
@@ -199,6 +220,9 @@ const WM = (() => {
     const g = m.querySelector('.sm-grid');
     g.innerHTML = '';
     const apps = [['explorer', 'Filutforsker'], ['skriv', 'Skriv'], ['nettleser', 'Nettleser'], ['innlevering', 'Innleveringer'], ['bilder', 'Bilder'], ['papirkurv', 'Papirkurv'], ['innstillinger', 'Innstillinger']];
+    if (window.Notater) apps.splice(2, 0, ['notater', 'Notater']);
+    if (window.Epost) apps.splice(3, 0, ['epost', 'E-post']);
+    if (window.Skrivetrening) apps.push(['skrivetrening', 'Skrivetrening']);
     if (window.Kode) apps.splice(1, 0, ['kode', 'Kode']);
     if (window.Terminal) apps.splice(2, 0, ['terminal', 'Terminal']);
     apps.forEach(([app, name]) => {

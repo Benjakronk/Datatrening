@@ -152,13 +152,40 @@ const Explorer = (() => {
       { label: 'Kopier', icon: T.copy, kbd: 'Ctrl+C', action: () => doCopy(ctx.ids, 'menu') },
       { label: 'Kopier som bane', action: () => { if (navigator.clipboard) navigator.clipboard.writeText(FS.pathString(n.id)).catch(() => {}); Toast.show('Kopierte banen: ' + FS.pathString(n.id)); } },
       '-',
-      { label: 'Del', action: () => Toast.show('På en ekte PC kan du dele filen med andre via OneDrive her.') },
+      { label: 'Del', action: () => share(n) },
       '-',
       { label: 'Gi nytt navn', icon: T.rename, kbd: 'F2', action: () => ctx.renameFn(n.id) },
       { label: 'Slett', icon: T.del, kbd: 'Delete', action: () => doDelete(ctx.ids, 'menu') },
       '-',
       { label: 'Egenskaper', icon: T.props, action: () => Dialog.properties(n) });
     return items;
+  }
+  /* Deling: lenke til filen i OneDrive, i stedet for å sende en kopi som vedlegg */
+  async function share(n) {
+    const inOD = FS.isDesc(n.id, FS.roots().onedrive);
+    const link = 'https://skolen-my.sharepoint.com/elev/' + encodeURIComponent(n.name);
+    const body = el(`<div class="share">
+      <div class="sh-head"><span class="ico">${Icons.node(n, 32)}</span><div><b>${esc(n.name)}</b><div class="muted">${esc(FS.pathString(n.parent))}</div></div></div>
+      ${inOD ? '' : '<div class="sh-warn">⚠ Filen ligger ikke i OneDrive. Bare filer i OneDrive kan deles med lenke, fordi de ligger i skyen. Flytt filen til OneDrive først, eller send den som vedlegg.</div>'}
+      <label>Hvem skal få tilgang?</label>
+      <select class="txt sh-who"><option value="klassen">Alle i klassen 8A</option><option value="laerer">Bare læreren</option><option value="gruppe">Jonas og Kari (gruppa mi)</option></select>
+      <label>Hva skal de få lov til?</label>
+      <select class="txt sh-perm"><option value="edit">Kan redigere (skrive i dokumentet)</option><option value="read">Kan bare lese</option></select>
+      <div class="sh-link"><input class="txt" readonly value="${esc(link)}"></div>
+      <div class="sh-tip"><b>Lenke eller vedlegg?</b> En <b>lenke</b> peker til filen i OneDrive, så alle ser den samme filen og siste versjon. Et <b>vedlegg</b> er en kopi: hvis andre skriver i kopien, får ikke du endringene. Bruk lenke når dere skal samarbeide.</div>
+    </div>`);
+    const r = await Dialog.show({
+      title: 'Del «' + FS.displayName(n, settings.showExt) + '»', body,
+      buttons: [{ label: 'Kopier lenke', value: 'link', primary: true }, { label: 'Lukk', value: null }],
+      validate: () => ({ who: body.querySelector('.sh-who').value, perm: body.querySelector('.sh-perm').value })
+    });
+    if (!r) return;
+    if (!inOD) { Toast.show('Filen må ligge i OneDrive for å kunne deles med lenke.'); return; }
+    n.shared = true; n.sharedWith = r.who; n.sharedPerm = r.perm;
+    FS.notify();
+    if (navigator.clipboard) navigator.clipboard.writeText(link).catch(() => {});
+    Toast.show('Lenken er kopiert. Lim den inn i Teams eller e-post, så ser de andre den samme filen.', 5000);
+    Bus.emit('share', { name: n.name, who: r.who, perm: r.perm, link });
   }
   function itemWhere(n) { return n.type === 'folder' ? 'folder' : 'file'; }
   function itemLabel(n) { return (n.type === 'folder' ? 'mappen «' : 'filen «') + FS.displayName(n, settings.showExt) + '»'; }
@@ -482,5 +509,5 @@ const Explorer = (() => {
     }
   });
 
-  return { settings, Clip, open, views, setShowExt, doCopy, doCut, doPaste, doDelete, newMenu, inlineRename, itemMenu, itemWhere, itemLabel, navMenu, bgMenu, emptyBin, refreshAll, sortItems };
+  return { settings, Clip, open, views, setShowExt, doCopy, doCut, doPaste, doDelete, newMenu, inlineRename, itemMenu, itemWhere, itemLabel, navMenu, bgMenu, emptyBin, refreshAll, sortItems, share };
 })();

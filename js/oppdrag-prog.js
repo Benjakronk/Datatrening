@@ -310,4 +310,98 @@ print("Antall navn:", len(linjer))</pre>
     ]
   }
 ];
+/* ---------- Mesterprøver og «gjør det på ekte» for programmeringskurset ---------- */
+function addMasterProg(id, m, ekte) { const k = KURS_PROG.find(x => x.id === id); if (k) { k.mesterprove = m; if (ekte) k.ekte = ekte; } }
+
+addMasterProg('p1', {
+  title: 'Finn frem i terminalen',
+  intro: 'Naviger til et bestemt sted uten oppskrift, og vis hvor du er.',
+  goals: [
+    { text: 'Stå i mappen <b>Pictures</b> og list innholdet', check: S => cmd(S, d => d.name === 'Get-ChildItem' && ends(d.cwd, 'Pictures')) },
+    { text: 'Gå til <b>Documents</b> og vis hvilken mappe du står i', check: S => cmd(S, d => d.name === 'Get-Location' && ends(d.cwd, 'Documents')) },
+    { text: 'Gå hjem igjen til <b>C:\\Users\\Elev</b>', check: S => S.ev('term-cd', d => HOME_RX.test(d.path)) }
+  ]
+}, ['Åpne PowerShell på din egen PC (høyreklikk på Start-knappen) og skriv pwd og ls.', 'Naviger til Dokumenter-mappen din med cd.']);
+
+addMasterProg('p2', {
+  title: 'Lag, fyll og fjern',
+  intro: 'Bygg en liten mappe med innhold fra terminalen, og rydd opp etter deg.',
+  setup: F => { const p = F.resolve([...P_KODE, 'prove']); if (p) F.purge(p.id); F.ensureFolder(P_KODE); },
+  goals: [
+    { text: 'Lag mappen <b>prove</b> i Kode-mappen', check: S => S.folderIn('prove', P_KODE) },
+    { text: 'Lag filen <b>notat.txt</b> inni den, med tekst i', check: S => S.fileIn('notat.txt', [...P_KODE, 'prove']) && S.content('notat.txt').trim().length > 0 },
+    { text: 'Vis innholdet i filen med <b>cat</b>', check: S => S.ev('term-cat', d => /notat\.txt/i.test(d.name)) },
+    { text: 'Kopier filen til <b>notat-kopi.txt</b>', check: S => S.fileIn('notat-kopi.txt', [...P_KODE, 'prove']) }
+  ]
+}, ['Lag en mappe og en fil fra PowerShell på din egen PC med mkdir og New-Item.']);
+
+addMasterProg('p3', {
+  title: 'Stier uten å nøle',
+  intro: 'Bruk både absolutt og relativ sti, og en sti med mellomrom.',
+  setup: F => { F.ensureFolder(P_KODE); F.ensureFolder(['Denne PC-en', 'Dokumenter', 'Mine prosjekter']); },
+  goals: [
+    { text: 'Gå til Kode-mappen med en <b>absolutt</b> sti (den som starter med C:\\)', check: S => S.ev('term-cd', d => /^c:/i.test(d.arg) && ends(d.path, 'Kode')) },
+    { text: 'Gå til <b>Mine prosjekter</b> med en relativ sti og anførselstegn', check: S => S.ev('term-cd', d => ends(d.path, 'Mine prosjekter') && !/^c:/i.test(d.arg)) },
+    { text: 'List innholdet i en <b>annen</b> mappe uten å gå dit', check: S => cmd(S, d => d.name === 'Get-ChildItem' && ((d.args[0] || '') + (d.opts.path || '')).length > 1) }
+  ]
+}, ['Naviger til en mappe med mellomrom i navnet på din egen PC, med anførselstegn og med Tab.']);
+
+addMasterProg('p4', {
+  title: 'Skriv, lagre, kjør',
+  intro: 'Lag et program fra bunnen som spør om noe og svarer. Ingen oppskrift.',
+  setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('mester.py'); },
+  goals: [
+    { text: 'Lag filen <b>mester.py</b> i Kode-mappen', check: S => S.fileIn('mester.py', P_KODE) },
+    { text: 'Programmet skal bruke <b>input()</b> og <b>print()</b>', check: S => /input\s*\(/.test(S.content('mester.py')) && /print\s*\(/.test(S.content('mester.py')) },
+    { text: 'Kjør det uten feil, og svar på spørsmålet det stiller', check: S => ran(S, 'mester.py', d => d.ok && d.usedInput) }
+  ]
+}, ['Skriv et lite Python-program på din egen PC i VS Code og kjør det i terminalen.']);
+
+addMasterProg('p5', {
+  title: 'Finn og fiks feilen',
+  intro: 'Et program er ødelagt. Les feilmeldingen, finn linjen, og få det til å virke.',
+  setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('mesterfeil.py'); F.ensureFile(P_KODE, 'mesterfeil.py', 'tall = [1, 2, 3]\nsum = 0\nfor t in tall:\n    sum = sum + t\nprint("Summen er" sum)\n'); },
+  goals: [
+    { text: 'Kjør <b>mesterfeil.py</b> og se feilmeldingen', check: S => ran(S, 'mesterfeil.py', d => !d.ok) },
+    { text: 'Rett feilen i editoren og lagre', check: S => S.ev('kode-save', d => d.name === 'mesterfeil.py') },
+    { text: 'Kjør det på nytt uten feil, og få ut <b>Summen er 6</b>', check: S => ran(S, 'mesterfeil.py', d => d.ok && /6/.test(d.output)) }
+  ]
+}, ['Fremkall en feil med vilje i et Python-program på din egen PC, og les hele feilmeldingen.']);
+
+addMasterProg('p6', {
+  title: 'Sett opp et prosjekt',
+  intro: 'Bygg en prosjektmappe med data og kode, og kjør den fra riktig sted.',
+  setup: F => { F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'mesterprosjekt']); if (p) F.purge(p.id); },
+  goals: [
+    { text: 'Lag mappen <b>mesterprosjekt</b> med en undermappe <b>data</b>', check: S => S.folderIn('mesterprosjekt', P_KODE) && S.folderIn('data', [...P_KODE, 'mesterprosjekt']) },
+    { text: 'Lag en tekstfil i <b>data</b> med minst to linjer', check: S => { const f = S.folder([...P_KODE, 'mesterprosjekt', 'data']); return !!f && FS.children(f.id).some(c => c.type === 'file' && (c.content || '').split('\n').filter(x => x.trim()).length >= 2); } },
+    { text: 'Lag et program i prosjektmappen som leser filen med <b>open()</b> og kjør det uten feil', check: S => S.ev('py-run', d => d.ok && /open\s*\(/.test(d.source) && /mesterprosjekt/i.test(d.path)) }
+  ]
+}, ['Lag en prosjektmappe på din egen PC med kode og data i hver sin undermappe.']);
+
+addMasterProg('p7', {
+  title: 'Skriptet som spør',
+  intro: 'Lag et PowerShell-skript som spør brukeren om noe og svarer med navnet.',
+  setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('mester.ps1'); },
+  goals: [
+    { text: 'Lag <b>mester.ps1</b> med både <b>Read-Host</b> og <b>Write-Host</b>', check: S => /read-host/i.test(S.content('mester.ps1')) && /write-host/i.test(S.content('mester.ps1')) },
+    { text: 'Kjør skriptet riktig, med <b>.\\</b> foran navnet', check: S => S.ev('ps1-run', d => d.file === 'mester.ps1' && d.ok) },
+    { text: 'Skriptet skal bruke en <b>variabel</b> med $ i utskriften', check: S => S.ev('ps1-run', d => d.file === 'mester.ps1' && d.ok && /write-host\s+"[^"]*\$\w/i.test(d.source)) }
+  ]
+}, ['Kjør et PowerShell-skript på din egen PC. Får du en melding om execution policy, spør IT-ansvarlig.']);
+
+/* ---------- Ukens øving for programmeringskurset ---------- */
+const REPETISJON_PROG = [
+  { id: 'pr1', kurs: 'p1', text: 'Vis hvilken mappe du står i, og list innholdet.', check: S => cmd(S, d => d.name === 'Get-Location') && cmd(S, d => d.name === 'Get-ChildItem') },
+  { id: 'pr2', kurs: 'p1', text: 'Gå til <b>Documents</b> og deretter hjem igjen med <code>cd ~</code>.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents')) && S.ev('term-cd', d => d.arg === '~') },
+  { id: 'pr3', kurs: 'p2', text: 'Lag mappen <b>ukesprove</b> i Kode-mappen, og slett den igjen.', setup: F => { F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'ukesprove']); if (p) F.purge(p.id); }, check: S => S.ev('term-new', d => /ukesprove/i.test(d.name)) && S.ev('term-rm', d => /ukesprove/i.test(d.name)) },
+  { id: 'pr4', kurs: 'p2', text: 'Lag filen <b>uke.txt</b> med tekst i, og vis innholdet med <code>cat</code>.', setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('uke.txt'); }, check: S => S.content('uke.txt').trim().length > 0 && S.ev('term-cat', d => /uke\.txt/i.test(d.name)) },
+  { id: 'pr5', kurs: 'p3', text: 'Bruk <code>tree</code> for å se strukturen i Kode-mappen.', check: S => S.ev('term-tree') },
+  { id: 'pr6', kurs: 'p4', text: 'Lag <b>uke.py</b> som skriver ut navnet ditt, og kjør den.', setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('uke.py'); }, check: S => ran(S, 'uke.py', d => d.ok && d.output.trim().length > 1) },
+  { id: 'pr7', kurs: 'p5', text: 'Kjør <b>ukesfeil.py</b>, finn feilen, rett den og kjør på nytt.', setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('ukesfeil.py'); F.ensureFile(P_KODE, 'ukesfeil.py', 'navn = "Ola"\nprint("Hei " + nvn)\n'); }, check: S => ran(S, 'ukesfeil.py', d => !d.ok) && ran(S, 'ukesfeil.py', d => d.ok) },
+  { id: 'pr8', kurs: 'p6', text: 'Send utskriften fra et Python-program til en fil med <code>&gt;</code>.', check: S => S.ev('term-redirect') },
+  { id: 'pr9', kurs: 'p7', text: 'Kjør et PowerShell-skript med <code>.\\</code> foran navnet.', setup: F => { F.ensureFolder(P_KODE); F.ensureFile(P_KODE, 'uke.ps1', 'Write-Host "Ukens skript"\n'); }, check: S => S.ev('ps1-run', d => d.ok) }
+];
+
 window.KURS_ACTIVE = KURS_PROG;
+window.REP_ACTIVE = REPETISJON_PROG;

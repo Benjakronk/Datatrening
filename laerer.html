@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datatrening – klasseoversikt for læreren</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --blue: #1e3a8a; --line: #e5e7eb; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; color: #1b1b1b; background: #f6f7f9; font-size: 15px; }
+  header { background: var(--blue); color: #fff; padding: 18px 28px; }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; opacity: .85; font-size: 14px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 22px 28px 60px; }
+  section { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 20px; }
+  h2 { font-size: 17px; margin: 0 0 10px; }
+  h3 { font-size: 15px; margin: 18px 0 8px; }
+  p, li { line-height: 1.55; }
+  .muted { color: #666; font-size: 13px; }
+  textarea { width: 100%; height: 130px; font: 12px/1.4 Consolas, monospace; padding: 10px; border: 1px solid #c8c8c8; border-radius: 6px; resize: vertical; }
+  button { font: inherit; padding: 8px 16px; border-radius: 6px; border: 1px solid #c4c4c4; background: #fbfbfb; cursor: pointer; }
+  button:hover { background: #f0f0f0; }
+  button.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  button.primary:hover { background: #16306f; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #f3f4f6; font-weight: 600; position: sticky; top: 0; cursor: pointer; white-space: nowrap; }
+  th:hover { background: #e9ebef; }
+  tbody tr:hover { background: #f8fafc; }
+  .bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; min-width: 90px; }
+  .bar > div { height: 100%; background: #16a34a; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; background: #eef2ff; color: #3730a3; }
+  .pill.warn { background: #fef3c7; color: #92400e; }
+  .pill.bad { background: #fee2e2; color: #991b1b; }
+  .pill.ok { background: #dcfce7; color: #166534; }
+  .kurs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+  .kb { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .kb b { display: block; margin-bottom: 4px; }
+  details.stu { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; padding: 6px 10px; }
+  details.stu summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+  .stuck { border-left: 3px solid #f59e0b; padding: 6px 10px; margin-bottom: 6px; background: #fffbeb; border-radius: 0 6px 6px 0; font-size: 13px; }
+  .stuck b { color: #92400e; }
+  .empty { color: #777; padding: 20px; text-align: center; }
+  code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+  .err { color: #b91c1c; font-size: 13px; }
+  .ok-msg { color: #166534; font-size: 13px; }
+  ol.steps li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Datatrening – klasseoversikt</h1>
+  <p>Lim inn rapportene fra elevene og se hvor langt de er kommet, og hva som stopper flest.</p>
+</header>
+<main>
+
+<section>
+  <h2>Slik gjør du</h2>
+  <ol class="steps">
+    <li>Be elevene åpne fanen <b>Fremdrift</b> i Datatrening og klikke <b>Kopier rapport til læreren</b>.</li>
+    <li>Elevene limer rapporten inn i en melding til deg, for eksempel i Teams.</li>
+    <li>Kopier alle svarene og lim dem inn i feltet under. Du kan lime inn hele meldinger, mange om gangen. Siden plukker ut kodene selv.</li>
+  </ol>
+  <p class="muted">Alt regnes ut på din egen maskin. Ingenting sendes noe sted. Klassen lagres i denne nettleseren til du fjerner den.</p>
+</section>
+
+<section>
+  <h2>Lim inn rapporter</h2>
+  <textarea id="inp" placeholder="Lim inn rapportene her. Hver rapport inneholder en linje som begynner med DT1: …"></textarea>
+  <div class="row">
+    <button class="primary" id="add">Les inn rapporter</button>
+    <button id="csv">Last ned som regneark (CSV)</button>
+    <button id="clear">Tøm klasselisten</button>
+    <span id="msg"></span>
+  </div>
+</section>
+
+<section id="sum-sec">
+  <h2>Klassen</h2>
+  <div id="summary"></div>
+</section>
+
+<section id="stuck-sec">
+  <h2>Hva stopper flest?</h2>
+  <div id="stuck"></div>
+</section>
+
+<section id="stu-sec">
+  <h2>Elev for elev</h2>
+  <div id="students"></div>
+</section>
+
+</main>
+
+<script src="js/oppdrag.js"></script>
+<script src="js/oppdrag-mer.js"></script>
+<script src="js/oppdrag-prog.js"></script>
+<script>
+(function () {
+  'use strict';
+  const KEY = 'dt-laerer';
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const el = h => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstElementChild; };
+  const sets = { base: KURS, prog: (typeof KURS_PROG !== 'undefined' ? KURS_PROG : []) };
+
+  /* Oppslag: oppdrag-id → kurs, oppdrag, stegtekster */
+  const index = {};
+  Object.keys(sets).forEach(page => sets[page].forEach((k, ki) => k.oppdrag.forEach((o, oi) => {
+    index[o.id] = {
+      page, kurs: k.title, kursId: k.id, ki: ki + 1, oi: oi + 1, opp: o.title,
+      steps: o.steps.map(s => s.quiz ? (s.laer ? 'Teori: ' : 'Spørsmål: ') + s.quiz.q : String(s.text || '').replace(/<[^>]+>/g, ''))
+    };
+  })));
+  function kursList(page) { return sets[page] || sets.base; }
+
+  let cls = [];
+  try { cls = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { cls = []; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cls)); } catch (e) { /* ignorer */ } };
+
+  function decode(code) {
+    try {
+      const json = decodeURIComponent(escape(atob(code.replace(/^DT1:/, '').trim())));
+      const d = JSON.parse(json);
+      if (!d || !d.n) return null;
+      return d;
+    } catch (e) { return null; }
+  }
+  function addText(text) {
+    const codes = (text.match(/DT1:[A-Za-z0-9+/=]+/g) || []);
+    let added = 0, bad = 0, updated = 0;
+    codes.forEach(c => {
+      const d = decode(c);
+      if (!d) { bad++; return; }
+      const key = (d.n || '').trim().toLowerCase() + '|' + (d.p || 'base');
+      const i = cls.findIndex(x => ((x.n || '').trim().toLowerCase() + '|' + (x.p || 'base')) === key);
+      if (i >= 0) { if ((d.ts || 0) >= (cls[i].ts || 0)) { cls[i] = d; updated++; } }
+      else { cls.push(d); added++; }
+    });
+    save();
+    const m = document.getElementById('msg');
+    if (!codes.length) m.innerHTML = '<span class="err">Fant ingen rapportkoder. Se etter en linje som begynner med DT1:</span>';
+    else m.innerHTML = `<span class="ok-msg">Leste inn ${codes.length} rapport${codes.length === 1 ? '' : 'er'}: ${added} ny${added === 1 ? '' : 'e'}, ${updated} oppdatert${bad ? ', ' + bad + ' kunne ikke leses' : ''}.</span>`;
+    render();
+  }
+
+  /* ---------- Utregninger ---------- */
+  function doneIn(d, k) { return k.oppdrag.filter(o => (d.d || []).includes(o.id)).length; }
+  function totalDone(d) { return kursList(d.p).reduce((n, k) => n + doneIn(d, k), 0); }
+  function totalOpp(d) { return kursList(d.p).reduce((n, k) => n + k.oppdrag.length, 0); }
+  function masters(d) { return (d.m || []).map(x => x[0]); }
+  function minutes(d) { let s = 0; (d.s || []).forEach(x => (x[1] || []).forEach(t => { s += t || 0; })); return Math.round(s / 60); }
+  function hints(d) { return (d.s || []).reduce((n, x) => n + (x[2] || 0), 0); }
+  function wrongs(d) { return (d.s || []).reduce((n, x) => n + (x[3] || 0), 0); }
+
+  function render() {
+    renderSummary(); renderStuck(); renderStudents();
+  }
+
+  let sortBy = 'name', sortDir = 1;
+  function renderSummary() {
+    const box = document.getElementById('summary');
+    if (!cls.length) { box.innerHTML = '<div class="empty">Ingen rapporter lest inn ennå.</div>'; return; }
+    const rows = cls.slice().sort((a, b) => {
+      let v = 0;
+      if (sortBy === 'name') v = (a.n || '').localeCompare(b.n || '', 'nb');
+      else if (sortBy === 'done') v = (totalDone(a) / totalOpp(a)) - (totalDone(b) / totalOpp(b));
+      else if (sortBy === 'master') v = masters(a).length - masters(b).length;
+      else if (sortBy === 'min') v = minutes(a) - minutes(b);
+      else if (sortBy === 'help') v = (hints(a) + wrongs(a)) - (hints(b) + wrongs(b));
+      else if (sortBy === 'when') v = (a.ts || 0) - (b.ts || 0);
+      return v * sortDir;
+    });
+    const t = el(`<table><thead><tr>
+      <th data-s="name">Elev</th><th data-s="done">Oppdrag</th><th data-s="master">Mesterprøver</th>
+      <th data-s="min">Tid</th><th data-s="help">Hint og feilsvar</th><th>Ukens øving</th><th data-s="when">Rapport levert</th>
+    </tr></thead><tbody></tbody></table>`);
+    const tb = t.querySelector('tbody');
+    rows.forEach(d => {
+      const kl = kursList(d.p), dn = totalDone(d), tot = totalOpp(d);
+      const mtot = kl.filter(k => k.mesterprove).length, mp = masters(d).length;
+      const help = hints(d) + wrongs(d);
+      const rep = d.r && d.r.last ? `${d.r.ok}/${d.r.total} · ${days(d.r.last)}` : '<span class="muted">ikke tatt</span>';
+      tb.appendChild(el(`<tr>
+        <td><b>${esc(d.n)}</b>${d.p === 'prog' ? ' <span class="pill">programmering</span>' : ''}</td>
+        <td><div class="bar"><div style="width:${tot ? Math.round(100 * dn / tot) : 0}%"></div></div><span class="muted">${dn}/${tot}</span></td>
+        <td>${mp}/${mtot} ${mp === mtot && mtot ? '<span class="pill ok">alle</span>' : ''}</td>
+        <td>${minutes(d)} min</td>
+        <td><span class="pill ${help > 25 ? 'bad' : help > 12 ? 'warn' : ''}">${help}</span></td>
+        <td>${rep}</td>
+        <td class="muted">${when(d.ts)}</td>
+      </tr>`));
+    });
+    t.querySelectorAll('th[data-s]').forEach(th => th.addEventListener('click', () => {
+      const s = th.dataset.s; if (sortBy === s) sortDir = -sortDir; else { sortBy = s; sortDir = s === 'name' ? 1 : -1; }
+      renderSummary();
+    }));
+    box.innerHTML = ''; box.appendChild(t);
+
+    /* Per kurs: hvor mange i klassen har fullført */
+    const kl = kursList('base');
+    const grid = el('<div class="kurs-grid" style="margin-top:14px"></div>');
+    kl.forEach((k, i) => {
+      const base = cls.filter(d => (d.p || 'base') === 'base');
+      if (!base.length) return;
+      const full = base.filter(d => doneIn(d, k) === k.oppdrag.length).length;
+      const mp = base.filter(d => masters(d).includes(k.id)).length;
+      grid.appendChild(el(`<div class="kb"><b>${i + 1}. ${esc(k.title)}</b><div class="bar"><div style="width:${Math.round(100 * full / base.length)}%"></div></div><span class="muted">${full} av ${base.length} ferdige${k.mesterprove ? ` · ${mp} bestått mesterprøven` : ''}</span></div>`));
+    });
+    if (grid.children.length) { box.appendChild(el('<h3>Kurs for kurs (grunnkurset)</h3>')); box.appendChild(grid); }
+  }
+  function days(ts) { const d = Math.floor((Date.now() - ts) / 86400000); return d <= 0 ? 'i dag' : d === 1 ? 'i går' : d + ' dager siden'; }
+  function when(ts) { if (!ts) return ''; const d = new Date(ts); const p = n => String(n).padStart(2, '0'); return `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+  function renderStuck() {
+    const box = document.getElementById('stuck');
+    if (!cls.length) { box.innerHTML = '<div class="empty">Ingen data ennå.</div>'; return; }
+    /* Samle per oppdrag: hint, feilsvar, forsøk og tid per steg */
+    const agg = {};
+    cls.forEach(d => (d.s || []).forEach(([id, times, h, w, n]) => {
+      const a = (agg[id] = agg[id] || { id, h: 0, w: 0, n: 0, elever: 0, steps: [] });
+      a.h += h || 0; a.w += w || 0; a.n += n || 0; a.elever++;
+      (times || []).forEach((t, i) => { a.steps[i] = a.steps[i] || { sum: 0, n: 0 }; a.steps[i].sum += t || 0; a.steps[i].n++; });
+    }));
+    const list = Object.values(agg).filter(a => index[a.id]).map(a => {
+      const worst = a.steps.map((s, i) => ({ i, avg: s.n ? s.sum / s.n : 0 })).sort((x, y) => y.avg - x.avg)[0] || { i: 0, avg: 0 };
+      return Object.assign(a, { worst, score: a.w * 3 + a.h * 2 + Math.round(worst.avg / 20) + (a.n - a.elever) * 2 });
+    }).filter(a => a.score > 0).sort((a, b) => b.score - a.score).slice(0, 12);
+    if (!list.length) { box.innerHTML = '<div class="empty">Ingen tydelige stoppunkter ennå. Det er et godt tegn.</div>'; return; }
+    box.innerHTML = '<p class="muted">Sortert etter hvor mye hjelp elevene trengte: feilsvar, hint, omstarter og steg som tok lang tid.</p>';
+    list.forEach(a => {
+      const ix = index[a.id];
+      const stepTxt = ix.steps[a.worst.i] || '';
+      box.appendChild(el(`<div class="stuck">
+        <b>${ix.ki}.${ix.oi} ${esc(ix.opp)}</b> <span class="muted">(${esc(ix.kurs)}${ix.page === 'prog' ? ', programmering' : ''})</span><br>
+        ${a.w ? `<span class="pill bad">${a.w} feilsvar</span> ` : ''}${a.h ? `<span class="pill warn">${a.h} hint</span> ` : ''}${a.n > a.elever ? `<span class="pill warn">${a.n - a.elever} omstart</span> ` : ''}<span class="pill">${a.elever} elev${a.elever === 1 ? '' : 'er'}</span>
+        ${a.worst.avg > 25 ? `<br><span class="muted">Tregeste steg (~${Math.round(a.worst.avg)} s): ${esc(stepTxt.slice(0, 130))}${stepTxt.length > 130 ? '…' : ''}</span>` : ''}
+      </div>`));
+    });
+  }
+
+  function renderStudents() {
+    const box = document.getElementById('students');
+    box.innerHTML = '';
+    if (!cls.length) { box.innerHTML = '<div class="empty">Ingen rapporter lest inn ennå.</div>'; return; }
+    cls.slice().sort((a, b) => (a.n || '').localeCompare(b.n || '', 'nb')).forEach(d => {
+      const kl = kursList(d.p);
+      const det = el(`<details class="stu"><summary>${esc(d.n)} <span class="muted">· ${totalDone(d)}/${totalOpp(d)} oppdrag · ${minutes(d)} min</span></summary></details>`);
+      const grid = el('<div class="kurs-grid"></div>');
+      kl.forEach((k, i) => {
+        const dn = doneIn(d, k), tot = k.oppdrag.length;
+        const mp = masters(d).includes(k.id);
+        const mtime = (d.m || []).find(x => x[0] === k.id);
+        const ek = (d.e || []).find(x => x[0] === k.id);
+        grid.appendChild(el(`<div class="kb"><b>${i + 1}. ${esc(k.title)}</b>
+          <div class="bar"><div style="width:${Math.round(100 * dn / tot)}%"></div></div>
+          <span class="muted">${dn}/${tot} oppdrag${mp ? ` · 🏅 mesterprøve ${mtime ? Math.round(mtime[1] / 60) + ' min' : ''}${mtime && mtime[2] > 1 ? ', ' + mtime[2] + ' forsøk' : ''}` : k.mesterprove ? ' · mesterprøve ikke tatt' : ''}${ek && ek[2] ? ` · ekte-PC ${ek[1]}/${ek[2]}` : ''}</span></div>`));
+      });
+      det.appendChild(grid);
+      const rows = (d.s || []).filter(x => index[x[0]] && ((x[2] || 0) + (x[3] || 0) > 0)).sort((a, b) => (b[2] + b[3]) - (a[2] + a[3])).slice(0, 6);
+      if (rows.length) {
+        det.appendChild(el('<h3>Trengte mest hjelp her</h3>'));
+        rows.forEach(x => { const ix = index[x[0]]; det.appendChild(el(`<div class="muted">${ix.ki}.${ix.oi} ${esc(ix.opp)} – ${x[3] || 0} feilsvar, ${x[2] || 0} hint${x[4] > 1 ? ', ' + x[4] + ' forsøk' : ''}</div>`)); });
+      }
+      box.appendChild(det);
+    });
+  }
+
+  document.getElementById('add').addEventListener('click', () => { addText(document.getElementById('inp').value); document.getElementById('inp').value = ''; });
+  document.getElementById('clear').addEventListener('click', () => { if (confirm('Fjerne alle elevene fra listen?')) { cls = []; save(); render(); document.getElementById('msg').textContent = ''; } });
+  document.getElementById('csv').addEventListener('click', () => {
+    if (!cls.length) return;
+    const head = ['Elev', 'Kurssett', 'Oppdrag fullfort', 'Oppdrag totalt', 'Mesterprover', 'Minutter', 'Hint', 'Feilsvar', 'Rapport'];
+    const rows = cls.map(d => [d.n, d.p === 'prog' ? 'programmering' : 'grunnkurs', totalDone(d), totalOpp(d), masters(d).length, minutes(d), hints(d), wrongs(d), when(d.ts)]);
+    const csv = [head, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'datatrening-klasse.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+  document.getElementById('inp').addEventListener('paste', () => setTimeout(() => { const v = document.getElementById('inp').value; if (/DT1:/.test(v)) { addText(v); document.getElementById('inp').value = ''; } }, 50));
+  render();
+})();
+</script>
+</body>
+</html>
