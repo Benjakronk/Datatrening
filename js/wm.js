@@ -141,6 +141,21 @@ const WM = (() => {
     renderTaskbar();
   }
   function showDesktop() { wins.forEach(w => { if (!w.minimized) minimize(w); }); Bus.emit('show-desktop', {}); }
+  /* Lukker uten å spørre om lagring. Brukes når veilederen rydder mellom oppdrag. */
+  function forceClose(win, via) {
+    win.el.remove();
+    const i = wins.indexOf(win); if (i >= 0) wins.splice(i, 1);
+    if (active === win) active = null;
+    if (win.onClosed) win.onClosed();
+    Bus.emit('window-close', { app: win.app, title: win.title, via: via || 'force' });
+    renderTaskbar();
+  }
+  /* apps = liste med programnavn, eller null for alle. Returnerer hvilke som ble lukket. */
+  function closeApps(apps, via) {
+    const list = apps ? wins.filter(w => apps.includes(w.app)) : wins.slice();
+    list.forEach(w => forceClose(w, via || 'lesson'));
+    return [...new Set(list.map(w => w.app))];
+  }
   function list(app) { return app ? wins.filter(w => w.app === app) : wins.slice(); }
   function getActive() { return active; }
   function deactivate() { if (active) { active.el.classList.add('inactive'); active = null; renderTaskbar(); } }
@@ -239,5 +254,5 @@ const WM = (() => {
   function appName(app) { return APPNAMES[app] || app; }
   function setLaunchVia(v) { launchVia = v; }
 
-  return { create, setTitle, focus, minimize, toggleMax, close, list, getActive, deactivate, renderTaskbar, toggleStart, showStart, hideStart, showDesktop, appName, setLaunchVia, full, MAX_WINDOWS, pinned: () => PINNED.slice() };
+  return { create, setTitle, focus, minimize, toggleMax, close, forceClose, closeApps, list, getActive, deactivate, renderTaskbar, toggleStart, showStart, hideStart, showDesktop, appName, setLaunchVia, full, MAX_WINDOWS, pinned: () => PINNED.slice() };
 })();

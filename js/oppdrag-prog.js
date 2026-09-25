@@ -28,7 +28,7 @@ const KURS_PROG = [
       <p>Store og små bokstaver spiller ingen rolle i PowerShell. <code>cd documents</code> virker like bra.</p>`,
     oppdrag: [
       {
-        id: 'p1o1', title: 'Første kommandoer',
+        id: 'p1o1', title: 'Første kommandoer', lukk: 'alle',
         steps: [
           { laer: true, quiz: { q: 'Hva viser ledeteksten PS C:\\Users\\Elev> ?', options: ['Navnet på PC-en', 'Mappen du står i', 'Klokkeslettet'], answer: 1 } },
           { laer: true, quiz: { q: 'Hva heter mappen Dokumenter i terminalen?', options: ['Dokumenter', 'Docs', 'Documents'], answer: 2 } },
@@ -159,7 +159,7 @@ const KURS_PROG = [
       <p>Til venstre: filene i mappen. Øverst: faner for åpne filer. <kbd>Tab</kbd> gir innrykk (4 mellomrom), som Python trenger. Linjenumrene brukes i feilmeldinger.</p>`,
     oppdrag: [
       {
-        id: 'p4o1', title: 'Første program i Kode',
+        id: 'p4o1', title: 'Første program i Kode', lukk: ['kode'],
         setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('hilsen.py'); },
         steps: [
           { laer: true, quiz: { q: 'Hva gjør  code .  i terminalen?', options: ['Kjører programmet', 'Åpner mappen du står i, i Kode-editoren', 'Sletter filen'], answer: 1 } },
@@ -336,7 +336,7 @@ const KURS_INSTALL = {
     <p>Feiler den, får du en <b>feilkode</b>. Prøv én gang til, det løser det som oftest. Feiler den flere ganger: skriv ned feilkoden og navnet på programmet, og si fra til læreren eller IT. Da er de i stand til å hjelpe deg.</p>`,
   oppdrag: [
     {
-      id: 'pio1', title: 'Installer koderedigeringsprogrammet',
+      id: 'pio1', title: 'Installer koderedigeringsprogrammet', lukk: ['firmaportal','kode'],
       intro: 'Kode-editoren er ikke installert på denne PC-en ennå. Det skal du fikse selv, slik du må gjøre på en ekte skole-PC.',
       steps: [
         { laer: true, quiz: { q: 'Hvorfor kan du ikke bare laste ned programmer fra nettet på en skole-PC?', options: ['Fordi nettet er for tregt', 'Fordi du ikke er administrator, og skolen vil unngå programmer ingen har sjekket', 'Fordi det koster penger'], answer: 1 } },
@@ -404,6 +404,7 @@ addMasterProg('p3', {
 }, ['Naviger til en mappe med mellomrom i navnet på din egen PC, med anførselstegn og med Tab.']);
 
 addMasterProg('pi', {
+  lukk: ['kode','firmaportal'],
   title: 'Hent det du trenger selv',
   intro: 'Du skal hente et program til fra portalen, og vise at du vet hvor installerte programmer havner.',
   goals: [

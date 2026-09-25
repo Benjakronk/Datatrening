@@ -89,6 +89,12 @@ const Coach = (() => {
 
   /* ---------- Start ---------- */
   function resetRun(o) {
+    /* Rydd bort programmer fra forrige oppdrag, så eleven starter med blanke ark.
+       Skjer før stepStart settes, slik at lukkingen ikke teller som et utført steg. */
+    if (o && o.lukk) {
+      const closed = WM.closeApps(o.lukk === 'alle' ? null : o.lukk, 'oppdrag');
+      if (closed.length) Toast.show('Lukket fra forrige oppdrag: ' + closed.map(a => WM.appName(a)).join(', ') + '. Du starter med blanke ark.', 4500);
+    }
     stepStart = Bus.log.length; stepTime = now();
     hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
     if (o && o.setup) { try { o.setup(FS); } catch (e) { console.error('setup', e); } FS.notify(); }

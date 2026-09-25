@@ -52,7 +52,7 @@ const KURS_EPOST = {
     <p>Når flere skriver i det samme dokumentet samtidig, heter det <b>samskriving</b>. Dere ser hverandres endringer med én gang, og alt lagres automatisk.</p>`,
   oppdrag: [
     {
-      id: 'keo1', title: 'Vedlegg i innboksen',
+      id: 'keo1', title: 'Vedlegg i innboksen', lukk: ['epost'],
       setup: F => { if (window.Epost) Epost.reset(); F.ensureFolder(['OneDrive', 'Skole', 'Norsk']); F.silentRemoveAll('Bokrapport-mal.docx'); },
       steps: [
         { laer: true, quiz: { q: 'Hva er et vedlegg?', options: ['En fil som henger ved en e-post', 'En lenke til en nettside', 'Et bilde i signaturen'], answer: 0 } },
@@ -105,7 +105,7 @@ const KURS_NOTATER = {
     <p>Gi sidene <b>tydelige titler</b>, så finner du dem igjen. Søkefeltet øverst leter i hele notatblokken, både i titler og i teksten på sidene.</p>`,
   oppdrag: [
     {
-      id: 'kno1', title: 'Bli kjent med notatblokken',
+      id: 'kno1', title: 'Bli kjent med notatblokken', lukk: ['notater'],
       setup: F => { if (window.Notater) Notater.reset(); },
       steps: [
         { laer: true, quiz: { q: 'Hva er de tre nivåene i OneNote, fra størst til minst?', options: ['Side, inndeling, notatblokk', 'Notatblokk, inndeling, side', 'Mappe, fil, tekst'], answer: 1 } },
@@ -175,7 +175,7 @@ const KURS_HJELP = {
       ]
     },
     {
-      id: 'kho2', title: 'Programmet henger',
+      id: 'kho2', title: 'Programmet henger', lukk: ['skriv','taskmgr'],
       steps: [
         { text: 'Åpne <b>Skriv</b> og lat som om det har hengt seg.', check: S => S.wins('skriv') > 0 },
         { text: '<b>Høyreklikk på oppgavelinjen</b> nederst og velg <b>Oppgavebehandling</b>.', hint: 'Høyreklikk på et tomt sted i oppgavelinjen, ikke på et ikon.', check: S => S.ev('window-open', d => d.app === 'taskmgr') },
@@ -216,7 +216,7 @@ const KURS_HJELP = {
 (function addTyping() {
   const k8 = KURS.find(k => k.id === 'k8'); if (!k8) return;
   k8.oppdrag.push({
-    id: 'k8o2', title: 'Skriv raskere',
+    id: 'k8o2', title: 'Skriv raskere', lukk: ['skrivetrening'],
     intro: 'Å skrive uten å se på tastaturet er en ferdighet du får bruk for hver eneste dag. Her måler du deg selv og ser fremgangen.',
     setup: F => { /* ingen filer trengs */ },
     steps: [
@@ -245,6 +245,7 @@ function addMaster(id, m, ekte) {
 }
 
 addMaster('k1', {
+  lukk: 'alle',
   title: 'Styr PC-en selv',
   intro: 'Vis at du kan åpne programmer, styre vinduer og bruke høyreklikk uten oppskrift.',
   setup: F => { F.silentRemoveAll('Ferdig'); F.silentRemoveAll('Prøve'); },
@@ -294,6 +295,7 @@ addMaster('k3', {
 ]);
 
 addMaster('k4', {
+  lukk: ['skriv'],
   title: 'Fra blankt ark til riktig mappe',
   intro: 'Skriv noe nytt, lagre det på riktig sted med et godt navn, og finn det igjen.',
   setup: F => { F.silentRemoveAll('Mesterprove.docx'); F.ensureFolder(P_SK); },
@@ -308,6 +310,7 @@ addMaster('k4', {
 ]);
 
 addMaster('kf', {
+  lukk: ['skriv'],
   title: 'Sett opp et dokument',
   intro: 'Lag et dokument som ser ryddig ut, med overskrift, uthevet tekst og en liste.',
   setup: F => { F.silentRemoveAll('Oppsett.docx'); F.ensureFolder(P_SK); },
@@ -337,6 +340,7 @@ addMaster('k5', {
 ]);
 
 addMaster('ke', {
+  lukk: ['epost'],
   title: 'Ta vare på det du får, og del det du lager',
   intro: 'Vis at du kan hente et vedlegg ut av e-posten, og at du velger riktig mellom lenke og vedlegg.',
   setup: F => { if (window.Epost) Epost.reset(); F.silentRemoveAll('Ukeplan-uke-39.pdf'); F.ensureFolder(P_SK); },
@@ -351,6 +355,7 @@ addMaster('ke', {
 ]);
 
 addMaster('k6', {
+  lukk: ['innlevering'],
   title: 'Lever inn på egen hånd',
   intro: 'Naturfag-rapporten skal leveres. Du får ingen oppskrift denne gangen.',
   setup: F => { F.ensureFolder(P_NAT); F.ensureFileAt(P_NAT, 'Rapport-fotosyntese.docx', 'Rapport om fotosyntese'); if (window.Innlevering) Innlevering.reset('naturfag-rapport'); },
@@ -365,6 +370,7 @@ addMaster('k6', {
 ]);
 
 addMaster('kn', {
+  lukk: ['notater'],
   title: 'Notatblokken er din',
   intro: 'Sett opp notatblokken slik du selv vil ha den, og vis at du finner igjen det du skriver.',
   setup: F => { if (window.Notater) Notater.reset(); },
@@ -398,6 +404,7 @@ addMaster('k7', {
 ]);
 
 addMaster('k8', {
+  lukk: ['skriv','skrivetrening'],
   title: 'Tastaturet sitter',
   intro: 'Vis at fingrene finner frem, både på bokstavene og på snarveiene.',
   setup: F => { F.silentRemoveAll('Tastaturprove.docx'); },
@@ -414,6 +421,7 @@ addMaster('k8', {
 ]);
 
 addMaster('kh', {
+  lukk: ['taskmgr'],
   title: 'Løs problemet selv',
   intro: 'Tre ting har gått galt. Fiks dem uten å spørre om hjelp.',
   setup: F => {

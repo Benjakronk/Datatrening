@@ -167,6 +167,7 @@ Alt kursinnhold ligger i `js/oppdrag.js`. Et oppdrag ser slik ut:
 ```js
 {
   id: 'k2o2', title: 'Lag mapper for fagene',
+  lukk: ['skriv'],                                          // valgfritt: lukker disse programmene når oppdraget starter
   setup: F => { F.ensureFolder(['OneDrive', 'Skole']); },   // valgfritt: sørger for at nødvendige filer finnes
   steps: [
     { text: 'Gå til <b>OneDrive › Skole</b>.', hint: '…', check: S => S.ev('explorer-nav', d => d.name === 'Skole') },
@@ -180,6 +181,16 @@ Alt kursinnhold ligger i `js/oppdrag.js`. Et oppdrag ser slik ut:
 `S.gone(navn)`, `S.content(navn)`, `S.editorText()`, `S.wins(app)` og `S.ev(hendelse, filter)` som sjekker om en
 hendelse har skjedd siden steget startet (for eksempel `window-open`, `explorer-nav`, `select`, `cut`, `copy`, `paste`,
 `drop`, `shortcut`, `search`, `sort`, `view`, `show-ext`, `open-file`, `save`, `download`, `attach`, `submit`).
+
+### Rydding mellom oppdrag
+
+`lukk` bestemmer hvilke programmer som lukkes når oppdraget eller mesterprøven starter, slik at eleven ikke
+begynner med et halvferdig dokument fra forrige leksjon. Bruk en liste med programnavn, eller `'alle'` for
+å lukke alt. Lukkingen skjer uten å spørre om lagring, den skjer før steg-tellingen starter (så den kan ikke
+fullføre et steg av seg selv), og eleven får en melding om hva som ble lukket.
+
+Feltet er satt der det første steget er «Åpne \<program\>», og på mesterprøvene. Filutforsker lukkes bare i
+kurs 1, siden de andre kursene bruker navigasjonshendelser som fungerer uansett om vinduet står åpent.
 
 Startfilene på øvings-PC-en defineres i `seed()` i `js/fs.js`. Nedlastbare filer i den simulerte
 skoleportalen ligger i `LINKS` i `js/apps.js`, og innleveringsoppgavene i `ASSIGN` samme sted.

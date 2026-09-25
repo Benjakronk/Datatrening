@@ -157,6 +157,7 @@ const Notater = (() => {
         box.appendChild(r);
       });
     }
+    win.render = render;
     render();
     setTimeout(() => pageEl.focus(), 50);
     Bus.emit('notes-app-open', {});
@@ -172,7 +173,7 @@ const Notater = (() => {
       pages: data.sections.flatMap(s => s.pages.map(p => ({ title: p.title, section: s.name, text: plain(p.html), html: p.html || '' })))
     };
   }
-  function reset() { data = seed(); save(); }
+  function reset() { data = seed(); save(); if (win && win.render) win.render(); }
   return { open, state, reset };
 })();
 window.Notater = Notater;

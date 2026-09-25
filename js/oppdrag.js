@@ -35,7 +35,7 @@ const KURS = [
       <p>En ny mappe får standardnavnet «Ny mappe», med navnet markert. Skriv det nye navnet med en gang og trykk <kbd>Enter</kbd>. Klikket du bort først? Klikk <i>én gang</i> på mappen, trykk <kbd>F2</kbd> (eller høyreklikk → Gi nytt navn), skriv navnet og trykk <kbd>Enter</kbd>.</p>`,
     oppdrag: [
       {
-        id: 'k1o1', title: 'Åpne, flytt og lukk et vindu',
+        id: 'k1o1', title: 'Åpne, flytt og lukk et vindu', lukk: 'alle',
         steps: [
           { laer: true, quiz: { q: 'Hva er oppgavelinjen?', options: ['Stripen nederst på skjermen med Start-knappen og programmer', 'Menyen som kommer når du høyreklikker', 'Vinduet til Filutforsker'], answer: 0 } },
           { laer: true, quiz: { q: 'Hva gjør knappen — (minimer) øverst i et vindu?', options: ['Lukker programmet', 'Gjemmer vinduet i oppgavelinjen, programmet er fortsatt åpent', 'Gjør vinduet større'], answer: 1 } },
@@ -50,7 +50,7 @@ const KURS = [
         ]
       },
       {
-        id: 'k1o2', title: 'Start-menyen og flere programmer',
+        id: 'k1o2', title: 'Start-menyen og flere programmer', lukk: 'alle',
         steps: [
           { text: 'Klikk på <b>Start-knappen</b> (Windows-logoen) i oppgavelinjen.', hint: 'Den blå firkanten med fire ruter, helt til venstre blant ikonene i oppgavelinjen.', check: S => S.ev('startmenu-open') },
           { text: 'Åpne programmet <b>Skriv</b> fra Start-menyen.', check: S => S.ev('window-open', d => d.app === 'skriv' && d.via === 'startmenu') },
@@ -61,7 +61,7 @@ const KURS = [
         ]
       },
       {
-        id: 'k1o3', title: 'Høyreklikk og dobbeltklikk',
+        id: 'k1o3', title: 'Høyreklikk og dobbeltklikk', lukk: 'alle',
         setup: F => { const f = F.resolve([...P_DESK, 'Min mappe']); if (f) F.silentRemoveAll('Min mappe'); },
         steps: [
           { text: 'Høyreklikk på et tomt sted på <b>skrivebordet</b> (bakgrunnen). En meny dukker opp.', hint: 'Bruk høyre museknapp. På styreflaten: trykk med to fingre samtidig.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') },
@@ -73,7 +73,7 @@ const KURS = [
         ]
       },
       {
-        id: 'k1o4', title: 'Høyreklikk-jakten',
+        id: 'k1o4', title: 'Høyreklikk-jakten', lukk: 'alle',
         intro: 'Menyen som kommer opp når du høyreklikker, er forskjellig etter hva du klikker på. På styreflaten: trykk lett med <b>to fingre samtidig</b>. Du får en liten melding hver gang du åpner en meny.',
         steps: [
           { text: 'Høyreklikk på et tomt sted på <b>skrivebordet</b>. Se på menyen: den handler om skrivebordet (Vis, Sorter, Ny …).', hint: 'Styreflate: trykk lett med to fingre samtidig. Mus: høyre knapp.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') },
@@ -251,7 +251,7 @@ const KURS = [
       <tr><td>.zip</td><td>Pakket mappe med flere filer</td><td>Filutforsker (pakk ut)</td></tr></table>`,
     oppdrag: [
       {
-        id: 'k4o1', title: 'Skriv og lagre et dokument',
+        id: 'k4o1', title: 'Skriv og lagre et dokument', lukk: ['skriv'],
         setup: F => { F.ensureFolder(P_NORSK); F.silentRemoveAll('Mitt første dokument.docx'); F.silentRemoveAll('Mitt første dokument.txt'); },
         steps: [
           { laer: true, quiz: { q: 'Hva er forskjellen på Lagre og Lagre som?', options: ['De er like', 'Lagre som lar deg velge sted og navn. Lagre lagrer i samme fil som før', 'Lagre som lager en snarvei'], answer: 1 } },
@@ -266,7 +266,7 @@ const KURS = [
         ]
       },
       {
-        id: 'k4o2', title: 'Åpne dokumentet igjen',
+        id: 'k4o2', title: 'Åpne dokumentet igjen', lukk: ['skriv'],
         setup: F => { F.ensureFile(P_NORSK, 'Mitt første dokument.docx', 'På fritiden liker jeg å ...'); },
         steps: [
           { text: 'Åpne Filutforsker og gå til mappen <b>Norsk</b> (i OneDrive › Skole, eller der du lagret dokumentet).', check: S => S.ev('explorer-nav', d => /norsk/i.test(d.name)) },
@@ -291,7 +291,7 @@ const KURS = [
         ]
       },
       {
-        id: 'k4o4', title: 'Ulagrede endringer',
+        id: 'k4o4', title: 'Ulagrede endringer', lukk: ['skriv'],
         setup: F => { F.silentRemoveAll('Notat.docx'); },
         steps: [
           { text: 'Åpne <b>Skriv</b> og skriv noen ord.', check: S => S.wins('skriv') > 0 && S.ev('editor-input') },
@@ -321,7 +321,7 @@ const KURS = [
       <p><b>Stiler</b> som «Overskrift 1» gir overskriftene riktig størrelse og farge automatisk, så dokumentet blir ryddig og likt hele veien. <b>Punktliste</b> og <b>nummerert liste</b> brukes til oppramsing. <b>Justering</b> bestemmer om teksten står til venstre (vanlig), i midten (titler) eller til høyre.</p>`,
     oppdrag: [
       {
-        id: 'kfo1', title: 'Fet, kursiv og understreket',
+        id: 'kfo1', title: 'Fet, kursiv og understreket', lukk: ['skriv'],
         setup: F => { F.ensureFolder(P_NORSK); F.silentRemoveAll('Formatering.docx'); },
         steps: [
           { laer: true, quiz: { q: 'Hva er en skrifttype?', options: ['Hvor stor teksten er', 'Utseendet på bokstavene, for eksempel Calibri eller Arial', 'Fargen på teksten'], answer: 1 } },
@@ -336,7 +336,7 @@ const KURS = [
         ]
       },
       {
-        id: 'kfo2', title: 'Skrifttype og størrelse',
+        id: 'kfo2', title: 'Skrifttype og størrelse', lukk: ['skriv'],
         setup: F => { F.ensureFolder(P_NORSK); F.ensureFile(P_NORSK, 'Formatering.docx', 'Min favorittfilm\nJeg liker filmen fordi den er spennende.\nDen handler om en gutt som finner et kart.'); },
         steps: [
           { text: 'Åpne <b>Formatering</b> fra OneDrive › Skole › Norsk (dobbeltklikk i Filutforsker, eller Åpne i Skriv). Sørg for at første linje er en kort overskrift, for eksempel «Min favorittfilm».', check: S => S.wins('skriv') > 0 && S.editorText().trim().split('\n').length >= 2 },
@@ -350,7 +350,7 @@ const KURS = [
         ]
       },
       {
-        id: 'kfo3', title: 'Overskrifter, lister og justering',
+        id: 'kfo3', title: 'Overskrifter, lister og justering', lukk: ['skriv'],
         setup: F => { F.ensureFolder(P_NORSK); F.silentRemoveAll('Ukeplan.docx'); },
         steps: [
           { text: 'Åpne et nytt dokument i Skriv (<b>Ny</b>). Skriv «Ukeplan» på første linje. Klikk i linjen og velg stilen <b>Overskrift 1</b> i stil-menyen.', hint: 'Stil-menyen står «Normal» i, mellom fargen og justeringsknappene.', check: S => S.skriv().headings.includes('h1') },
@@ -374,7 +374,7 @@ const KURS = [
       <p>Hvis du åpner en nedlastet fil og skriver i den, husk å <b>lagre som</b> i riktig mappe. Ellers ligger arbeidet ditt i Nedlastinger.</p>`,
     oppdrag: [
       {
-        id: 'k5o1', title: 'Last ned og flytt',
+        id: 'k5o1', title: 'Last ned og flytt', lukk: ['nettleser'],
         setup: F => { F.ensureFolder(P_MATTE); F.silentRemoveAll('Oppgaveark-brøk.pdf'); },
         steps: [
           { laer: true, quiz: { q: 'Hvor havner filer du laster ned fra internett, hvis du ikke velger noe annet?', options: ['I Papirkurven', 'I Nedlastinger', 'I OneDrive'], answer: 1 } },
@@ -412,7 +412,7 @@ const KURS = [
       <p>Programmet <b>Innleveringer</b> på øvings-PC-en fungerer på samme måte som Oppgaver i Teams.</p>`,
     oppdrag: [
       {
-        id: 'k6o1', title: 'Lever inn dikt-analysen',
+        id: 'k6o1', title: 'Lever inn dikt-analysen', lukk: ['innlevering'],
         setup: F => { F.ensureFileAt(P_NORSK, 'Dikt-analyse.docx', 'Analyse av diktet «Nordlys»'); Innlevering.reset('norsk-dikt'); },
         steps: [
           { laer: true, quiz: { q: 'I hvilken rekkefølge leverer du i Teams?', options: ['Lever inn → Legg til arbeid → åpne oppgaven', 'Åpne oppgaven → Legg til arbeid → velg filen → Lever inn', 'Velg filen → slett den → Lever inn'], answer: 1 } },
@@ -490,7 +490,7 @@ const KURS = [
         ]
       },
       {
-        id: 'k7o4', title: 'Gode filnavn',
+        id: 'k7o4', title: 'Gode filnavn', lukk: ['skriv'],
         setup: F => { F.ensureFolder(P_NORSK); const f = F.findAll(c => c.type === 'file' && (c.content || '').startsWith('Bokrapport:'))[0]; if (f) F.purge(f.id); F.ensureFileAt(P_DOC, 'Dokument1.docx', 'Bokrapport: «Sofies verden»\n\nBoken handler om Sofie som får mystiske brev med spørsmål om filosofi ...'); },
         steps: [
           { text: 'Gå til <b>Dokumenter</b> og åpne <b>Dokument1</b> for å se hva den inneholder.', check: S => S.ev('open-file', d => d.name === 'Dokument1.docx') },
@@ -526,7 +526,7 @@ const KURS = [
       <p>Noen snarveier (Alt+Tab, Windows-tasten) styres av den ekte PC-en og kan ikke øves her, men prøv dem gjerne!</p>`,
     oppdrag: [
       {
-        id: 'k8o1', title: 'Skriv med tastaturet',
+        id: 'k8o1', title: 'Skriv med tastaturet', lukk: ['skriv'],
         setup: F => { F.ensureFolder(P_NORSK); F.silentRemoveAll('Tastatur-øving.docx'); },
         steps: [
           { laer: true, quiz: { q: 'Hvilken tast gir stor bokstav, eller tegnet øverst på en tast?', options: ['Shift', 'Ctrl', 'Tab'], answer: 0 } },

@@ -167,6 +167,7 @@ const Epost = (() => {
       folder = 'sendt'; cur = msg; render();
     }
     function render() { renderFolders(); renderList(); renderRead(); }
+    win.render = () => { folder = 'inn'; cur = null; render(); };
     render();
     Bus.emit('mail-app-open', { unread: unread() });
     return win;
@@ -181,7 +182,7 @@ const Epost = (() => {
       unread: unread()
     };
   }
-  function reset() { data = { read: {}, sent: [], savedAttach: [] }; save(); }
+  function reset() { data = { read: {}, sent: [], savedAttach: [] }; save(); if (win && win.render) win.render(); }
   return { open, state, reset, INBOX, ME };
 })();
 window.Epost = Epost;

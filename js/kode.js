@@ -42,7 +42,10 @@ const Kode = (() => {
       </div>`);
       this.ta = this.root.querySelector('.k-ta'); this.hl = this.root.querySelector('.k-hl'); this.gutter = this.root.querySelector('.k-gutter');
       this.win = WM.create({ app: 'kode', title: 'Kode', body: this.root, width: 1000, height: 640, onClose: () => this.closeAll() });
-      this.win.onClosed = () => { const i = instances.indexOf(this); if (i >= 0) instances.splice(i, 1); };
+      this.win.onClosed = () => {
+        const i = instances.indexOf(this); if (i >= 0) instances.splice(i, 1);
+        const h = Bus.handlers.indexOf(this.fsHandler); if (h >= 0) Bus.handlers.splice(h, 1);
+      };
       this.win.kode = this;
       this.win.onKey = e => { if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); this.save('shortcut'); } };
       instances.push(this);
