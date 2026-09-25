@@ -55,6 +55,7 @@ const Coach = (() => {
     notes() { return window.Notater ? Notater.state() : { sections: [], pages: [] }; },
     mail() { return window.Epost ? Epost.state() : { sent: [], read: [], saved: [] }; },
     typing() { return window.Skrivetrening ? Skrivetrening.best() : null; },
+    installed(id) { return window.Firmaportal ? Firmaportal.isInstalled(id) : true; },
     kodeText() { return window.Kode ? Kode.activeText() : ''; },
     kodeFile() { return window.Kode ? Kode.activeFile() : ''; },
     lastRun() { return window.Terminal ? Terminal.lastRun : null; },

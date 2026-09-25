@@ -149,8 +149,15 @@ grunnkurset og legger til to programmer:
   og uendelige løkker må stoppes med Ctrl+C. PowerShell-skript med `Write-Host`, `Read-Host` og variabler
   kjøres også.
 
-Kursene (7 kurs, 11 oppdrag) ligger i `js/oppdrag-prog.js`: terminalen, filer fra terminalen, stier,
-Kode-editoren, feilsøking, prosjektstruktur og PowerShell-skript. Fremdriften lagres separat fra grunnkurset,
+- **Firmaportalen**: en simulert Company Portal (Intune) med en katalog over skolens godkjente programmer.
+  Installasjonen går gjennom «I kø», «Laster ned» og «Installerer» og tar tid, knappen forsvinner mens det
+  står på, og ett av programmene feiler med en feilkode første gang og lykkes ved nytt forsøk.
+  **Visual Studio Code er ikke installert på en ny øvings-PC.** Kode mangler da i Start-menyen og
+  oppgavelinjen, og `code` i terminalen svarer at kommandoen ikke er gjenkjent, akkurat som på en ekte PC.
+  Søk på «kode» gir ingen treff, fordi programmet heter det produsenten kaller det.
+
+Kursene (8 kurs, 13 oppdrag) ligger i `js/oppdrag-prog.js`: terminalen, filer fra terminalen, stier,
+installere programmer fra Firmaportalen, Kode-editoren, feilsøking, prosjektstruktur og PowerShell-skript. Fremdriften lagres separat fra grunnkurset,
 og veilederpanelet lenker mellom de to sidene.
 
 ## Tilpasse innholdet

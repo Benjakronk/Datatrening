@@ -310,6 +310,63 @@ print("Antall navn:", len(linjer))</pre>
     ]
   }
 ];
+/* ============================================================
+   KURS: Installere programmer (Firmaportalen)
+   Legges før Kode-editoren, fordi editoren faktisk ikke finnes
+   på øvings-PC-en før eleven har installert den.
+   ============================================================ */
+const KURS_INSTALL = {
+  id: 'pi', title: 'Installere programmer', laerTitle: 'Firmaportalen',
+  desc: 'Hent programmer fra skolens egen app-butikk, og finn dem igjen etterpå.',
+  laer: `
+    <h4>Du kan ikke laste ned hva som helst</h4>
+    <p>På en skole-PC er du ikke <b>administrator</b>. Du kan ikke installere programmer du finner på nettet, og det er med vilje: da slipper skolen virus og programmer ingen har sjekket. Prøver du likevel, får du beskjed om at du ikke har tillatelse.</p>
+    <h4>Firmaportalen</h4>
+    <p><b>Firmaportalen</b> (på engelsk <i>Company Portal</i>) er skolens egen app-butikk. Alt som ligger der, er godkjent av IT og trygt å installere. Det er herfra du henter Teams, OneNote, GeoGebra og programmene du trenger i programmering.</p>
+    <table><tr><th>Steg</th><th>Slik gjør du</th></tr>
+    <tr><td>1</td><td>Åpne <b>Firmaportalen</b> fra Start-menyen</td></tr>
+    <tr><td>2</td><td><b>Søk</b> etter programmet, eller bla i kategoriene</td></tr>
+    <tr><td>3</td><td>Klikk <b>Installer</b> <i>én gang</i></td></tr>
+    <tr><td>4</td><td><b>Vent.</b> Statusen går fra «I kø» til «Laster ned» til «Installerer» til «Installert»</td></tr>
+    <tr><td>5</td><td>Finn programmet i <b>Start-menyen</b></td></tr></table>
+    <h4>Programmet heter det produsenten kaller det</h4>
+    <p>Koderedigeringsprogrammet heter <b>Visual Studio Code</b> i portalen, ikke «Kode» eller «VS Code». Finner du ikke noe, prøv et kortere søkeord, for eksempel bare <b>code</b> eller <b>visual</b>.</p>
+    <h4>Det tar tid, og noen ganger feiler det</h4>
+    <p>Store programmer kan ta flere minutter. <b>Ikke klikk på Installer mange ganger</b>, det går ikke raskere. Installasjonen fortsetter selv om du lukker portalen.</p>
+    <p>Feiler den, får du en <b>feilkode</b>. Prøv én gang til, det løser det som oftest. Feiler den flere ganger: skriv ned feilkoden og navnet på programmet, og si fra til læreren eller IT. Da er de i stand til å hjelpe deg.</p>`,
+  oppdrag: [
+    {
+      id: 'pio1', title: 'Installer koderedigeringsprogrammet',
+      intro: 'Kode-editoren er ikke installert på denne PC-en ennå. Det skal du fikse selv, slik du må gjøre på en ekte skole-PC.',
+      steps: [
+        { laer: true, quiz: { q: 'Hvorfor kan du ikke bare laste ned programmer fra nettet på en skole-PC?', options: ['Fordi nettet er for tregt', 'Fordi du ikke er administrator, og skolen vil unngå programmer ingen har sjekket', 'Fordi det koster penger'], answer: 1 } },
+        { laer: true, quiz: { q: 'Hva er Firmaportalen?', options: ['Skolens egen app-butikk med godkjente programmer', 'En nettside der du kjøper programmer', 'Et sted du leverer oppgaver'], answer: 0 } },
+        { laer: true, quiz: { q: 'Du har klikket Installer, og det står «Laster ned». Hva gjør du?', options: ['Klikker Installer noen ganger til', 'Starter PC-en på nytt', 'Venter'], answer: 2 } },
+        { text: 'Åpne <b>Terminal</b> og skriv <code>code .</code>. Det virker ikke, for programmet finnes ikke på PC-en ennå. Les hva som står.', hint: 'Terminalen svarer at «code» ikke er gjenkjent som et program. Det er slik en ekte PC svarer når noe ikke er installert.', check: S => S.ev('term-cmd', d => !d.ok && /^code$/i.test(d.alias)) },
+        { text: 'Åpne <b>Firmaportalen</b> fra Start-menyen eller oppgavelinjen.', check: S => S.ev('fp-open') },
+        { text: 'Søk etter koderedigeringsprogrammet. Husk at det heter <b>Visual Studio Code</b> i portalen.', hint: 'Skriv «code» eller «visual» i søkefeltet øverst til høyre.', check: S => S.ev('fp-search', d => /code|visual|studio/i.test(d.query)) || S.ev('fp-filter', d => d.filter === 'Programmering') },
+        { text: 'Klikk <b>Installer</b> på Visual Studio Code, og <b>vent</b> til statusen blir «✓ Installert». Følg med på hvordan den endrer seg underveis.', hint: 'Det tar noen sekunder her. På en ekte PC kan det ta flere minutter. Ikke klikk flere ganger.', check: S => S.ev('install-done', d => d.id === 'vscode') },
+        { text: 'Åpne <b>Start-menyen</b>. Nå ligger <b>Kode</b> der, sammen med de andre programmene.', hint: 'Klikk på Windows-logoen i oppgavelinjen. Installerte programmer dukker opp i Start-menyen av seg selv.', check: S => S.ev('startmenu-open') && S.ev('window-open', d => d.app === 'kode') },
+        { text: 'Gå tilbake til terminalen og skriv <code>code .</code> en gang til. Nå virker kommandoen.', check: S => S.ev('term-cmd', d => d.ok && /^code$/i.test(d.alias)) },
+        { quiz: { q: 'Du finner ikke programmet i Firmaportalen. Hva er mest sannsynlig?', options: ['Det finnes ikke i det hele tatt', 'Det heter noe annet enn du søkte etter', 'PC-en er for gammel'], answer: 1 } }
+      ]
+    },
+    {
+      id: 'pio2', title: 'Når installasjonen feiler',
+      intro: 'Noen ganger går det galt. Da er det greit å vite hva som er normalt, og hva du skal si fra om.',
+      steps: [
+        { text: 'Åpne Firmaportalen og finn <b>GeoGebra Klassisk</b>.', hint: 'Den ligger i kategorien Skole, eller søk etter «geogebra».', check: S => S.ev('fp-open') || S.ev('fp-search', d => /geo/i.test(d.query)) || S.ev('fp-filter') },
+        { text: 'Klikk <b>Installer</b> og vent. Denne gangen <b>feiler</b> installasjonen. Les feilmeldingen og feilkoden.', check: S => S.ev('install-failed', d => d.id === 'geogebra') },
+        { text: 'Klikk <b>Prøv igjen</b>. Som oftest går det bra andre gangen.', hint: 'Knappen står der Installer-knappen sto.', check: S => S.ev('install-done', d => d.id === 'geogebra') },
+        { text: 'Klikk på kategorien <b>Installert</b> til venstre for å se alt som er installert på PC-en.', check: S => S.ev('fp-filter', d => d.filter === 'Installert') },
+        { quiz: { q: 'Installasjonen feiler tre ganger på rad. Hva gjør du?', options: ['Gir opp og gjør noe annet', 'Skriver ned feilkoden og navnet på programmet, og sier fra til læreren eller IT', 'Prøver å laste ned programmet fra nettet i stedet'], answer: 1 } },
+        { quiz: { q: 'Hvorfor er det nyttig å ta vare på feilkoden?', options: ['Den gir deg ekstra forsøk', 'Den forteller IT hva som gikk galt, så de kan hjelpe deg', 'Den fjerner feilen'], answer: 1 } }
+      ]
+    }
+  ]
+};
+KURS_PROG.splice(KURS_PROG.findIndex(k => k.id === 'p4'), 0, KURS_INSTALL);
+
 /* ---------- Mesterprøver og «gjør det på ekte» for programmeringskurset ---------- */
 function addMasterProg(id, m, ekte) { const k = KURS_PROG.find(x => x.id === id); if (k) { k.mesterprove = m; if (ekte) k.ekte = ekte; } }
 
@@ -345,6 +402,20 @@ addMasterProg('p3', {
     { text: 'List innholdet i en <b>annen</b> mappe uten å gå dit', check: S => cmd(S, d => d.name === 'Get-ChildItem' && ((d.args[0] || '') + (d.opts.path || '')).length > 1) }
   ]
 }, ['Naviger til en mappe med mellomrom i navnet på din egen PC, med anførselstegn og med Tab.']);
+
+addMasterProg('pi', {
+  title: 'Hent det du trenger selv',
+  intro: 'Du skal hente et program til fra portalen, og vise at du vet hvor installerte programmer havner.',
+  goals: [
+    { text: 'Installer <b>Notepad++</b> fra Firmaportalen', check: S => S.ev('install-done', d => d.id === 'notepadpp') },
+    { text: 'Vis hva som er installert på PC-en med kategorien <b>Installert</b>', check: S => S.ev('fp-filter', d => d.filter === 'Installert') },
+    { text: 'Åpne <b>Kode</b> fra Start-menyen', check: S => S.ev('window-open', d => d.app === 'kode' && d.via === 'startmenu') }
+  ]
+}, [
+  'Åpne Firmaportalen på din egen skole-PC og se hvilke programmer som er tilgjengelige.',
+  'Installer et program du trenger i et fag, og finn det igjen i Start-menyen.',
+  'Feiler en installasjon: skriv ned feilkoden før du spør om hjelp.'
+]);
 
 addMasterProg('p4', {
   title: 'Skriv, lagre, kjør',

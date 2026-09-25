@@ -1,8 +1,24 @@
 /* Programmer på øvings-PC-en: Skriv, Nettleser, Innleveringer, filvisning og Innstillinger */
 
 const Apps = (() => {
+  /* Noen programmer må installeres fra Firmaportalen før de finnes på PC-en */
+  const NEEDS = { kode: 'vscode' };
+  function available(app) {
+    if (!window.Firmaportal) return true;
+    const req = NEEDS[app];
+    return !req || Firmaportal.isInstalled(req);
+  }
+  async function notInstalled(app) {
+    Bus.emit('app-missing', { app });
+    const ok = await Dialog.confirm('Programmet er ikke installert',
+      `${WM.appName(app)} er ikke installert på denne PC-en ennå. På en skole-PC henter du programmer fra Firmaportalen, ikke fra nettet. Vil du åpne Firmaportalen nå?`,
+      'Åpne Firmaportalen', 'Ikke nå');
+    if (ok && window.Firmaportal) Firmaportal.open('Visual Studio Code');
+    return null;
+  }
   function launch(app, args = {}) {
     WM.setLaunchVia(args.via || null);
+    if (!available(app)) { WM.setLaunchVia(null); notInstalled(app); return null; }
     switch (app) {
       case 'explorer': return Explorer.open(args.folderId || FS.roots().pc, args);
       case 'papirkurv': return Explorer.open(FS.roots().bin);
@@ -11,6 +27,7 @@ const Apps = (() => {
       case 'innlevering': return Innlevering.open();
       case 'innstillinger': return Innstillinger.open();
       case 'taskmgr': return TaskMgr.open();
+      case 'firmaportal': return window.Firmaportal ? Firmaportal.open(args.search) : null;
       case 'notater': return window.Notater ? Notater.open() : null;
       case 'epost': return window.Epost ? Epost.open() : null;
       case 'skrivetrening': return window.Skrivetrening ? Skrivetrening.open() : null;
@@ -26,12 +43,13 @@ const Apps = (() => {
     if (n.type === 'folder') return Explorer.open(id);
     const e = FS.ext(n.name);
     Bus.emit('open-file', { id, name: n.name, ext: e, via: opts.via });
-    if (window.Kode && CODE_EXT.includes(e)) return Kode.open({ fileId: id, via: opts.via });
+    if (window.Kode && available('kode') && CODE_EXT.includes(e)) return Kode.open({ fileId: id, via: opts.via });
     if (['txt', 'docx', 'doc', 'md'].includes(e)) return Skriv.open(id);
     return Viewer.open(id);
   }
-  return { launch, openFile };
+  return { launch, openFile, available };
 })();
+window.Apps = Apps;
 
 /* ---------- Nettleser (simulert skoleportal) ---------- */
 const Nettleser = (() => {

@@ -525,6 +525,7 @@ const Terminal = (() => {
           return finish(res.ok);
         }
         case 'code': {
+          if (window.Apps && !Apps.available('kode')) return fail("code: The term 'code' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.\n\nTips: Visual Studio Code er ikke installert på denne PC-en. Åpne Firmaportalen og installer det derfra.");
           if (!window.Kode) return fail("code: The term 'code' is not recognized. Kode-editoren finnes bare på programmeringssiden.");
           const p = args[0] || '.'; const loc = resolve(this.cwd, p);
           if (!loc) { const { parent, name } = resolveParent(this.cwd, p); if (parent && !parent.virt && name) { const rr = FS.createFile(parent.id, name, '', { via: 'terminal' }); if (rr.error) return fail('code: ' + rr.error); Kode.open({ fileId: rr.id, via: 'terminal' }); return finish(true); } return pathErr('code', p); }
