@@ -97,6 +97,25 @@ label { font-size: 13px; }
 .prop-table td:first-child { color: #666; width: 110px; }
 .prop-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-weight: 600; }
 
+/* Introduksjon (flersidig dialog) */
+.dlg-wiz { width: 560px; max-width: 94%; }
+.dlg-wiz .dlg-title { font-size: 17px; padding: 16px 22px 0; }
+.dlg-wiz .dlg-body { padding: 10px 22px 18px; }
+.dlg-wiz .dlg-btns { align-items: center; }
+.wiz-sp { flex: 1; }
+.wiz-dots { display: flex; gap: 6px; }
+.wiz-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; }
+.wiz-dots .dot.on { background: var(--coach); }
+.wiz-page { line-height: 1.6; min-height: 210px; }
+.wiz-page p { margin: 0 0 10px; }
+.wiz-page ul { margin: 0 0 10px; padding-left: 20px; }
+.wiz-page li { margin-bottom: 7px; }
+.wiz-page label { display: block; margin-top: 12px; font-weight: 600; }
+.wiz-page .txt { margin-top: 4px; }
+.wiz-hero { font-size: 46px; text-align: center; margin-bottom: 6px; }
+.wiz-err { color: #c42b1c; font-size: 13px; min-height: 18px; margin-top: 4px; }
+.wiz-tip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 9px 12px; margin-top: 12px !important; }
+
 /* Filvelger (Lagre som / Åpne) */
 .dlg.dlg-fc { min-width: 0; }
 .dlg.dlg-fc .dlg-body { padding: 0; display: flex; }

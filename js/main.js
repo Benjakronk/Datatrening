@@ -118,11 +118,19 @@ const Fullscreen = {
   exit() { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); },
   toggle() { this.on() ? this.exit() : this.enter(); },
   /* Nettlesere krever et klikk fra brukeren før fullskjerm kan slås på. Startbildet dekker hele siden
-     og ett klikk hvor som helst starter fullskjerm. */
-  overlay() {
-    if (document.fullscreenElement) return;
+     og ett klikk hvor som helst starter fullskjerm. Deretter kjøres done(), som viser introduksjonen. */
+  overlay(done) {
+    if (document.fullscreenElement) { if (done) done(); return; }
     const o = el(`<div id="fs-overlay"><div class="fso-box"><div class="fso-logo">💻</div><h1>Datatrening</h1><p class="fso-sub">Øvings-PC for skolen. Dette er en simulering i nettleseren, ikke en ekte PC.</p><p>Klikk hvor som helst for å starte i fullskjerm.</p><p class="fso-tip">Tips: <kbd>F11</kbd> slår fullskjerm av og på. <kbd>Esc</kbd> avslutter fullskjerm.</p></div></div>`);
-    o.addEventListener('click', () => { o.remove(); Fullscreen.enter(); });
+    o.addEventListener('click', () => {
+      o.remove();
+      /* Noen nettlesere bruker tid på å svare på fullskjerm-forespørselen, og enkelte svarer aldri.
+         Introduksjonen skal komme uansett, så vi venter maks et halvt sekund på svaret. */
+      let fired = false;
+      const go = () => { if (fired) return; fired = true; if (done) done(); };
+      setTimeout(go, 500);
+      Promise.resolve(Fullscreen.enter()).catch(() => {}).then(go);
+    });
     document.body.appendChild(o);
   }
 };
@@ -200,5 +208,7 @@ const Recovery = {
   document.addEventListener('keydown', e => { if (e.ctrlKey && ['s', 'p'].includes(e.key.toLowerCase()) && !(e.target.closest && e.target.closest('#coach'))) e.preventDefault(); });
 
   try { Coach.init(); } catch (e) { console.error(e); Recovery.bar('Veilederen kunne ikke starte. Nullstill øvings-PC-en for å komme i gang igjen.'); }
-  if (!window.__noFullscreenOverlay) Fullscreen.overlay();
+  /* Introduksjonen kommer etter at fullskjerm er satt i gang, så den ikke havner bak startbildet */
+  const start = () => { try { if (window.Intro) Intro.auto(); } catch (e) { console.error(e); } };
+  if (!window.__noFullscreenOverlay) Fullscreen.overlay(start); else start();
 })();

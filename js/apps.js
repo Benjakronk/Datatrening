@@ -27,6 +27,7 @@ const Apps = (() => {
       case 'innlevering': return Innlevering.open();
       case 'innstillinger': return Innstillinger.open();
       case 'taskmgr': return TaskMgr.open();
+      case 'intro': if (window.Intro) Intro.show(false); WM.setLaunchVia(null); return null;
       case 'firmaportal': return window.Firmaportal ? Firmaportal.open(args.search) : null;
       case 'notater': return window.Notater ? Notater.open() : null;
       case 'epost': return window.Epost ? Epost.open() : null;

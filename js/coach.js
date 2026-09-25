@@ -518,20 +518,12 @@ const Coach = (() => {
       if (type !== 'oppdrag-start' && type !== 'quiz' && type !== 'hint' && type !== 'master-start' && type !== 'rep-start') check();
     });
     render();
-    if (!P.name) {
-      Dialog.show({
-        title: 'Velkommen til Datatrening!',
-        body: `<div class="welcome">${window.DT_WELCOME || '<p>Her lærer du å bruke en PC slik vi gjør på skolen: filer og mapper, lagring, nedlastinger og innlevering. Alt skjer på en <b>øvings-PC</b> i nettleseren, så du kan ikke ødelegge noe.</p>'}<p>Panelet til høyre viser oppdragene dine. Stegene blir grønne av seg selv når du gjør dem riktig.</p><label>Hva heter du?</label><input class="txt" id="welcome-name" autofocus placeholder="Fornavn og etternavn"></div>`,
-        buttons: [{ label: 'Start', value: 'ok', primary: true }],
-        validate: () => { const v = document.getElementById('welcome-name').value.trim(); return v || 'Elev'; },
-        escapeValue: 'Elev'
-      }).then(v => {
-        P.name = v || 'Elev'; save();
-        if (!P.active) startOppdrag(KL[0].id, KL[0].oppdrag[0].id); else render();
-      });
-    }
   }
+  /* Introduksjonen (js/intro.js) spør om navnet og starter første oppdrag */
+  function needsName() { return !P.name; }
+  function setName(v) { P.name = (v || 'Elev').trim() || 'Elev'; save(); render(); }
+  function startFirst() { if (!P.active) startOppdrag(KL[0].id, KL[0].oppdrag[0].id); else render(); }
 
-  return { init, render, check, startOppdrag, startMaster, startRep, skipRep, resetProgress, progress: () => P, reportCode, reportText, S };
+  return { init, render, check, startOppdrag, startMaster, startRep, skipRep, resetProgress, progress: () => P, reportCode, reportText, needsName, setName, startFirst, S };
 })();
 window.Coach = Coach;

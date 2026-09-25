@@ -15,6 +15,11 @@ Appen starter med et startbilde: ett klikk hvor som helst setter nettleseren i f
 øvings-PC-en fyller hele skjermen. (Nettlesere tillater ikke fullskjerm uten et klikk fra brukeren.)
 Knappen nederst til høyre i oppgavelinjen, eller F11, slår fullskjerm av og på. Esc avslutter fullskjerm.
 
+Rett etter fullskjerm kommer en **introduksjon** på fire korte sider: hva øvings-PC-en er, hvordan
+veilederpanelet fungerer, hva eleven gjør når den står fast, og hvordan man kommer i gang. Første side
+spør om navnet, og det eleven skriver beholdes selv om den blar frem og tilbake. Introduksjonen vises
+bare første gang, men kan åpnes igjen når som helst fra **Start-menyen → Introduksjon**.
+
 ## Hvis Edge blokkerer siden (SmartScreen)
 
 En side som viser et Windows-lignende skrivebord i fullskjerm ligner på det svindelsider gjør, og nye
@@ -215,6 +220,7 @@ js/epost.js       – E-post med vedlegg
 js/skrivetrening.js – skriveøvelser med måling
 js/oppdrag.js     – kurs 1 til 6 og 8, 10 og 11
 js/oppdrag-mer.js – nye kurs, mesterprøver, gjør-det-på-ekte og repetisjonsbanken
+js/intro.js       – introduksjonen som vises første gang og fra Start-menyen
 js/coach.js       – veileder-panelet, mesterprøver, repetisjon og måling
 js/main.js        – skrivebordet og oppstart
 ```

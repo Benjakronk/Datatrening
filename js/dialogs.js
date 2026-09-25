@@ -182,6 +182,64 @@ const Dialog = (() => {
     });
   }
 
+  /* Flersidig dialog med Neste og Tilbake. Brukes av introduksjonen. */
+  function wizard(o) {
+    return new Promise(res => {
+      const layer = document.getElementById('modal-layer');
+      const pages = o.pages.filter(Boolean);
+      let i = 0, finished = false;
+      const dlg = el(`<div class="dlg dlg-wiz"><div class="dlg-title"></div><div class="dlg-body"></div><div class="dlg-btns"><span class="wiz-dots"></span><span class="wiz-sp"></span><button class="btn skip">Hopp over</button><button class="btn back">Tilbake</button><button class="btn primary next">Neste</button></div></div>`);
+      const title = dlg.querySelector('.dlg-title'), body = dlg.querySelector('.dlg-body');
+      const dots = dlg.querySelector('.wiz-dots'), bBack = dlg.querySelector('.back'), bNext = dlg.querySelector('.next'), bSkip = dlg.querySelector('.skip');
+      /* Det eleven har skrevet må overleve at man blar frem og tilbake, og må være
+         tilgjengelig på siste side selv om feltet bare finnes på den første. */
+      const values = {};
+      const snapshot = () => body.querySelectorAll('input, textarea, select').forEach(f => { if (f.id) values[f.id] = f.value; });
+      const finish = () => { snapshot(); return o.collect ? o.collect(body, values) : true; };
+      const done = v => {
+        if (finished) return; finished = true;
+        dlg.remove(); openCount--;
+        if (openCount <= 0) { openCount = 0; layer.classList.add('hidden'); }
+        document.removeEventListener('keydown', onKey, true);
+        Bus.emit('wizard-close', { title: o.title, page: i + 1, of: pages.length });
+        res(v);
+      };
+      function draw() {
+        const p = pages[i];
+        title.textContent = p.title || o.title || '';
+        body.innerHTML = '';
+        body.appendChild(typeof p.body === 'string' ? el(`<div class="wiz-page">${p.body}</div>`) : p.body);
+        body.querySelectorAll('input, textarea, select').forEach(f => { if (f.id && values[f.id] != null) f.value = values[f.id]; });
+        dots.innerHTML = pages.map((x, j) => `<span class="dot${j === i ? ' on' : ''}"></span>`).join('');
+        bBack.classList.toggle('hidden', i === 0);
+        bSkip.classList.toggle('hidden', i === pages.length - 1 || !o.skippable);
+        bNext.textContent = i === pages.length - 1 ? (o.doneLabel || 'Kom i gang') : 'Neste';
+        Bus.emit('wizard-page', { page: i + 1, of: pages.length, title: p.title });
+        setTimeout(() => { const f = body.querySelector('[autofocus]'); (f || bNext).focus(); if (f && f.select) f.select(); }, 0);
+      }
+      async function next() {
+        const p = pages[i];
+        if (p.validate) { const r = await p.validate(body); if (r === false) return; }
+        snapshot();
+        if (i < pages.length - 1) { i++; draw(); return; }
+        done(finish());
+      }
+      bNext.addEventListener('click', next);
+      bBack.addEventListener('click', () => { if (i > 0) { snapshot(); i--; draw(); } });
+      bSkip.addEventListener('click', () => done(finish()));
+      const onKey = e => {
+        if (e.key === 'Escape' && o.escapable !== false) { e.stopPropagation(); e.preventDefault(); done(finish()); }
+        else if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); e.stopPropagation(); next(); }
+      };
+      document.addEventListener('keydown', onKey, true);
+      layer.appendChild(dlg);
+      layer.classList.remove('hidden');
+      openCount++;
+      Bus.emit('wizard-open', { title: o.title, pages: pages.length });
+      draw();
+    });
+  }
+
   function properties(n) {
     const kids = n.type === 'folder' ? FS.findAll(() => true).filter(c => FS.isDesc(c.id, n.id) && c.id !== n.id) : [];
     const rows = [
@@ -199,5 +257,5 @@ const Dialog = (() => {
     });
   }
 
-  return { show, isOpen, alert, confirm, prompt, saveChanges, fileChooser, properties };
+  return { show, isOpen, alert, confirm, prompt, saveChanges, fileChooser, properties, wizard };
 })();
