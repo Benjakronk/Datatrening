@@ -90,8 +90,15 @@ i koden). «Les først»-boksen holdes åpen så lenge et teorispørsmål er akt
 tilfeldig rekkefølge. Svarer eleven feil på et teorispørsmål, låses spørsmålet: «Les først» åpnes, og eleven
 må trykke på knappen nederst i teksten, som først blir aktiv etter en lesetid på 10 til 30 sekunder
 (beregnet ut fra tekstlengden). Etter opplåsingen blandes alternativene på nytt. Vanlige spørsmål på slutten
-av oppdragene låses ikke. Hvert steg sjekkes automatisk
-mot tilstanden på øvings-PC-en, så eleven får umiddelbar tilbakemelding. Kursene:
+av oppdragene låses ikke.
+
+**Teorien er en sperre for resten av kurset.** Teorispørsmålene ligger som de første stegene i hvert kurs sitt
+første oppdrag, og de øvrige oppdragene i kurset er låst med hengelås til alle er besvart riktig. Eleven kan
+altså ikke klikke seg forbi teorien og rett til oppgavene. Klikker den på et låst oppdrag, forklarer appen
+hvorfor. Sperren gjelder hvert kurs for seg, den huskes mellom økter, og den gjelder begge kurssettene.
+Et oppdrag eleven allerede har fullført, blir aldri låst.
+
+Hvert steg sjekkes automatisk mot tilstanden på øvings-PC-en, så eleven får umiddelbar tilbakemelding. Kursene:
 
 1. Bli kjent med PC-en (mus, vinduer, Start-meny, høyreklikk)
 2. Filer og mapper (navigasjon, adressefelt, lage mapper, gi nytt navn)
@@ -196,6 +203,12 @@ fullføre et steg av seg selv), og eleven får en melding om hva som ble lukket.
 
 Feltet er satt der det første steget er «Åpne \<program\>», og på mesterprøvene. Filutforsker lukkes bare i
 kurs 1, siden de andre kursene bruker navigasjonshendelser som fungerer uansett om vinduet står åpent.
+
+### Tester
+
+`node tests/kjor.js` kjører veiledertesten mot begge kurssettene i Edge uten vindu, og skriver ut hvor mange
+sjekker som gikk bra. Den dekker teorisperren, låsing ved feil svar, mesterprøvene, rydding av programmer
+mellom oppdrag og rapportkoden, og den rydder opp etter seg. Krever Node og Edge (eller Chrome).
 
 Startfilene på øvings-PC-en defineres i `seed()` i `js/fs.js`. Nedlastbare filer i den simulerte
 skoleportalen ligger i `LINKS` i `js/apps.js`, og innleveringsoppgavene i `ASSIGN` samme sted.

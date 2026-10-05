@@ -4,9 +4,9 @@ const Coach = (() => {
   const KL = window.KURS_ACTIVE || KURS;
   const REP = window.REP_ACTIVE || (typeof REPETISJON !== 'undefined' ? REPETISJON : []);
   const PKEY = 'dt-progress' + (window.DT_PAGE ? '-' + window.DT_PAGE : '');
-  let P = { name: '', done: {}, active: null, tab: 'kurs', openKurs: null, collapsed: false, master: {}, ekte: {}, stats: {}, rep: null };
+  let P = { name: '', done: {}, active: null, tab: 'kurs', openKurs: null, collapsed: false, master: {}, ekte: {}, stats: {}, teori: {}, rep: null };
   try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch (e) { /* ignorer */ }
-  ['done', 'master', 'ekte', 'stats'].forEach(k => { if (!P[k] || typeof P[k] !== 'object') P[k] = {}; });
+  ['done', 'master', 'ekte', 'stats', 'teori'].forEach(k => { if (!P[k] || typeof P[k] !== 'object') P[k] = {}; });
   if (!P.name && window.DT_PAGE) { try { const b = JSON.parse(localStorage.getItem('dt-progress') || '{}'); if (b.name) P.name = b.name; } catch (e) { /* ignorer */ } }
   let stepStart = 0, stepTime = 0, checking = false, pending = false, hintOpen = false, wrongOpt = null;
   /* Svaralternativene vises i tilfeldig rekkefølge (quizOrder). Feil svar på et teorispørsmål låser
@@ -71,6 +71,23 @@ const Coach = (() => {
   function totalOpp() { return KL.reduce((n, k) => n + k.oppdrag.length, 0); }
   function totalDone() { return KL.reduce((n, k) => n + kursDone(k), 0); }
   function masterPassed(k) { return !!(P.master[k.id] && P.master[k.id].passed); }
+  /* Teoridelen ligger som de første stegene i kursets første oppdrag.
+     Resten av kurset er låst til eleven har svart riktig på alle sammen. */
+  function theoryCount(o) { let n = 0; while (o && o.steps[n] && o.steps[n].laer) n++; return n; }
+  function theoryDone(k) {
+    const first = k.oppdrag[0];
+    const n = theoryCount(first);
+    if (!n) return true;
+    if (P.teori[k.id] || P.done[first.id]) return true;
+    const a = P.active;
+    return !!(a && a.mode !== 'master' && a.mode !== 'rep' && a.opp === first.id && a.step >= n);
+  }
+  function markTheory(a, o) {
+    const k = kurs(a.kurs);
+    if (!k || k.oppdrag[0].id !== a.opp || P.teori[k.id]) return;
+    const n = theoryCount(o);
+    if (n && a.step >= n) { P.teori[k.id] = true; Bus.emit('teori-done', { kurs: k.id }); }
+  }
   function nextOppdrag(a) {
     const k = kurs(a.kurs); const i = k.oppdrag.findIndex(o => o.id === a.opp);
     if (i < k.oppdrag.length - 1) return { kurs: k.id, opp: k.oppdrag[i + 1].id };
@@ -138,6 +155,7 @@ const Coach = (() => {
     const a = P.active; const o = oppOf(a);
     recordStep(a.opp, a.step);
     a.step++; stepStart = Bus.log.length; hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
+    markTheory(a, o);
     if (a.step >= o.steps.length) {
       P.done[a.opp] = true;
       Toast.show('🎉 Oppdrag fullført: ' + o.title);
@@ -432,10 +450,17 @@ const Coach = (() => {
       card.addEventListener('click', () => { P.openKurs = open ? null : k.id; save(); render(); });
       if (open) {
         const list = el('<div class="opp-list"></div>');
+        const teoriOk = theoryDone(k);
+        if (!teoriOk) list.appendChild(el(`<div class="teori-laas">🔒 Svar på teorispørsmålene i oppdrag ${i + 1}.1 først. Da låses resten av kurset opp.</div>`));
         k.oppdrag.forEach((o, j) => {
           const isActive = P.active && P.active.opp === o.id;
-          const r = el(`<div class="opp-row"><span class="${P.done[o.id] ? 'ok' : isActive ? 'play' : 'todo'}">${P.done[o.id] ? '✓' : isActive ? '▶' : '○'}</span><span>${i + 1}.${j + 1} ${esc(o.title)}</span></div>`);
-          r.addEventListener('click', e => { e.stopPropagation(); startOppdrag(k.id, o.id); });
+          const laast = j > 0 && !teoriOk && !P.done[o.id];
+          const r = el(`<div class="opp-row${laast ? ' locked' : ''}"><span class="${P.done[o.id] ? 'ok' : isActive ? 'play' : laast ? 'todo' : 'todo'}">${P.done[o.id] ? '✓' : isActive ? '▶' : laast ? '🔒' : '○'}</span><span>${i + 1}.${j + 1} ${esc(o.title)}</span></div>`);
+          r.addEventListener('click', e => {
+            e.stopPropagation();
+            if (laast) { Toast.show(`Teorien først: svar på spørsmålene i oppdrag ${i + 1}.1, så åpner resten av kurset seg.`, 5000); Bus.emit('oppdrag-laast', { kurs: k.id, opp: o.id }); return; }
+            startOppdrag(k.id, o.id);
+          });
           list.appendChild(r);
         });
         if (k.mesterprove) {
@@ -504,7 +529,7 @@ const Coach = (() => {
   }
 
   function resetProgress() {
-    P = { name: P.name, done: {}, active: null, tab: 'kurs', openKurs: KL[0].id, collapsed: false, master: {}, ekte: {}, stats: {}, rep: null };
+    P = { name: P.name, done: {}, active: null, tab: 'kurs', openKurs: KL[0].id, collapsed: false, master: {}, ekte: {}, stats: {}, teori: {}, rep: null };
     save(); render();
     Toast.show('Fremdriften er nullstilt.');
   }
@@ -524,6 +549,6 @@ const Coach = (() => {
   function setName(v) { P.name = (v || 'Elev').trim() || 'Elev'; save(); render(); }
   function startFirst() { if (!P.active) startOppdrag(KL[0].id, KL[0].oppdrag[0].id); else render(); }
 
-  return { init, render, check, startOppdrag, startMaster, startRep, skipRep, resetProgress, progress: () => P, reportCode, reportText, needsName, setName, startFirst, S };
+  return { init, render, check, startOppdrag, startMaster, startRep, skipRep, resetProgress, progress: () => P, reportCode, reportText, needsName, setName, startFirst, theoryDone, theoryCount, S };
 })();
 window.Coach = Coach;
