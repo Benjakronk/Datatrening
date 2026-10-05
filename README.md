@@ -119,9 +119,11 @@ Tre ting sikrer at ferdigheten sitter igjen, ikke bare at oppdraget ble huket av
 
 - **Mesterprøve** til slutt i hvert kurs. Eleven får bare *mål*, ingen steg og ingen hint, for eksempel
   «flytt denne filen dit den hører hjemme og lever den inn». Målene hukes av etter hvert, i den rekkefølgen
-  eleven vil. Tid og antall forsøk lagres.
-- **Ukens øving** trekker fem tilfeldige oppgaver fra kurs eleven har fullført, uten hint. Kortet i
-  Kurs-fanen minner på det når det har gått en uke. Oppgavebanken ligger i `REPETISJON` i `js/oppdrag-mer.js`.
+  eleven vil. Tid og antall forsøk lagres. Teorien ligger tilgjengelig som et sammenslått **oppslag**, slik
+  man kan slå opp i en bok når man jobber på ekte. Det er oppskriften som er borte, ikke oppslagsverket.
+- **Ukens øving** trekker fem tilfeldige oppgaver fra kurs eleven har fullført, uten hint, men med det
+  samme oppslaget tilgjengelig. Kortet i Kurs-fanen minner på det når det har gått en uke. Oppgavebanken
+  ligger i `REPETISJON` i `js/oppdrag-mer.js`.
 - **Gjør det på din egen PC**: en avkryssingsliste som dukker opp når kurset er ferdig, med de samme
   handlingene utført på den ekte maskinen.
 

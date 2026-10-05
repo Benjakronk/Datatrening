@@ -356,8 +356,12 @@ const Coach = (() => {
     body.appendChild(row);
   }
 
-  function laerBox(k, open, locked) {
-    const det = el(`<details class="laer"${open ? ' open' : ''}><summary>📖 Les først: ${esc(k.laerTitle || k.title)}</summary>${k.laer}</details>`);
+  /* opts.label bytter overskriften, opts.oppslag merker at boksen brukes som oppslagsverk
+     (i mesterprøven og ukens øving), der den er lukket som standard. */
+  function laerBox(k, open, locked, opts) {
+    const o = opts || {};
+    const det = el(`<details class="laer${o.oppslag ? ' oppslag' : ''}"${open ? ' open' : ''}><summary>${o.label || '📖 Les først: ' + esc(k.laerTitle || k.title)}</summary>${k.laer}</details>`);
+    if (o.oppslag) det.addEventListener('toggle', () => { if (det.open) Bus.emit('laer-oppslag', { kurs: k.id, modus: o.oppslag }); });
     if (locked) {
       const b = el('<button class="btn primary laer-unlock" disabled>Jeg har lest teksten</button>');
       const upd = () => {
@@ -378,7 +382,8 @@ const Coach = (() => {
     const a = P.active; const k = kurs(a.kurs); const m = k.mesterprove;
     const passed = a.state.every(Boolean);
     body.appendChild(el(`<div class="ktag">Kurs ${KL.indexOf(k) + 1} · ${esc(k.title)}</div><h2>🏅 Mesterprøve: ${esc(m.title)}</h2>`));
-    body.appendChild(el(`<div class="master-box"><p>${m.intro}</p><p class="muted">Her får du ingen oppskrift og ingen hint. Du får det til, du har øvd på alt dette. Målene hukes av etter hvert som du klarer dem, i den rekkefølgen du vil.</p></div>`));
+    body.appendChild(el(`<div class="master-box"><p>${m.intro}</p><p class="muted">Her får du ingen oppskrift og ingen hint. Men du får slå opp: teorien ligger under, slik du kan slå opp i en bok eller på nettet når du jobber på ekte. Målene hukes av etter hvert som du klarer dem, i den rekkefølgen du vil.</p></div>`));
+    if (k.laer) body.appendChild(laerBox(k, false, false, { oppslag: 'master', label: `📖 Slå opp: ${esc(k.laerTitle || k.title)}` }));
     const list = el('<div class="goals"></div>');
     m.goals.forEach((g, i) => list.appendChild(el(`<div class="goal${a.state[i] ? ' done' : ''}"><span class="gm">${a.state[i] ? '✓' : '○'}</span><span class="gt">${g.text}</span></div>`)));
     body.appendChild(list);
@@ -426,7 +431,8 @@ const Coach = (() => {
     }
     const k = kurs(t.kurs);
     body.appendChild(el(`<div class="rep-task"><div class="muted">Fra kurset «${esc(k ? k.title : '')}»</div><div class="rt">${t.text}</div></div>`));
-    body.appendChild(el('<p class="muted">Ingen hint denne gangen. Klarer du det uten hjelp?</p>'));
+    body.appendChild(el('<p class="muted">Ingen hint denne gangen. Prøv først på egen hånd, og slå opp i teorien hvis du står fast.</p>'));
+    if (k && k.laer) body.appendChild(laerBox(k, false, false, { oppslag: 'rep', label: `📖 Slå opp: ${esc(k.laerTitle || k.title)}` }));
     const row = el('<div class="cbtns"></div>');
     row.appendChild(btn('Hopp over', 'small', skipRep));
     row.appendChild(btn('Avslutt øvingen', 'small', () => { P.active = null; P.tab = 'kurs'; save(); render(); }));

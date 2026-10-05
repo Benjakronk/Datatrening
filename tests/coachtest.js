@@ -93,6 +93,28 @@
     ok(KL.every(x => x.mesterprove && x.mesterprove.goals.length >= 3), 'alle kurs har mesterprøve med minst tre mål');
     ok(KL.every(x => Array.isArray(x.ekte) && x.ekte.length), 'alle kurs har «gjør det på ekte»');
 
+    /* ---------- teorien er tilgjengelig som oppslag i mesterprøven ---------- */
+    Coach.startMaster(k.id); await tick(40);
+    ok(P().active.mode === 'master', 'mesterprøven er startet');
+    ok(document.querySelectorAll('#coach-body .goal').length === k.mesterprove.goals.length, 'målene vises');
+    const slaaOpp = document.querySelector('#coach-body details.laer.oppslag');
+    ok(!!slaaOpp, 'teorien er tilgjengelig i mesterprøven');
+    ok(!slaaOpp.open, 'oppslaget er lukket som standard, så eleven prøver selv først');
+    ok(/Slå opp/.test(slaaOpp.querySelector('summary').textContent), 'merket som oppslag, ikke som «les først»');
+    ok(slaaOpp.textContent.length > 300, 'hele teksten ligger der, ikke bare overskriften');
+    ok(!document.querySelector('#coach-body .linkbtn'), 'ingen hint-knapp i mesterprøven');
+    const forOppslag = Bus.log.length;
+    slaaOpp.open = true; slaaOpp.dispatchEvent(new Event('toggle')); await tick(30);
+    ok(Bus.log.slice(forOppslag).some(e => e.type === 'laer-oppslag' && e.data.modus === 'master'), 'oppslag registreres');
+
+    /* ---------- og i ukens øving ---------- */
+    Coach.startRep(2); await tick(40);
+    ok(P().active && P().active.mode === 'rep', 'ukens øving er startet');
+    const repOppslag = document.querySelector('#coach-body details.laer.oppslag');
+    ok(!!repOppslag && !repOppslag.open, 'teorien er tilgjengelig og lukket i ukens øving');
+    ok(!!document.querySelector('.rep-task'), 'oppgaven vises fortsatt');
+    P().active = null; P().tab = 'kurs'; Coach.render(); await tick();
+
     /* ---------- rydding mellom oppdrag ---------- */
     const medLukk = KL.flatMap(x => x.oppdrag).filter(o => o.lukk);
     ok(medLukk.length >= 2, 'flere oppdrag rydder programmer: ' + medLukk.length);

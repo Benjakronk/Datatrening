@@ -16,6 +16,7 @@ const KURS_PROG = [
     laer: `
       <h4>Hva er en terminal?</h4>
       <p>En <b>terminal</b> er et program der du styrer PC-en ved å skrive kommandoer i stedet for å klikke. På Windows heter kommandospråket <b>PowerShell</b>. Du skriver en kommando, trykker <kbd>Enter</kbd>, og får svar som tekst.</p>
+      <p>Du finner <b>Terminal</b> i oppgavelinjen nederst, det mørke ikonet med <code>&gt;_</code>, og i Start-menyen. På en ekte PC heter den <b>Windows Terminal</b> eller <b>PowerShell</b>, og du finner den ved å høyreklikke på Start-knappen.</p>
       <p>Linjen <code>PS C:\\Users\\Elev&gt;</code> kalles <b>ledeteksten</b>. Den viser hvilken mappe du står i akkurat nå. Alt du gjør, skjer i den mappen.</p>
       <h4>De tre viktigste kommandoene</h4>
       <table><tr><th>Kommando</th><th>Gjør</th></tr>
