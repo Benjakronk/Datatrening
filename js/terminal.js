@@ -2,10 +2,10 @@
    Mappene vises med engelske navn slik en ekte Windows-PC gjør i terminalen
    (Dokumenter = Documents, Skrivebord = Desktop osv.). */
 const Terminal = (() => {
-  const HOME = 'C:\\Users\\Elev';
+  const HOME = 'C:\\Users\\' + T('Elev');
   const VIRT = {
     'C:': [['Program Files', 'd'], ['Users', 'd'], ['Windows', 'd']],
-    'C:\\Users': [['Elev', 'd'], ['Public', 'd']],
+    'C:\\Users': [[T('Elev'), 'd'], ['Public', 'd']],
     'C:\\Windows': [['System32', 'd'], ['explorer.exe', 'f'], ['notepad.exe', 'f']],
     'C:\\Program Files': [['Microsoft Office', 'd'], ['PowerShell', 'd'], ['Python312', 'd']],
     'C:\\Users\\Public': [], 'C:\\Windows\\System32': [], 'C:\\Program Files\\Microsoft Office': [], 'C:\\Program Files\\PowerShell': [], 'C:\\Program Files\\Python312': [['python.exe', 'f']]
@@ -69,7 +69,7 @@ const Terminal = (() => {
   function childOf(loc, name) {
     const r = R(); const l = name.toLowerCase();
     if (loc.virt) {
-      if (loc.virt === 'C:\\Users' && l === 'elev') return { id: r.pc };
+      if (loc.virt === 'C:\\Users' && l === T('Elev').toLowerCase()) return { id: r.pc };
       const list = VIRT[loc.virt] || [];
       const hit = list.find(e => e[0].toLowerCase() === l);
       if (!hit) return null;
@@ -128,7 +128,7 @@ const Terminal = (() => {
   /* Deler en kommandolinje i tokens: håndterer '...' og "..." og $variabler */
   function tokenizeLine(line, vars) {
     const toks = []; let i = 0, cur = '', inTok = false, quoted = false;
-    const expand = s => s.replace(/\$env:(\w+)|\$(\w+)/g, (m, envv, v) => envv ? (envv.toUpperCase() === 'USERNAME' ? 'Elev' : envv.toUpperCase() === 'USERPROFILE' ? HOME : '') : (v.toLowerCase() === 'home' ? HOME : v.toLowerCase() === 'pwd' ? vars.__pwd : (vars[v] !== undefined ? String(vars[v]) : '')));
+    const expand = s => s.replace(/\$env:(\w+)|\$(\w+)/g, (m, envv, v) => envv ? (envv.toUpperCase() === 'USERNAME' ? T('Elev') : envv.toUpperCase() === 'USERPROFILE' ? HOME : '') : (v.toLowerCase() === 'home' ? HOME : v.toLowerCase() === 'pwd' ? vars.__pwd : (vars[v] !== undefined ? String(vars[v]) : '')));
     while (i < line.length) {
       const c = line[i];
       if (c === "'" || c === '"') {
@@ -173,7 +173,7 @@ const Terminal = (() => {
       this.history = []; this.hi = 0; this.vars = {}; this.running = null; this.lineCount = 0; this.tabState = null;
       this.root = el(`<div class="term"><div class="term-out"></div><div class="term-line"><span class="term-prompt"></span><input class="term-in" spellcheck="false" autocomplete="off"></div></div>`);
       this.out = this.root.querySelector('.term-out'); this.input = this.root.querySelector('.term-in'); this.promptEl = this.root.querySelector('.term-prompt');
-      this.win = WM.create({ app: 'terminal', title: 'PowerShell 7 – Elev', body: this.root, width: 900, height: 520, onClose: () => { if (this.running) this.abort(); return true; } });
+      this.win = WM.create({ app: 'terminal', title: 'PowerShell 7 – ' + T('Elev'), body: this.root, width: 900, height: 520, onClose: () => { if (this.running) this.abort(); return true; } });
       this.win.onClosed = () => { const i = instances.indexOf(this); if (i >= 0) instances.splice(i, 1); };
       this.win.term = this;
       instances.push(this);
@@ -182,15 +182,15 @@ const Terminal = (() => {
         e.preventDefault(); e.stopPropagation();
         const sel = window.getSelection().toString();
         Ctx.show(e.clientX, e.clientY, [
-          { label: 'Kopier', kbd: 'Ctrl+Shift+C', disabled: !sel, action: () => { if (navigator.clipboard) navigator.clipboard.writeText(sel).catch(() => {}); } },
-          { label: 'Lim inn', kbd: 'Ctrl+Shift+V', action: () => { if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(t => { this.input.value += t.split('\n')[0]; this.input.focus(); }).catch(() => Toast.show('Bruk Ctrl+V for å lime inn.')); } },
+          { label: T('Kopier'), kbd: 'Ctrl+Shift+C', disabled: !sel, action: () => { if (navigator.clipboard) navigator.clipboard.writeText(sel).catch(() => {}); } },
+          { label: T('Lim inn'), kbd: 'Ctrl+Shift+V', action: () => { if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(t => { this.input.value += t.split('\n')[0]; this.input.focus(); }).catch(() => Toast.show(T('Bruk Ctrl+V for å lime inn.'))); } },
           '-',
-          { label: 'Tøm skjermen', kbd: 'cls', action: () => this.clear() },
-          { label: 'Hjelp (help)', action: () => this.submit('help') }
-        ], 'terminal', 'terminalen');
+          { label: T('Tøm skjermen'), kbd: 'cls', action: () => this.clear() },
+          { label: T('Hjelp (help)'), action: () => this.submit('help') }
+        ], 'terminal', T('terminalen'));
       });
       this.input.addEventListener('keydown', e => this.onKey(e));
-      this.print('PowerShell 7.4.2 (øvings-terminal)\nSkriv help for å se kommandoene du kan bruke.\n', 'dim');
+      this.print(T('PowerShell 7.4.2 (øvings-terminal)\nSkriv help for å se kommandoene du kan bruke.\n'), 'dim');
       this.updatePrompt();
       setTimeout(() => this.input.focus(), 50);
       Bus.emit('term-open', { cwd: pathOf(this.cwd) });
@@ -352,8 +352,8 @@ const Terminal = (() => {
         const n = FS.get(loc.id);
         if (n.type === 'folder') return fail(`${first}: The term '${first}' is not recognized as a name of a cmdlet, function, script file, or executable program.`);
         if (FS.ext(n.name) === 'ps1') { const ok = await this.runPs1(n, args); return finish(ok); }
-        if (FS.ext(n.name) === 'py') { this.print(`Tips: Python-filer kjøres med:  python ${n.name}\n`, 'dim'); return finish(false); }
-        return fail(`${first}: Program '${n.name}' failed to run: The file is not a program or script. Åpne den med: code ${n.name}`);
+        if (FS.ext(n.name) === 'py') { this.print(T('Tips: Python-filer kjøres med:  python {0}\n', n.name), 'dim'); return finish(false); }
+        return fail(`${first}: Program '${n.name}' failed to run: The file is not a program or script. ` + T('Åpne den med: code {0}', n.name));
       }
       if (!canonical) {
         /* filnavn uten .\ i gjeldende mappe: PowerShell sin klassiske melding */
@@ -411,7 +411,7 @@ const Terminal = (() => {
           if (!loc) return pathErr('Remove-Item', p);
           if (loc.virt) return fail(`Remove-Item: Access to the path '${pathOf(loc)}' is denied.`);
           const n = FS.get(loc.id);
-          if (n.system) return fail(`Remove-Item: Access to the path '${pathOf(loc)}' is denied. Denne mappen hører til systemet.`);
+          if (n.system) return fail(`Remove-Item: Access to the path '${pathOf(loc)}' is denied. ` + T('Denne mappen hører til systemet.'));
           if (n.type === 'folder' && FS.children(n.id).length && !opts.recurse) {
             this.print(`\nConfirm\nThe item at ${pathOf(loc)} has children and the Recurse parameter was not specified. If you continue, all children will be removed with the item. Are you sure you want to continue?\n`);
             let ans; try { ans = await this.readLine('[Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is "Y"): '); } catch (e) { return finish(false); }
@@ -437,7 +437,7 @@ const Terminal = (() => {
             let dloc = resolve(this.cwd, dst);
             if (dloc && isDir(dloc)) {
               if (dloc.virt) return fail(`${canonical}: Access to the path '${pathOf(dloc)}' is denied.`);
-              if (canonical === 'Copy-Item' && sn.type === 'folder' && !opts.recurse) { this.print(`${canonical}: Mappen «${sn.name}» ble kopiert uten innhold. Bruk -Recurse for å ta med filene i den.\n`, 'warn'); const c = FS.createFolder(dloc.id, FS.uniqueName(dloc.id, sn.name), { via: 'terminal' }); rr = c; }
+              if (canonical === 'Copy-Item' && sn.type === 'folder' && !opts.recurse) { this.print(T('{0}: Mappen «{1}» ble kopiert uten innhold. Bruk -Recurse for å ta med filene i den.\n', canonical, sn.name), 'warn'); const c = FS.createFolder(dloc.id, FS.uniqueName(dloc.id, sn.name), { via: 'terminal' }); rr = c; }
               else rr = canonical === 'Move-Item' ? FS.move(sn.id, dloc.id, { via: 'terminal' }) : FS.copy(sn.id, dloc.id, { via: 'terminal' });
             } else {
               const { parent, name } = resolveParent(this.cwd, dst);
@@ -456,7 +456,7 @@ const Terminal = (() => {
           if (!p) return fail('Get-Content: Cannot process command because of one or more missing mandatory parameters: Path.');
           const loc = resolve(this.cwd, p);
           if (!loc) return pathErr('Get-Content', p);
-          if (isDir(loc)) return fail(`Get-Content: Access to the path '${pathOf(loc)}' is denied. Det er en mappe, ikke en fil.`);
+          if (isDir(loc)) return fail(`Get-Content: Access to the path '${pathOf(loc)}' is denied. ` + T('Det er en mappe, ikke en fil.'));
           if (loc.virt) return fail(`Get-Content: Access to the path '${pathOf(loc)}' is denied.`);
           const n = FS.get(loc.id);
           if (n.content) out(n.content.replace(/\n$/, ''));
@@ -475,8 +475,8 @@ const Terminal = (() => {
         case 'Clear-Host': this.clear(); return finish(true);
         case 'Get-Help': {
           const topic = args[0] || opts.name;
-          if (!topic) { out('Øvings-terminalen (PowerShell)\n\nNavigasjon:   pwd, cd, ls, tree, explorer .\nFiler:        mkdir, New-Item, Remove-Item, Move-Item, Copy-Item, Rename-Item, Get-Content, Set-Content, echo "tekst" > fil\nProgrammer:   python fil.py, code ., .\\skript.ps1, notepad fil.txt\nAnnet:        Get-Help <kommando>, Get-Alias, cls, exit\n\nTips: Tab fullfører navn. Pil opp henter forrige kommando. Ctrl+C stopper et program som kjører.'); }
-          else { const c = COMMANDS.find(x => x.toLowerCase() === topic.toLowerCase()) || ALIASES[topic.toLowerCase()]; if (c && HELP[c]) out('\n' + HELP[c] + '\n'); else out(`Get-Help: Fant ingen hjelp for «${topic}». Skriv help for en oversikt.`); Bus.emit('term-help', { topic: c || topic }); }
+          if (!topic) { out(T('Øvings-terminalen (PowerShell)\n\nNavigasjon:   pwd, cd, ls, tree, explorer .\nFiler:        mkdir, New-Item, Remove-Item, Move-Item, Copy-Item, Rename-Item, Get-Content, Set-Content, echo "tekst" > fil\nProgrammer:   python fil.py, code ., .\\skript.ps1, notepad fil.txt\nAnnet:        Get-Help <kommando>, Get-Alias, cls, exit\n\nTips: Tab fullfører navn. Pil opp henter forrige kommando. Ctrl+C stopper et program som kjører.')); }
+          else { const c = COMMANDS.find(x => x.toLowerCase() === topic.toLowerCase()) || ALIASES[topic.toLowerCase()]; if (c && HELP[c]) out('\n' + T(HELP[c]) + '\n'); else out(T('Get-Help: Fant ingen hjelp for «{0}». Skriv help for en oversikt.', topic)); Bus.emit('term-help', { topic: c || topic }); }
           return finish(true);
         }
         case 'Get-Alias': {
@@ -488,8 +488,8 @@ const Terminal = (() => {
         }
         case 'Get-Command': out('\nName\n----'); COMMANDS.slice().sort().forEach(c => out(c)); out(''); return finish(true);
         case 'Get-Date': out(new Date().toString()); return finish(true);
-        case 'whoami': out('elev-pc\\elev'); return finish(true);
-        case 'hostname': out('ELEV-PC'); return finish(true);
+        case 'whoami': { const u = T('Elev').toLowerCase(); out(u + '-pc\\' + u); return finish(true); }
+        case 'hostname': out(T('Elev').toUpperCase() + '-PC'); return finish(true);
         case 'history': case 'Get-History': this.history.forEach((h, i) => out(lpad(i + 1, 4) + '  ' + h)); return finish(true);
         case 'exit': finish(true); WM.close(this.win, 'exit'); return { ok: true, lines: [] };
         case 'Test-Path': { const loc = resolve(this.cwd, args[0] || opts.path || ''); out(loc ? 'True' : 'False'); return finish(true); }
@@ -505,7 +505,7 @@ const Terminal = (() => {
           const rx = new RegExp(pat.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*'), 'i');
           if (piped) { piped.filter(l => rx.test(l.text)).forEach(l => out(l.text)); return finish(true); }
           const files = args.slice(1).concat(opts.path ? [opts.path] : []);
-          if (!files.length) return fail('Select-String: Angi en fil å søke i, eller bruk kommandoen etter | (f.eks. ls | Select-String py).');
+          if (!files.length) return fail(T('Select-String: Angi en fil å søke i, eller bruk kommandoen etter | (f.eks. ls | Select-String py).'));
           files.forEach(f => { const loc = resolve(this.cwd, f); if (!loc || !isFile(loc) || loc.virt) { this.print(`Select-String: Cannot find path '${absStr(this.cwd, f)}' because it does not exist.\n`, 'err'); return; } const n = FS.get(loc.id); (n.content || '').split('\n').forEach((l, i) => { if (rx.test(l)) out(`${n.name}:${i + 1}:${l}`); }); });
           return finish(true);
         }
@@ -513,7 +513,7 @@ const Terminal = (() => {
         case 'Measure-Object': { const n = (piped || []).filter(l => l.text.trim() && !/^(Mode|----|\s+Directory)/.test(l.text)).length; out('\nCount    : ' + n + '\n'); return finish(true); }
         case 'more': (piped || []).forEach(l => out(l.text, l.cls)); return finish(true);
         case 'python': {
-          if (!args.length) { out('Python 3.12.4 (øvings-PC)\nInteraktiv modus støttes ikke her. Kjør en fil:  python fil.py'); return finish(true); }
+          if (!args.length) { out(T('Python 3.12.4 (øvings-PC)\nInteraktiv modus støttes ikke her. Kjør en fil:  python fil.py')); return finish(true); }
           if (args[0] === '--version' || args[0] === '-V') { out('Python 3.12.4'); return finish(true); }
           const loc = resolve(this.cwd, args[0]);
           if (!loc || loc.virt || !isFile(loc)) return fail(`python: can't open file '${absStr(this.cwd, args[0])}': [Errno 2] No such file or directory`);
@@ -525,8 +525,8 @@ const Terminal = (() => {
           return finish(res.ok);
         }
         case 'code': {
-          if (window.Apps && !Apps.available('kode')) return fail("code: The term 'code' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.\n\nTips: Visual Studio Code er ikke installert på denne PC-en. Åpne Firmaportalen og installer det derfra.");
-          if (!window.Kode) return fail("code: The term 'code' is not recognized. Kode-editoren finnes bare på programmeringssiden.");
+          if (window.Apps && !Apps.available('kode')) return fail("code: The term 'code' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.\n\n" + T('Tips: Visual Studio Code er ikke installert på denne PC-en. Åpne Firmaportalen og installer det derfra.'));
+          if (!window.Kode) return fail("code: The term 'code' is not recognized. " + T('Kode-editoren finnes bare på programmeringssiden.'));
           const p = args[0] || '.'; const loc = resolve(this.cwd, p);
           if (!loc) { const { parent, name } = resolveParent(this.cwd, p); if (parent && !parent.virt && name) { const rr = FS.createFile(parent.id, name, '', { via: 'terminal' }); if (rr.error) return fail('code: ' + rr.error); Kode.open({ fileId: rr.id, via: 'terminal' }); return finish(true); } return pathErr('code', p); }
           if (loc.virt) return fail(`code: Access to the path '${pathOf(loc)}' is denied.`);
@@ -571,14 +571,14 @@ const Terminal = (() => {
         if (run.abort) { run.abort = false; res = gen.throw(Pyth.interrupt()); continue; }
         if (y.type === 'step') {
           if (++steps % 4000 === 0) { await new Promise(r => setTimeout(r, 0)); }
-          if (steps > 5000000) { this.print('\n[Øvings-PC: programmet ble stoppet etter 5 millioner steg. Har du en løkke som aldri slutter?]\n', 'warn'); res = gen.throw(Pyth.interrupt()); continue; }
+          if (steps > 5000000) { this.print(T('\n[Øvings-PC: programmet ble stoppet etter 5 millioner steg. Har du en løkke som aldri slutter?]\n'), 'warn'); res = gen.throw(Pyth.interrupt()); continue; }
           res = gen.next(); continue;
         }
         if (y.type === 'out') {
           emit(y.text, y.err); output.push(y.text);
           outLines += (y.text.match(/\n/g) || []).length;
           if (outLines > 200 && outLines % 20 === 0) await new Promise(r => setTimeout(r, 30));
-          if (outLines > 5000) { this.print('\n[Øvings-PC: programmet skrev ut mer enn 5000 linjer og ble stoppet. Bruk Ctrl+C for å stoppe programmer som kjører evig.]\n', 'warn'); res = gen.throw(Pyth.interrupt()); continue; }
+          if (outLines > 5000) { this.print(T('\n[Øvings-PC: programmet skrev ut mer enn 5000 linjer og ble stoppet. Bruk Ctrl+C for å stoppe programmer som kjører evig.]\n'), 'warn'); res = gen.throw(Pyth.interrupt()); continue; }
           res = gen.next(); continue;
         }
         if (y.type === 'input') {
@@ -619,7 +619,7 @@ const Terminal = (() => {
         }
         const rh = /^Read-Host(?:\s+(?:-Prompt\s+)?(.+))?$/i.exec(line);
         if (rh) { try { await this.readLine(rh[1] ? unquote(rh[1], this.vars) + ': ' : ''); } catch (e) { ok = false; break; } continue; }
-        if (/^(if|while|foreach|for|function|switch|try)\b/i.test(line) || /^[{}]/.test(line)) { this.print(`${node.name}: linje ${i + 1}: «${line.split(' ')[0]}» støttes ikke i øvings-terminalen. Bruk Write-Host, Read-Host, variabler og vanlige kommandoer.\n`, 'warn'); continue; }
+        if (/^(if|while|foreach|for|function|switch|try)\b/i.test(line) || /^[{}]/.test(line)) { this.print(T('{0}: linje {1}: «{2}» støttes ikke i øvings-terminalen. Bruk Write-Host, Read-Host, variabler og vanlige kommandoer.\n', node.name, i + 1, line.split(' ')[0]), 'warn'); continue; }
         const r = await this.execLine(line, true);
         if (!r) { ok = false; break; }
       }
@@ -638,7 +638,7 @@ const Terminal = (() => {
     const n = FS.get(nodeId); if (!n) return;
     let t = active(); if (!t) t = open(n.parent); if (!t) return;
     WM.focus(t.win, 'run');
-    if (t.running) { Toast.show('Terminalen kjører allerede et program. Stopp det med Ctrl+C først.'); return; }
+    if (t.running) { Toast.show(T('Terminalen kjører allerede et program. Stopp det med Ctrl+C først.')); return; }
     if (t.cwd.id !== n.parent) { await t.submit('cd "' + pathOf({ id: n.parent }) + '"'); }
     const e = FS.ext(n.name);
     await t.submit(e === 'ps1' ? '.\\' + n.name : 'python ' + (/\s/.test(n.name) ? '"' + n.name + '"' : n.name));

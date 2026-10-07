@@ -50,14 +50,14 @@ const Dialog = (() => {
   const isOpen = () => openCount > 0;
 
   function alert(title, msg) { return show({ title, body: `<p>${esc(msg)}</p>`, buttons: [{ label: 'OK', value: true, primary: true }], escapeValue: true }); }
-  function confirm(title, msg, yes = 'Ja', no = 'Nei') {
+  function confirm(title, msg, yes = T('Ja'), no = T('Nei')) {
     return show({ title, body: `<p>${esc(msg)}</p>`, buttons: [{ label: yes, value: true, primary: true }, { label: no, value: false }], escapeValue: false });
   }
   function prompt(title, label, value = '', validate) {
     const body = el(`<div><label>${esc(label)}</label><input class="txt" autofocus value="${esc(value)}"><div class="dlg-err"></div></div>`);
     return show({
       title, body,
-      buttons: [{ label: 'OK', value: 'ok', primary: true }, { label: 'Avbryt', value: null }],
+      buttons: [{ label: 'OK', value: 'ok', primary: true }, { label: T('Avbryt'), value: null }],
       validate: () => {
         const val = body.querySelector('input').value;
         const err = validate ? validate(val) : FS.validate(val);
@@ -68,9 +68,9 @@ const Dialog = (() => {
   }
   function saveChanges(name) {
     return show({
-      title: 'Skriv',
-      body: `<p><b>Vil du lagre endringene i «${esc(name)}»?</b></p><p class="muted">Hvis du ikke lagrer, forsvinner det du har skrevet.</p>`,
-      buttons: [{ label: 'Lagre', value: 'save', primary: true }, { label: 'Ikke lagre', value: 'discard' }, { label: 'Avbryt', value: 'cancel' }],
+      title: T('Skriv'),
+      body: T('<p><b>Vil du lagre endringene i «{0}»?</b></p><p class="muted">Hvis du ikke lagrer, forsvinner det du har skrevet.</p>', esc(name)),
+      buttons: [{ label: T('Lagre'), value: 'save', primary: true }, { label: T('Ikke lagre'), value: 'discard' }, { label: T('Avbryt'), value: 'cancel' }],
       escapeValue: 'cancel'
     });
   }
@@ -79,7 +79,7 @@ const Dialog = (() => {
   function fileChooser(o) {
     const mode = o.mode || 'open';
     const R = FS.roots();
-    const types = o.types || [{ label: 'Alle filer (*.*)', ext: '' }];
+    const types = o.types || [{ label: T('Alle filer (*.*)'), ext: '' }];
     let cwd = o.start && FS.get(o.start) ? o.start : R.documents;
     const hist = [cwd];
     let selected = null;
@@ -87,13 +87,13 @@ const Dialog = (() => {
     FS.path(cwd).forEach(n => expanded.add(n.id));
 
     const body = el(`<div class="fc">
-      <div class="fc-top"><button class="nav-btn back" title="Tilbake">←</button><button class="nav-btn up" title="Opp ett nivå">↑</button><div class="crumbs"></div><button class="tb newf">${Icons.folder(16)} Ny mappe</button></div>
+      <div class="fc-top"><button class="nav-btn back" title="${T('Tilbake')}">←</button><button class="nav-btn up" title="${T('Opp ett nivå')}">↑</button><div class="crumbs"></div><button class="tb newf">${Icons.folder(16)} ${T('Ny mappe')}</button></div>
       <div class="fc-main"><div class="fc-nav"></div><div class="fc-list"></div></div>
-      <div class="fc-bottom"><label>Filnavn:</label><input class="txt fname" autofocus><select class="txt ftype"></select><span></span><div class="dlg-err"></div></div>
+      <div class="fc-bottom"><label>${T('Filnavn:')}</label><input class="txt fname" autofocus><select class="txt ftype"></select><span></span><div class="dlg-err"></div></div>
     </div>`);
     const nameIn = body.querySelector('.fname'), typeSel = body.querySelector('.ftype'), err = body.querySelector('.dlg-err');
     nameIn.value = o.name || '';
-    if (mode === 'folder') { nameIn.placeholder = 'Velg en mappe i listen, eller stå i mappen du vil bruke'; nameIn.readOnly = true; typeSel.classList.add('hidden'); }
+    if (mode === 'folder') { nameIn.placeholder = T('Velg en mappe i listen, eller stå i mappen du vil bruke'); nameIn.readOnly = true; typeSel.classList.add('hidden'); }
     types.forEach((t, i) => typeSel.appendChild(el(`<option value="${i}">${esc(t.label)}</option>`)));
     typeSel.addEventListener('change', renderList);
 
@@ -122,11 +122,11 @@ const Dialog = (() => {
     function renderList() {
       const list = body.querySelector('.fc-list'); list.innerHTML = '';
       list.className = 'fc-list ex-content details';
-      list.appendChild(el(`<div class="dt-head"><span>Navn</span><span>Endringsdato</span><span>Type</span><span>Størrelse</span></div>`));
+      list.appendChild(el(`<div class="dt-head"><span>${T('Navn')}</span><span>${T('Endringsdato')}</span><span>${T('Type')}</span><span>${T('Størrelse')}</span></div>`));
       const exts = curExts();
       let items = FS.children(cwd).filter(n => n.type === 'folder' || !exts.length || exts.includes(FS.ext(n.name)));
       items.sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name, 'nb') : a.type === 'folder' ? -1 : 1));
-      if (!items.length) list.appendChild(el('<div class="empty">Ingen elementer samsvarer med søket.</div>'));
+      if (!items.length) list.appendChild(el(`<div class="empty">${T('Ingen elementer samsvarer med søket.')}</div>`));
       items.forEach(n => {
         const r = el(`<div class="row${selected === n.id ? ' selected' : ''}"><div class="name"><span class="ico">${Icons.node(n, 20)}</span><span>${esc(FS.displayName(n, Explorer.settings.showExt))}</span></div><div class="col">${fmtDate(n.modified)}</div><div class="col">${esc(Icons.typeName(n))}</div><div class="col">${n.type === 'file' ? fmtSize(n.size) : ''}</div></div>`);
         r.addEventListener('click', () => {
@@ -145,16 +145,16 @@ const Dialog = (() => {
     body.querySelector('.back').addEventListener('click', () => { if (hist.length > 1) { hist.pop(); navigate(hist[hist.length - 1], false); } });
     body.querySelector('.up').addEventListener('click', () => { const p = FS.get(cwd).parent; if (p != null) navigate(p); });
     body.querySelector('.newf').addEventListener('click', async () => {
-      const name = await prompt('Ny mappe', 'Navn på mappen:', 'Ny mappe', v => FS.validate(v) || (FS.hasChild(cwd, v.trim()) ? 'Det finnes allerede en mappe med dette navnet.' : null));
+      const name = await prompt(T('Ny mappe'), T('Navn på mappen:'), T('Ny mappe'), v => FS.validate(v) || (FS.hasChild(cwd, v.trim()) ? T('Det finnes allerede en mappe med dette navnet.') : null));
       if (name) { const r = FS.createFolder(cwd, name, { via: 'dialog' }); if (r.error) Toast.show(r.error); else navigate(r.id); }
     });
     nameIn.addEventListener('input', () => { err.textContent = ''; });
 
     render();
     return show({
-      title: o.title || (mode === 'save' ? 'Lagre som' : 'Åpne'),
+      title: o.title || (mode === 'save' ? T('Lagre som') : T('Åpne')),
       body, cls: 'dlg-fc',
-      buttons: [{ label: mode === 'save' ? 'Lagre' : mode === 'folder' ? 'Velg mappe' : 'Åpne', value: 'ok', primary: true }, { label: 'Avbryt', value: null }],
+      buttons: [{ label: mode === 'save' ? T('Lagre') : mode === 'folder' ? T('Velg mappe') : T('Åpne'), value: 'ok', primary: true }, { label: T('Avbryt'), value: null }],
       validate: async () => {
         let name = nameIn.value.trim();
         if (mode === 'folder') {
@@ -168,14 +168,14 @@ const Dialog = (() => {
           const exts = curExts();
           if (exts.length && !exts.includes(FS.ext(name))) name += '.' + exts[0];
           const ex = FS.children(cwd).find(c => c.name.toLowerCase() === name.toLowerCase());
-          if (ex && ex.type === 'folder') { err.textContent = 'Det finnes en mappe med dette navnet.'; return false; }
-          if (ex) { const ok = await confirm('Bekreft Lagre som', `«${name}» finnes allerede. Vil du erstatte den?`); if (!ok) return false; }
+          if (ex && ex.type === 'folder') { err.textContent = T('Det finnes en mappe med dette navnet.'); return false; }
+          if (ex) { const ok = await confirm(T('Bekreft Lagre som'), T('«{0}» finnes allerede. Vil du erstatte den?', name)); if (!ok) return false; }
           Bus.emit('dialog-save', { folderId: cwd, name });
           return { folderId: cwd, name };
         }
         let n = selected ? FS.get(selected) : null;
         if (!n || n.type !== 'file') n = FS.children(cwd).find(c => c.type === 'file' && (c.name.toLowerCase() === name.toLowerCase() || FS.base(c.name).toLowerCase() === name.toLowerCase())) || null;
-        if (!n) { err.textContent = name ? `Finner ikke filen «${name}» i denne mappen.` : 'Velg en fil først.'; return false; }
+        if (!n) { err.textContent = name ? T('Finner ikke filen «{0}» i denne mappen.', name) : T('Velg en fil først.'); return false; }
         Bus.emit('dialog-open-file', { nodeId: n.id, name: n.name, folderId: cwd });
         return { nodeId: n.id, name: n.name };
       }
@@ -188,7 +188,7 @@ const Dialog = (() => {
       const layer = document.getElementById('modal-layer');
       const pages = o.pages.filter(Boolean);
       let i = 0, finished = false;
-      const dlg = el(`<div class="dlg dlg-wiz"><div class="dlg-title"></div><div class="dlg-body"></div><div class="dlg-btns"><span class="wiz-dots"></span><span class="wiz-sp"></span><button class="btn skip">Hopp over</button><button class="btn back">Tilbake</button><button class="btn primary next">Neste</button></div></div>`);
+      const dlg = el(`<div class="dlg dlg-wiz"><div class="dlg-title"></div><div class="dlg-body"></div><div class="dlg-btns"><span class="wiz-dots"></span><span class="wiz-sp"></span><button class="btn skip">${T('Hopp over')}</button><button class="btn back">${T('Tilbake')}</button><button class="btn primary next">${T('Neste')}</button></div></div>`);
       const title = dlg.querySelector('.dlg-title'), body = dlg.querySelector('.dlg-body');
       const dots = dlg.querySelector('.wiz-dots'), bBack = dlg.querySelector('.back'), bNext = dlg.querySelector('.next'), bSkip = dlg.querySelector('.skip');
       /* Det eleven har skrevet må overleve at man blar frem og tilbake, og må være
@@ -213,7 +213,7 @@ const Dialog = (() => {
         dots.innerHTML = pages.map((x, j) => `<span class="dot${j === i ? ' on' : ''}"></span>`).join('');
         bBack.classList.toggle('hidden', i === 0);
         bSkip.classList.toggle('hidden', i === pages.length - 1 || !o.skippable);
-        bNext.textContent = i === pages.length - 1 ? (o.doneLabel || 'Kom i gang') : 'Neste';
+        bNext.textContent = i === pages.length - 1 ? (o.doneLabel || T('Kom i gang')) : T('Neste');
         Bus.emit('wizard-page', { page: i + 1, of: pages.length, title: p.title });
         setTimeout(() => { const f = body.querySelector('[autofocus]'); (f || bNext).focus(); if (f && f.select) f.select(); }, 0);
       }
@@ -243,15 +243,15 @@ const Dialog = (() => {
   function properties(n) {
     const kids = n.type === 'folder' ? FS.findAll(() => true).filter(c => FS.isDesc(c.id, n.id) && c.id !== n.id) : [];
     const rows = [
-      ['Navn', n.name], ['Type', Icons.typeName(n)],
-      ['Plassering', FS.pathString(n.parent != null ? n.parent : n.id)],
-      n.type === 'file' ? ['Størrelse', fmtSize(n.size)] : ['Inneholder', `${kids.filter(k => k.type === 'file').length} filer, ${kids.filter(k => k.type === 'folder').length} mapper`],
-      ['Endret', fmtDate(n.modified)]
+      [T('Navn'), n.name], [T('Type'), Icons.typeName(n)],
+      [T('Plassering'), FS.pathString(n.parent != null ? n.parent : n.id)],
+      n.type === 'file' ? [T('Størrelse'), fmtSize(n.size)] : [T('Inneholder'), T('{0} filer, {1} mapper', kids.filter(k => k.type === 'file').length, kids.filter(k => k.type === 'folder').length)],
+      [T('Endret'), fmtDate(n.modified)]
     ];
-    if (n.type === 'file' && FS.ext(n.name)) rows.push(['Åpnes med', Icons.program(n)]);
+    if (n.type === 'file' && FS.ext(n.name)) rows.push([T('Åpnes med'), Icons.program(n)]);
     Bus.emit('properties', { id: n.id, name: n.name });
     return show({
-      title: 'Egenskaper for ' + FS.displayName(n, Explorer.settings.showExt),
+      title: T('Egenskaper for {0}', FS.displayName(n, Explorer.settings.showExt)),
       body: `<div class="prop-head">${Icons.bigIcon(n, 32)} ${esc(n.name)}</div><table class="prop-table">${rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')}</table>`,
       buttons: [{ label: 'OK', value: true, primary: true }], escapeValue: true
     });

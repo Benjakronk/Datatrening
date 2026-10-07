@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datatrening – programming (practice PC, simulation)</title>
+<meta name="description" content="Course set for programming students: terminal (PowerShell), Code editor and Python on a simulated practice PC in the browser. No login, no data is sent.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="../css/style.css">
+<script>
+  /* This page uses the programming courses and has Terminal and Code in the taskbar */
+  window.DT_LANG = 'en';
+  window.DT_PAGE = 'prog';
+  window.DT_PINNED = ['explorer', 'kode', 'terminal', 'nettleser'];
+</script>
+</head>
+<body class="page-prog">
+<div id="app">
+  <div id="desktop">
+    <div id="desktop-icons"></div>
+    <div id="windows"></div>
+    <div id="startmenu" class="hidden">
+      <div class="sm-title">All apps</div>
+      <div class="sm-grid"></div>
+      <div class="sm-foot"><span class="sm-user">👤 <span id="sm-name">Student</span></span><span class="sm-tip">Tip: the Windows key ⊞ also opens the Start menu on a real PC.</span></div>
+    </div>
+    <div id="taskbar">
+      <div id="taskbar-center"></div>
+      <div id="taskbar-right"><div id="sim-label">Practice PC<br>simulation</div><div id="clock"></div></div>
+    </div>
+    <div id="toasts"></div>
+    <div id="modal-layer" class="hidden"></div>
+  </div>
+  <aside id="coach">
+    <div id="coach-head">
+      <div class="coach-logo">⌨️</div>
+      <div class="coach-title"><div>Datatrening: programming</div><div class="coach-sub" id="coach-name">Terminal, Code and Python</div></div>
+      <button id="coach-toggle" title="Hide/show the guide">›</button>
+    </div>
+    <div id="coach-tabs">
+      <button class="ctab" data-tab="oppdrag">Task</button>
+      <button class="ctab" data-tab="kurs">Courses</button>
+      <button class="ctab" data-tab="fremdrift">Progress</button>
+    </div>
+    <div id="coach-body"></div>
+  </aside>
+</div>
+<script src="../js/i18n.js"></script>
+<script src="../js/en/names.js"></script>
+<script src="../js/en/strings.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/icons.js"></script>
+<script src="../js/fs.js"></script>
+<script src="../js/wm.js"></script>
+<script src="../js/dialogs.js"></script>
+<script src="../js/explorer.js"></script>
+<script src="../js/apps.js"></script>
+<script src="../js/skriv.js"></script>
+<script src="../js/firmaportal.js"></script>
+<script src="../js/pyth.js"></script>
+<script src="../js/terminal.js"></script>
+<script src="../js/kode.js"></script>
+<script src="../js/en/oppdrag.js"></script>
+<script src="../js/en/oppdrag-prog.js"></script>
+<script src="../js/intro.js"></script>
+<script src="../js/coach.js"></script>
+<script src="../js/main.js"></script>
+</body>
+</html>

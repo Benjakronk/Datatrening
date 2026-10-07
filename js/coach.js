@@ -113,7 +113,7 @@ const Coach = (() => {
        Skjer før stepStart settes, slik at lukkingen ikke teller som et utført steg. */
     if (o && o.lukk) {
       const closed = WM.closeApps(o.lukk === 'alle' ? null : o.lukk, 'oppdrag');
-      if (closed.length) Toast.show('Lukket fra forrige oppdrag: ' + closed.map(a => WM.appName(a)).join(', ') + '. Du starter med blanke ark.', 4500);
+      if (closed.length) Toast.show(T('Lukket fra forrige oppdrag: {0}. Du starter med blanke ark.', closed.map(a => WM.appName(a)).join(', ')), 4500);
     }
     stepStart = Bus.log.length; stepTime = now();
     hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
@@ -143,7 +143,7 @@ const Coach = (() => {
   }
   function startRep(n = 5) {
     const pool = REP.filter(r => { const k = kurs(r.kurs); return k && kursComplete(k); });
-    if (!pool.length) { Toast.show('Fullfør et kurs først, så kan du repetere det du har lært.'); return; }
+    if (!pool.length) { Toast.show(T('Fullfør et kurs først, så kan du repetere det du har lært.')); return; }
     const pick = shuffled(pool.length).slice(0, Math.min(n, pool.length)).map(i => pool[i]);
     P.active = { mode: 'rep', tasks: pick.map(r => r.id), i: 0, ok: 0, at: now() };
     resetRun(pick[0]);
@@ -161,7 +161,7 @@ const Coach = (() => {
     markTheory(a, o);
     if (a.step >= o.steps.length) {
       P.done[a.opp] = true;
-      Toast.show('🎉 Oppdrag fullført: ' + o.title);
+      Toast.show(T('🎉 Oppdrag fullført: {0}', o.title));
       Bus.emit('oppdrag-done', { id: a.opp });
     }
     save();
@@ -208,7 +208,7 @@ const Coach = (() => {
       const ms = a.doneAt - a.at;
       const prev = P.master[k.id];
       P.master[k.id] = { passed: true, ms: prev && prev.ms ? Math.min(prev.ms, ms) : ms, date: a.doneAt, tries: (prev ? prev.tries || 0 : 0) + 1 };
-      Toast.show('🏅 Mesterprøve bestått: ' + k.title);
+      Toast.show(T('🏅 Mesterprøve bestått: {0}', k.title));
       Bus.emit('master-done', { kurs: k.id, ms });
     }
     if (changed) save();
@@ -224,7 +224,7 @@ const Coach = (() => {
     if (a.i < a.tasks.length) { resetRun(REP.find(r => r.id === a.tasks[a.i])); }
     else {
       P.rep = { last: now(), ok: a.ok, total: a.tasks.length };
-      Toast.show('Ukens øving fullført!');
+      Toast.show(T('Ukens øving fullført!'));
       Bus.emit('rep-done', { ok: a.ok, total: a.tasks.length });
     }
     save();
@@ -274,8 +274,8 @@ const Coach = (() => {
   function render() {
     const body = document.getElementById('coach-body');
     document.querySelectorAll('.ctab').forEach(t => t.classList.toggle('active', t.dataset.tab === P.tab));
-    document.getElementById('coach-name').textContent = P.name ? P.name : 'Lær å bruke PC';
-    const smn = document.getElementById('sm-name'); if (smn) smn.textContent = P.name || 'Elev';
+    document.getElementById('coach-name').textContent = P.name ? P.name : T('Lær å bruke PC');
+    const smn = document.getElementById('sm-name'); if (smn) smn.textContent = P.name || T('Elev');
     document.getElementById('coach').classList.toggle('collapsed', !!P.collapsed);
     if (unlockTimer) { clearInterval(unlockTimer); unlockTimer = null; }
     body.innerHTML = '';
@@ -284,13 +284,13 @@ const Coach = (() => {
     else renderFremdrift(body);
   }
   function btn(label, cls, action) { const b = el(`<button class="btn ${cls || ''}">${esc(label)}</button>`); b.addEventListener('click', action); return b; }
-  function fmtMs(ms) { const s = Math.round(ms / 1000); return s < 60 ? s + ' sekunder' : Math.floor(s / 60) + ' min ' + (s % 60) + ' s'; }
+  function fmtMs(ms) { const s = Math.round(ms / 1000); return s < 60 ? T('{0} sekunder', s) : T('{0} min {1} s', Math.floor(s / 60), s % 60); }
 
   function renderAktiv(body) {
     const a = P.active;
     if (!a) {
-      body.appendChild(el('<p>Du har ikke startet noe oppdrag ennå.</p>'));
-      body.appendChild(btn('Gå til kursene', 'primary', () => { P.tab = 'kurs'; save(); render(); }));
+      body.appendChild(el(T('<p>Du har ikke startet noe oppdrag ennå.</p>')));
+      body.appendChild(btn(T('Gå til kursene'), 'primary', () => { P.tab = 'kurs'; save(); render(); }));
       return;
     }
     if (a.mode === 'master') return renderMaster(body);
@@ -300,10 +300,10 @@ const Coach = (() => {
 
   function renderOppdrag(body) {
     const a = P.active;
-    if (!oppOf(a)) { body.appendChild(el('<p>Fant ikke oppdraget.</p>')); body.appendChild(btn('Gå til kursene', 'primary', () => { P.tab = 'kurs'; save(); render(); })); return; }
+    if (!oppOf(a)) { body.appendChild(el(T('<p>Fant ikke oppdraget.</p>'))); body.appendChild(btn(T('Gå til kursene'), 'primary', () => { P.tab = 'kurs'; save(); render(); })); return; }
     const k = kurs(a.kurs), o = oppOf(a);
     const ki = KL.indexOf(k) + 1, oi = k.oppdrag.indexOf(o) + 1;
-    body.appendChild(el(`<div class="ktag">Kurs ${ki} · ${esc(k.title)}</div><h2>Oppdrag ${ki}.${oi}: ${esc(o.title)}</h2>`));
+    body.appendChild(el(T('<div class="ktag">Kurs {0} · {1}</div><h2>Oppdrag {0}.{2}: {3}</h2>', ki, esc(k.title), oi, esc(o.title))));
     if (o.intro) body.appendChild(el(`<p class="opp-intro">${o.intro}</p>`));
     const curStep = o.steps[a.step];
     const locked = isLocked();
@@ -315,7 +315,7 @@ const Coach = (() => {
       const d = el(`<div class="step ${cls}"><div class="num">${i < a.step ? '✓' : i + 1}</div><div class="txt"></div></div>`);
       const txt = d.querySelector('.txt');
       if (st.quiz) {
-        txt.innerHTML = `<div><b>${st.laer ? 'Teori' : 'Spørsmål'}:</b> ${esc(st.quiz.q)}</div>`;
+        txt.innerHTML = `<div><b>${st.laer ? T('Teori') : T('Spørsmål')}:</b> ${esc(st.quiz.q)}</div>`;
         if (i === a.step) {
           const key = a.opp + ':' + i;
           if (!quizOrder || quizKey !== key || quizOrder.length !== st.quiz.options.length) { quizOrder = shuffled(st.quiz.options.length); quizKey = key; }
@@ -325,18 +325,18 @@ const Coach = (() => {
             txt.appendChild(b);
           });
           if (locked) {
-            const hb = el('<div class="hintbox">Ikke riktig. Spørsmålet er låst til du har lest teksten. Trykk på knappen nederst i teksten for å komme tilbake og svare på nytt.<div><button class="btn primary small goto-laer">📖 Gå til «Les først»-teksten</button></div></div>');
+            const hb = el(`<div class="hintbox">${T('Ikke riktig. Spørsmålet er låst til du har lest teksten. Trykk på knappen nederst i teksten for å komme tilbake og svare på nytt.')}<div><button class="btn primary small goto-laer">${T('📖 Gå til «Les først»-teksten')}</button></div></div>`);
             hb.querySelector('.goto-laer').addEventListener('click', goToLaer);
             txt.appendChild(hb);
           }
-          else if (wrongOpt != null) txt.appendChild(el(`<div class="hintbox">Ikke helt riktig. ${esc(st.hint || 'Prøv igjen!')}</div>`));
+          else if (wrongOpt != null) txt.appendChild(el(`<div class="hintbox">${T('Ikke helt riktig. {0}', esc(st.hint || T('Prøv igjen!')))}</div>`));
         } else if (i < a.step) {
-          txt.appendChild(el(`<div class="muted">Svar: ${esc(st.quiz.options[st.quiz.answer])}</div>`));
+          txt.appendChild(el(`<div class="muted">${T('Svar: {0}', esc(st.quiz.options[st.quiz.answer]))}</div>`));
         }
       } else {
         txt.innerHTML = st.text;
         if (i === a.step && st.hint) {
-          const hb = el(`<div><button class="linkbtn">💡 ${hintOpen ? 'Skjul hint' : 'Vis hint'}</button></div>`);
+          const hb = el(`<div><button class="linkbtn">💡 ${hintOpen ? T('Skjul hint') : T('Vis hint')}</button></div>`);
           hb.querySelector('button').addEventListener('click', () => { hintOpen = !hintOpen; if (!hintOpen) { } else { stat(a.opp).h++; save(); } Bus.emit('hint', { open: hintOpen }); render(); });
           txt.appendChild(hb);
           if (hintOpen) txt.appendChild(el(`<div class="hintbox">${st.hint}</div>`));
@@ -345,17 +345,17 @@ const Coach = (() => {
       body.appendChild(d);
     });
     if (done) {
-      body.appendChild(el(`<div class="done-box"><div class="big">🎉</div>Bra jobbet! Du fullførte «${esc(o.title)}».</div>`));
+      body.appendChild(el(`<div class="done-box"><div class="big">🎉</div>${T('Bra jobbet! Du fullførte «{0}».', esc(o.title))}</div>`));
       const nxt = nextOppdrag(a);
       const row = el('<div class="cbtns"></div>');
-      if (nxt) row.appendChild(btn('Neste oppdrag →', 'primary', () => startOppdrag(nxt.kurs, nxt.opp)));
-      else if (k.mesterprove && !masterPassed(k)) row.appendChild(btn('🏅 Ta mesterprøven', 'primary', () => startMaster(k.id)));
-      else { const nk = nextKurs(a); if (nk) row.appendChild(btn('Neste kurs →', 'primary', () => startOppdrag(nk.id, nk.oppdrag[0].id))); else row.appendChild(btn('Se fremdriften din', 'primary', () => { P.tab = 'fremdrift'; save(); render(); })); }
+      if (nxt) row.appendChild(btn(T('Neste oppdrag →'), 'primary', () => startOppdrag(nxt.kurs, nxt.opp)));
+      else if (k.mesterprove && !masterPassed(k)) row.appendChild(btn(T('🏅 Ta mesterprøven'), 'primary', () => startMaster(k.id)));
+      else { const nk = nextKurs(a); if (nk) row.appendChild(btn(T('Neste kurs →'), 'primary', () => startOppdrag(nk.id, nk.oppdrag[0].id))); else row.appendChild(btn(T('Se fremdriften din'), 'primary', () => { P.tab = 'fremdrift'; save(); render(); })); }
       body.appendChild(row);
     }
     const row = el('<div class="cbtns"></div>');
-    row.appendChild(btn('Start oppdraget på nytt', 'small', () => startOppdrag(a.kurs, a.opp)));
-    row.appendChild(btn('Kursoversikt', 'small', () => { P.tab = 'kurs'; save(); render(); }));
+    row.appendChild(btn(T('Start oppdraget på nytt'), 'small', () => startOppdrag(a.kurs, a.opp)));
+    row.appendChild(btn(T('Kursoversikt'), 'small', () => { P.tab = 'kurs'; save(); render(); }));
     body.appendChild(row);
   }
 
@@ -363,18 +363,18 @@ const Coach = (() => {
      (i mesterprøven og ukens øving), der den er lukket som standard. */
   function laerBox(k, open, locked, opts) {
     const o = opts || {};
-    const det = el(`<details class="laer${o.oppslag ? ' oppslag' : ''}"${open ? ' open' : ''}><summary>${o.label || '📖 Les først: ' + esc(k.laerTitle || k.title)}</summary>${k.laer}</details>`);
+    const det = el(`<details class="laer${o.oppslag ? ' oppslag' : ''}"${open ? ' open' : ''}><summary>${o.label || T('📖 Les først: {0}', esc(k.laerTitle || k.title))}</summary>${k.laer}</details>`);
     if (o.oppslag) det.addEventListener('toggle', () => { if (det.open) Bus.emit('laer-oppslag', { kurs: k.id, modus: o.oppslag }); });
     if (locked) {
-      const b = el('<button class="btn primary laer-unlock" disabled>Jeg har lest teksten</button>');
+      const b = el(`<button class="btn primary laer-unlock" disabled>${T('Jeg har lest teksten')}</button>`);
       const upd = () => {
         const left = Math.ceil((P.lock.until - now()) / 1000);
-        if (left > 0) { b.disabled = true; b.textContent = `Les teksten over … (${left} s)`; }
-        else { b.disabled = false; b.textContent = 'Jeg har lest teksten, tilbake til spørsmålet'; if (unlockTimer) { clearInterval(unlockTimer); unlockTimer = null; } }
+        if (left > 0) { b.disabled = true; b.textContent = T('Les teksten over … ({0} s)', left); }
+        else { b.disabled = false; b.textContent = T('Jeg har lest teksten, tilbake til spørsmålet'); if (unlockTimer) { clearInterval(unlockTimer); unlockTimer = null; } }
       };
       upd(); unlockTimer = setInterval(upd, 500);
       b.addEventListener('click', unlock);
-      det.appendChild(el('<div class="laer-lockbox">Spørsmålet er låst til du har lest teksten. Knappen under blir aktiv når lesetiden er over.</div>'));
+      det.appendChild(el(`<div class="laer-lockbox">${T('Spørsmålet er låst til du har lest teksten. Knappen under blir aktiv når lesetiden er over.')}</div>`));
       det.appendChild(b);
     }
     return det;
@@ -384,32 +384,32 @@ const Coach = (() => {
   function renderMaster(body) {
     const a = P.active; const k = kurs(a.kurs); const m = k.mesterprove;
     const passed = a.state.every(Boolean);
-    body.appendChild(el(`<div class="ktag">Kurs ${KL.indexOf(k) + 1} · ${esc(k.title)}</div><h2>🏅 Mesterprøve: ${esc(m.title)}</h2>`));
-    body.appendChild(el(`<div class="master-box"><p>${m.intro}</p><p class="muted">Her får du ingen oppskrift og ingen hint. Men du får slå opp: teorien ligger under, slik du kan slå opp i en bok eller på nettet når du jobber på ekte. Målene hukes av etter hvert som du klarer dem, i den rekkefølgen du vil.</p></div>`));
-    if (k.laer) body.appendChild(laerBox(k, false, false, { oppslag: 'master', label: `📖 Slå opp: ${esc(k.laerTitle || k.title)}` }));
+    body.appendChild(el(T('<div class="ktag">Kurs {0} · {1}</div><h2>🏅 Mesterprøve: {2}</h2>', KL.indexOf(k) + 1, esc(k.title), esc(m.title))));
+    body.appendChild(el(`<div class="master-box"><p>${m.intro}</p><p class="muted">${T('Her får du ingen oppskrift og ingen hint. Men du får slå opp: teorien ligger under, slik du kan slå opp i en bok eller på nettet når du jobber på ekte. Målene hukes av etter hvert som du klarer dem, i den rekkefølgen du vil.')}</p></div>`));
+    if (k.laer) body.appendChild(laerBox(k, false, false, { oppslag: 'master', label: T('📖 Slå opp: {0}', esc(k.laerTitle || k.title)) }));
     const list = el('<div class="goals"></div>');
     m.goals.forEach((g, i) => list.appendChild(el(`<div class="goal${a.state[i] ? ' done' : ''}"><span class="gm">${a.state[i] ? '✓' : '○'}</span><span class="gt">${g.text}</span></div>`)));
     body.appendChild(list);
     if (passed) {
       const ms = (a.doneAt || now()) - a.at;
-      body.appendChild(el(`<div class="done-box"><div class="big">🏅</div>Mesterprøven er bestått!<div class="muted">Tid: ${esc(fmtMs(ms))}</div></div>`));
+      body.appendChild(el(`<div class="done-box"><div class="big">🏅</div>${T('Mesterprøven er bestått!')}<div class="muted">${T('Tid: {0}', esc(fmtMs(ms)))}</div></div>`));
       if (k.ekte && k.ekte.length) body.appendChild(ekteBox(k));
       const row = el('<div class="cbtns"></div>');
       const nk = nextKurs(a);
-      if (nk) row.appendChild(btn('Neste kurs →', 'primary', () => startOppdrag(nk.id, nk.oppdrag[0].id)));
-      row.appendChild(btn('Kursoversikt', 'small', () => { P.tab = 'kurs'; save(); render(); }));
+      if (nk) row.appendChild(btn(T('Neste kurs →'), 'primary', () => startOppdrag(nk.id, nk.oppdrag[0].id)));
+      row.appendChild(btn(T('Kursoversikt'), 'small', () => { P.tab = 'kurs'; save(); render(); }));
       body.appendChild(row);
       return;
     }
     const row = el('<div class="cbtns"></div>');
-    row.appendChild(btn('Start prøven på nytt', 'small', () => startMaster(k.id)));
-    row.appendChild(btn('Jeg trenger å øve mer', 'small', () => { P.tab = 'kurs'; save(); render(); }));
+    row.appendChild(btn(T('Start prøven på nytt'), 'small', () => startMaster(k.id)));
+    row.appendChild(btn(T('Jeg trenger å øve mer'), 'small', () => { P.tab = 'kurs'; save(); render(); }));
     body.appendChild(row);
   }
 
   /* ---------- Gjør det på ekte ---------- */
   function ekteBox(k) {
-    const box = el(`<div class="ekte"><h3>💻 Gjør det på din egen PC</h3><p class="muted">Øvings-PC-en er en simulering. Gjør det samme på den ekte maskinen din, så sitter det. Huk av når du har gjort det.</p></div>`);
+    const box = el(`<div class="ekte">${T('<h3>💻 Gjør det på din egen PC</h3><p class="muted">Øvings-PC-en er en simulering. Gjør det samme på den ekte maskinen din, så sitter det. Huk av når du har gjort det.</p>')}</div>`);
     const state = (P.ekte[k.id] = P.ekte[k.id] || k.ekte.map(() => false));
     k.ekte.forEach((t, i) => {
       const id = 'ekte-' + k.id + '-' + i;
@@ -423,22 +423,22 @@ const Coach = (() => {
   /* ---------- Ukens øving ---------- */
   function renderRep(body) {
     const a = P.active; const t = repTask();
-    body.appendChild(el(`<div class="ktag">Ukens øving</div><h2>Oppgave ${Math.min(a.i + 1, a.tasks.length)} av ${a.tasks.length}</h2>`));
+    body.appendChild(el(T('<div class="ktag">Ukens øving</div><h2>Oppgave {0} av {1}</h2>', Math.min(a.i + 1, a.tasks.length), a.tasks.length)));
     if (!t) {
-      body.appendChild(el(`<div class="done-box"><div class="big">${a.ok === a.tasks.length ? '🎉' : '👍'}</div>Du klarte ${a.ok} av ${a.tasks.length}.</div>`));
+      body.appendChild(el(`<div class="done-box"><div class="big">${a.ok === a.tasks.length ? '🎉' : '👍'}</div>${T('Du klarte {0} av {1}.', a.ok, a.tasks.length)}</div>`));
       const row = el('<div class="cbtns"></div>');
-      row.appendChild(btn('Ny øving', 'primary', () => startRep()));
-      row.appendChild(btn('Kursoversikt', 'small', () => { P.tab = 'kurs'; save(); render(); }));
+      row.appendChild(btn(T('Ny øving'), 'primary', () => startRep()));
+      row.appendChild(btn(T('Kursoversikt'), 'small', () => { P.tab = 'kurs'; save(); render(); }));
       body.appendChild(row);
       return;
     }
     const k = kurs(t.kurs);
-    body.appendChild(el(`<div class="rep-task"><div class="muted">Fra kurset «${esc(k ? k.title : '')}»</div><div class="rt">${t.text}</div></div>`));
-    body.appendChild(el('<p class="muted">Ingen hint denne gangen. Prøv først på egen hånd, og slå opp i teorien hvis du står fast.</p>'));
-    if (k && k.laer) body.appendChild(laerBox(k, false, false, { oppslag: 'rep', label: `📖 Slå opp: ${esc(k.laerTitle || k.title)}` }));
+    body.appendChild(el(`<div class="rep-task"><div class="muted">${T('Fra kurset «{0}»', esc(k ? k.title : ''))}</div><div class="rt">${t.text}</div></div>`));
+    body.appendChild(el(T('<p class="muted">Ingen hint denne gangen. Prøv først på egen hånd, og slå opp i teorien hvis du står fast.</p>')));
+    if (k && k.laer) body.appendChild(laerBox(k, false, false, { oppslag: 'rep', label: T('📖 Slå opp: {0}', esc(k.laerTitle || k.title)) }));
     const row = el('<div class="cbtns"></div>');
-    row.appendChild(btn('Hopp over', 'small', skipRep));
-    row.appendChild(btn('Avslutt øvingen', 'small', () => { P.active = null; P.tab = 'kurs'; save(); render(); }));
+    row.appendChild(btn(T('Hopp over'), 'small', skipRep));
+    row.appendChild(btn(T('Avslutt øvingen'), 'small', () => { P.active = null; P.tab = 'kurs'; save(); render(); }));
     body.appendChild(row);
   }
 
@@ -447,11 +447,11 @@ const Coach = (() => {
     if (repReady) {
       const days = P.rep && P.rep.last ? Math.floor((now() - P.rep.last) / 86400000) : null;
       const due = days === null || days >= 7;
-      const card = el(`<div class="rep-card${due ? ' due' : ''}"><div class="kt"><span>🔁 Ukens øving</span><small>${days === null ? 'aldri tatt' : days === 0 ? 'tatt i dag' : days + ' dager siden'}</small></div><div class="muted">Fem tilfeldige oppgaver fra kursene du har fullført, uten hint. Hold ferdighetene ved like.</div></div>`);
-      card.appendChild(btn(due ? 'Start ukens øving' : 'Ta en øving til', due ? 'primary small' : 'small', () => startRep()));
+      const card = el(`<div class="rep-card${due ? ' due' : ''}"><div class="kt"><span>${T('🔁 Ukens øving')}</span><small>${days === null ? T('aldri tatt') : days === 0 ? T('tatt i dag') : T('{0} dager siden', days)}</small></div><div class="muted">${T('Fem tilfeldige oppgaver fra kursene du har fullført, uten hint. Hold ferdighetene ved like.')}</div></div>`);
+      card.appendChild(btn(due ? T('Start ukens øving') : T('Ta en øving til'), due ? 'primary small' : 'small', () => startRep()));
       body.appendChild(card);
     }
-    body.appendChild(el('<p class="muted">Velg et kurs. Det er lurt å ta dem i rekkefølge. Klikk på et oppdrag for å starte det.</p>'));
+    body.appendChild(el(T('<p class="muted">Velg et kurs. Det er lurt å ta dem i rekkefølge. Klikk på et oppdrag for å starte det.</p>')));
     KL.forEach((k, i) => {
       const dn = kursDone(k), tot = k.oppdrag.length, complete = dn === tot, mp = masterPassed(k);
       const open = P.openKurs === k.id;
@@ -460,20 +460,20 @@ const Coach = (() => {
       if (open) {
         const list = el('<div class="opp-list"></div>');
         const teoriOk = theoryDone(k);
-        if (!teoriOk) list.appendChild(el(`<div class="teori-laas">🔒 Svar på teorispørsmålene i oppdrag ${i + 1}.1 først. Da låses resten av kurset opp.</div>`));
+        if (!teoriOk) list.appendChild(el(`<div class="teori-laas">${T('🔒 Svar på teorispørsmålene i oppdrag {0}.1 først. Da låses resten av kurset opp.', i + 1)}</div>`));
         k.oppdrag.forEach((o, j) => {
           const isActive = P.active && P.active.opp === o.id;
           const laast = j > 0 && !teoriOk && !P.done[o.id];
           const r = el(`<div class="opp-row${laast ? ' locked' : ''}"><span class="${P.done[o.id] ? 'ok' : isActive ? 'play' : laast ? 'todo' : 'todo'}">${P.done[o.id] ? '✓' : isActive ? '▶' : laast ? '🔒' : '○'}</span><span>${i + 1}.${j + 1} ${esc(o.title)}</span></div>`);
           r.addEventListener('click', e => {
             e.stopPropagation();
-            if (laast) { Toast.show(`Teorien først: svar på spørsmålene i oppdrag ${i + 1}.1, så åpner resten av kurset seg.`, 5000); Bus.emit('oppdrag-laast', { kurs: k.id, opp: o.id }); return; }
+            if (laast) { Toast.show(T('Teorien først: svar på spørsmålene i oppdrag {0}.1, så åpner resten av kurset seg.', i + 1), 5000); Bus.emit('oppdrag-laast', { kurs: k.id, opp: o.id }); return; }
             startOppdrag(k.id, o.id);
           });
           list.appendChild(r);
         });
         if (k.mesterprove) {
-          const r = el(`<div class="opp-row master${complete ? '' : ' locked'}"><span class="${mp ? 'ok' : complete ? 'play' : 'todo'}">${mp ? '🏅' : complete ? '▶' : '🔒'}</span><span>Mesterprøve: ${esc(k.mesterprove.title)}${mp ? '' : complete ? '' : ' (fullfør oppdragene først)'}</span></div>`);
+          const r = el(`<div class="opp-row master${complete ? '' : ' locked'}"><span class="${mp ? 'ok' : complete ? 'play' : 'todo'}">${mp ? '🏅' : complete ? '▶' : '🔒'}</span><span>${T('Mesterprøve: {0}', esc(k.mesterprove.title))}${mp ? '' : complete ? '' : T(' (fullfør oppdragene først)')}</span></div>`);
           if (complete) r.addEventListener('click', e => { e.stopPropagation(); startMaster(k.id); });
           list.appendChild(r);
         }
@@ -482,9 +482,16 @@ const Coach = (() => {
       }
       body.appendChild(card);
     });
-    body.appendChild(el(window.DT_PAGE === 'prog'
-      ? '<p class="muted" style="margin-top:16px">Dette er kurssettet for programmering. <a href="index.html">← Til grunnkurset</a> (filer, mapper, lagring, innlevering).</p>'
-      : '<p class="muted" style="margin-top:16px">For programmeringselever finnes et eget kurssett med terminal (PowerShell), Kode-editor og Python: <a href="programmering.html">Programmeringskurset →</a></p>'));
+    const foot = el(window.DT_PAGE === 'prog'
+      ? T('<p class="muted" style="margin-top:16px">Dette er kurssettet for programmering. <a href="{0}">← Til grunnkurset</a> (filer, mapper, lagring, innlevering).</p>', 'index.html')
+      : T('<p class="muted" style="margin-top:16px">For programmeringselever finnes et eget kurssett med terminal (PowerShell), Kode-editor og Python: <a href="{0}">Programmeringskurset →</a></p>', T('programmering.html')));
+    /* Lenke til den samme siden på det andre språket */
+    if (window.otherLangUrl) {
+      const l = el(`<a class="lang-link" href="${esc(otherLangUrl())}" style="white-space:nowrap">🌐 ${esc(T('English version'))}</a>`);
+      l.addEventListener('click', () => Bus.emit('lang-switch', { where: 'coach' }));
+      foot.append(' · ', l);
+    }
+    body.appendChild(foot);
   }
 
   /* ---------- Rapport til læreren ---------- */
@@ -502,35 +509,35 @@ const Coach = (() => {
   }
   function reportText() {
     const tot = totalOpp(), dn = totalDone();
-    let t = `Datatrening – fremdrift for ${P.name || 'Elev'} (${fmtDate(now())})\n${dn} av ${tot} oppdrag fullført\n`;
-    t += KL.map((k, i) => `${i + 1}. ${k.title}: ${kursDone(k)}/${k.oppdrag.length}${masterPassed(k) ? ' · mesterprøve bestått' : ''}`).join('\n');
-    t += '\n\nKode til læreren (lim inn hele linjen):\n' + reportCode();
+    let t = T('Datatrening – fremdrift for {0} ({1})\n{2} av {3} oppdrag fullført\n', P.name || T('Elev'), fmtDate(now()), dn, tot);
+    t += KL.map((k, i) => `${i + 1}. ${k.title}: ${kursDone(k)}/${k.oppdrag.length}${masterPassed(k) ? T(' · mesterprøve bestått') : ''}`).join('\n');
+    t += T('\n\nKode til læreren (lim inn hele linjen):\n') + reportCode();
     return t;
   }
 
   function renderFremdrift(body) {
-    const nm = el(`<div class="frem-name"><label>Navn:</label><input class="txt" value="${esc(P.name)}" placeholder="Skriv navnet ditt"></div>`);
+    const nm = el(`<div class="frem-name"><label>${T('Navn:')}</label><input class="txt" value="${esc(P.name)}" placeholder="${T('Skriv navnet ditt')}"></div>`);
     nm.querySelector('input').addEventListener('change', e => { P.name = e.target.value.trim(); save(); render(); });
     body.appendChild(nm);
     const tot = totalOpp(), dn = totalDone();
     const mp = KL.filter(masterPassed).length, mtot = KL.filter(k => k.mesterprove).length;
-    body.appendChild(el(`<h3>${dn} av ${tot} oppdrag fullført</h3><div class="bar"><div style="width:${100 * dn / tot}%"></div></div>`));
-    if (mtot) body.appendChild(el(`<h3>${mp} av ${mtot} mesterprøver bestått</h3><div class="bar"><div style="width:${100 * mp / mtot}%"></div></div>`));
+    body.appendChild(el(`<h3>${T('{0} av {1} oppdrag fullført', dn, tot)}</h3><div class="bar"><div style="width:${100 * dn / tot}%"></div></div>`));
+    if (mtot) body.appendChild(el(`<h3>${T('{0} av {1} mesterprøver bestått', mp, mtot)}</h3><div class="bar"><div style="width:${100 * mp / mtot}%"></div></div>`));
     KL.forEach((k, i) => body.appendChild(el(`<div class="frem-row"><span>${i + 1}. ${esc(k.title)}</span><span>${kursDone(k)}/${k.oppdrag.length} ${masterPassed(k) ? '🏅' : kursComplete(k) ? '✓' : ''}</span></div>`)));
-    if (P.rep && P.rep.last) body.appendChild(el(`<div class="frem-row"><span>🔁 Siste ukesøving</span><span>${P.rep.ok}/${P.rep.total} · ${esc(fmtDate(P.rep.last))}</span></div>`));
-    if (dn === tot && mp === mtot) body.appendChild(el(`<div class="diplom"><h2>🏆 Diplom</h2><div><b>${esc(P.name || 'Elev')}</b> har fullført alle kursene og mesterprøvene i Datatrening og kan bruke PC-en til skolearbeid!</div><div class="muted">${fmtDate(now())}</div></div>`));
+    if (P.rep && P.rep.last) body.appendChild(el(`<div class="frem-row"><span>${T('🔁 Siste ukesøving')}</span><span>${P.rep.ok}/${P.rep.total} · ${esc(fmtDate(P.rep.last))}</span></div>`));
+    if (dn === tot && mp === mtot) body.appendChild(el(`<div class="diplom">${T('<h2>🏆 Diplom</h2><div><b>{0}</b> har fullført alle kursene og mesterprøvene i Datatrening og kan bruke PC-en til skolearbeid!</div>', esc(P.name || T('Elev')))}<div class="muted">${fmtDate(now())}</div></div>`));
     const row = el('<div class="cbtns"></div>');
-    row.appendChild(btn('Kopier rapport til læreren', 'primary small', async () => {
+    row.appendChild(btn(T('Kopier rapport til læreren'), 'primary small', async () => {
       const text = reportText();
-      try { await navigator.clipboard.writeText(text); Toast.show('Rapporten er kopiert. Lim den inn i en melding til læreren.'); }
-      catch (e) { Dialog.show({ title: 'Rapport', body: `<p class="muted">Merk alt (Ctrl+A), kopier (Ctrl+C) og lim inn i en melding til læreren.</p><textarea style="width:440px;height:240px;font:12px monospace">${esc(text)}</textarea>`, buttons: [{ label: 'Lukk', value: true, primary: true }] }); }
+      try { await navigator.clipboard.writeText(text); Toast.show(T('Rapporten er kopiert. Lim den inn i en melding til læreren.')); }
+      catch (e) { Dialog.show({ title: T('Rapport'), body: `${T('<p class="muted">Merk alt (Ctrl+A), kopier (Ctrl+C) og lim inn i en melding til læreren.</p>')}<textarea style="width:440px;height:240px;font:12px monospace">${esc(text)}</textarea>`, buttons: [{ label: T('Lukk'), value: true, primary: true }] }); }
     }));
-    row.appendChild(btn('Nullstill fremdrift', 'small', async () => { if (await Dialog.confirm('Nullstill fremdrift', 'Er du sikker? Alle fullførte oppdrag blir slettet.')) resetProgress(); }));
+    row.appendChild(btn(T('Nullstill fremdrift'), 'small', async () => { if (await Dialog.confirm(T('Nullstill fremdrift'), T('Er du sikker? Alle fullførte oppdrag blir slettet.'))) resetProgress(); }));
     body.appendChild(row);
-    body.appendChild(el(`<h3>Hvis øvings-PC-en henger</h3><p class="muted">Knappen under sletter alle filer og mapper på øvings-PC-en og legger tilbake de opprinnelige. Fremdriften beholdes. Det samme skjer om du åpner siden med <code>?nullstill</code> bak adressen.</p>`));
+    body.appendChild(el(T('<h3>Hvis øvings-PC-en henger</h3><p class="muted">Knappen under sletter alle filer og mapper på øvings-PC-en og legger tilbake de opprinnelige. Fremdriften beholdes. Det samme skjer om du åpner siden med <code>?nullstill</code> bak adressen.</p>')));
     const row2 = el('<div class="cbtns"></div>');
-    row2.appendChild(btn('Tilbakestill øvings-PC-en', 'small', () => {
-      if (!window.confirm('Slette alle filer og mapper på øvings-PC-en og starte den på nytt?')) return;
+    row2.appendChild(btn(T('Tilbakestill øvings-PC-en'), 'small', () => {
+      if (!window.confirm(T('Slette alle filer og mapper på øvings-PC-en og starte den på nytt?'))) return;
       try { ['dt-fs', 'dt-innlev', 'dt-pinned', 'dt-bg', 'dt-notes', 'dt-mail', 'dt-typing'].forEach(k => localStorage.removeItem(k)); } catch (e) { /* ignorer */ }
       location.href = location.pathname;
     }));
@@ -540,7 +547,7 @@ const Coach = (() => {
   function resetProgress() {
     P = { name: P.name, done: {}, active: null, tab: 'kurs', openKurs: KL[0].id, collapsed: false, master: {}, ekte: {}, stats: {}, teori: {}, rep: null };
     save(); render();
-    Toast.show('Fremdriften er nullstilt.');
+    Toast.show(T('Fremdriften er nullstilt.'));
   }
 
   function init() {
@@ -548,14 +555,14 @@ const Coach = (() => {
     document.getElementById('coach-toggle').addEventListener('click', () => { P.collapsed = !P.collapsed; save(); render(); });
     Bus.on((type, d) => {
       /* Under høyreklikk-oppdraget: fortell hva eleven høyreklikket på, så de ser at menyen avhenger av elementet */
-      if (type === 'ctxmenu' && d && d.label && P.active && P.active.opp === 'k1o4') Toast.show('Høyreklikk på ' + d.label + ' ✓', 2200);
+      if (type === 'ctxmenu' && d && d.label && P.active && P.active.opp === 'k1o4') Toast.show(T('Høyreklikk på {0} ✓', d.label), 2200);
       if (type !== 'oppdrag-start' && type !== 'quiz' && type !== 'hint' && type !== 'master-start' && type !== 'rep-start') check();
     });
     render();
   }
   /* Introduksjonen (js/intro.js) spør om navnet og starter første oppdrag */
   function needsName() { return !P.name; }
-  function setName(v) { P.name = (v || 'Elev').trim() || 'Elev'; save(); render(); }
+  function setName(v) { P.name = (v || T('Elev')).trim() || T('Elev'); save(); render(); }
   function startFirst() { if (!P.active) startOppdrag(KL[0].id, KL[0].oppdrag[0].id); else render(); }
 
   return { init, render, check, startOppdrag, startMaster, startRep, skipRep, resetProgress, progress: () => P, reportCode, reportText, needsName, setName, startFirst, theoryDone, theoryCount, S };

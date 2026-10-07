@@ -30,18 +30,18 @@ const Kode = (() => {
     constructor() {
       this.folderId = null; this.tabs = []; this.cur = null; this.expanded = new Set();
       this.root = el(`<div class="kode">
-        <div class="k-menu"><button data-a="new">Ny fil</button><button data-a="openfolder">Åpne mappe</button><button data-a="save">Lagre</button><span class="k-spacer"></span><span class="k-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> lagrer · <kbd>Tab</kbd> = 4 mellomrom</span><button class="k-run" data-a="run" title="Kjør filen i terminalen">▶ Kjør</button></div>
+        <div class="k-menu"><button data-a="new">${T('Ny fil')}</button><button data-a="openfolder">${T('Åpne mappe')}</button><button data-a="save">${T('Lagre')}</button><span class="k-spacer"></span><span class="k-hint">${T('<kbd>Ctrl</kbd>+<kbd>S</kbd> lagrer · <kbd>Tab</kbd> = 4 mellomrom')}</span><button class="k-run" data-a="run" title="${T('Kjør filen i terminalen')}">${T('▶ Kjør')}</button></div>
         <div class="k-body">
-          <div class="k-side"><div class="k-side-h"><span>UTFORSKER</span><span class="k-side-btns"><button data-a="newfile" title="Ny fil">＋</button><button data-a="newfolder" title="Ny mappe">🗀</button></span></div><div class="k-tree"></div></div>
+          <div class="k-side"><div class="k-side-h"><span>${T('UTFORSKER')}</span><span class="k-side-btns"><button data-a="newfile" title="${T('Ny fil')}">＋</button><button data-a="newfolder" title="${T('Ny mappe')}">🗀</button></span></div><div class="k-tree"></div></div>
           <div class="k-main">
             <div class="k-tabs"></div>
-            <div class="k-editor"><div class="k-gutter"></div><div class="k-wrap"><pre class="k-hl"></pre><textarea class="k-ta" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea></div><div class="k-empty">Åpne en mappe med <code>code .</code> i terminalen, eller lag en ny fil.</div></div>
+            <div class="k-editor"><div class="k-gutter"></div><div class="k-wrap"><pre class="k-hl"></pre><textarea class="k-ta" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea></div><div class="k-empty">${T('Åpne en mappe med <code>code .</code> i terminalen, eller lag en ny fil.')}</div></div>
             <div class="k-status"><span class="k-file"></span><span class="k-spacer"></span><span class="k-pos">Ln 1, Col 1</span><span class="k-lang"></span></div>
           </div>
         </div>
       </div>`);
       this.ta = this.root.querySelector('.k-ta'); this.hl = this.root.querySelector('.k-hl'); this.gutter = this.root.querySelector('.k-gutter');
-      this.win = WM.create({ app: 'kode', title: 'Kode', body: this.root, width: 1000, height: 640, onClose: () => this.closeAll() });
+      this.win = WM.create({ app: 'kode', title: T('Kode'), body: this.root, width: 1000, height: 640, onClose: () => this.closeAll() });
       this.win.onClosed = () => {
         const i = instances.indexOf(this); if (i >= 0) instances.splice(i, 1);
         const h = Bus.handlers.indexOf(this.fsHandler); if (h >= 0) Bus.handlers.splice(h, 1);
@@ -59,15 +59,15 @@ const Kode = (() => {
         e.preventDefault(); e.stopPropagation();
         const hasSel = this.ta.selectionStart !== this.ta.selectionEnd;
         Ctx.show(e.clientX, e.clientY, [
-          { label: 'Klipp ut', kbd: 'Ctrl+X', disabled: !hasSel, action: () => { this.ta.focus(); document.execCommand('cut'); } },
-          { label: 'Kopier', kbd: 'Ctrl+C', disabled: !hasSel, action: () => { this.ta.focus(); document.execCommand('copy'); } },
-          { label: 'Lim inn', kbd: 'Ctrl+V', action: () => { this.ta.focus(); if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(t => { this.ta.setRangeText(t, this.ta.selectionStart, this.ta.selectionEnd, 'end'); this.ta.dispatchEvent(new Event('input')); }).catch(() => Toast.show('Bruk Ctrl+V for å lime inn.')); } },
+          { label: T('Klipp ut'), kbd: 'Ctrl+X', disabled: !hasSel, action: () => { this.ta.focus(); document.execCommand('cut'); } },
+          { label: T('Kopier'), kbd: 'Ctrl+C', disabled: !hasSel, action: () => { this.ta.focus(); document.execCommand('copy'); } },
+          { label: T('Lim inn'), kbd: 'Ctrl+V', action: () => { this.ta.focus(); if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(t => { this.ta.setRangeText(t, this.ta.selectionStart, this.ta.selectionEnd, 'end'); this.ta.dispatchEvent(new Event('input')); }).catch(() => Toast.show(T('Bruk Ctrl+V for å lime inn.'))); } },
           '-',
-          { label: 'Kommenter ut / inn', kbd: 'Ctrl+/', action: () => this.toggleComment() },
-          { label: 'Merk alt', kbd: 'Ctrl+A', action: () => { this.ta.focus(); this.ta.select(); } },
+          { label: T('Kommenter ut / inn'), kbd: 'Ctrl+/', action: () => this.toggleComment() },
+          { label: T('Merk alt'), kbd: 'Ctrl+A', action: () => { this.ta.focus(); this.ta.select(); } },
           '-',
-          { label: 'Kjør filen', kbd: 'F5', action: () => this.action('run') }
-        ], 'editor', 'koden i Kode');
+          { label: T('Kjør filen'), kbd: 'F5', action: () => this.action('run') }
+        ], 'editor', T('koden i Kode'));
       });
       this.fsHandler = (type, d) => { if (type === 'fs') Coalesce.schedule(this, () => this.onFs()); };
       Bus.on(this.fsHandler);
@@ -87,7 +87,7 @@ const Kode = (() => {
     openFolder(id) {
       if (!FS.get(id)) return;
       this.folderId = id; this.expanded.add(id);
-      WM.setTitle(this.win, FS.get(id).name + ' - Kode');
+      WM.setTitle(this.win, FS.get(id).name + ' - ' + T('Kode'));
       this.render();
     }
     openFile(id) {
@@ -115,30 +115,30 @@ const Kode = (() => {
     async closeAll() { for (const t of this.tabs.slice()) { const ok = await this.closeTab(t.id); if (!ok) return false; } Bus.off && Bus.off(this.fsHandler); const i = Bus.handlers.indexOf(this.fsHandler); if (i >= 0) Bus.handlers.splice(i, 1); return true; }
     /* ----- lagre / kjøre ----- */
     saveTab(t, via) {
-      const n = FS.get(t.id); if (!n) { Toast.show('Filen finnes ikke lenger.'); return false; }
+      const n = FS.get(t.id); if (!n) { Toast.show(T('Filen finnes ikke lenger.')); return false; }
       const r = FS.write(n.id, t.content);
-      if (r && r.error) { Dialog.alert('Kunne ikke lagre', r.error); return false; }
+      if (r && r.error) { Dialog.alert(T('Kunne ikke lagre'), r.error); return false; }
       t.dirty = false; this.renderTabs(); this.renderStatus();
       Bus.emit('kode-save', { id: n.id, name: n.name, content: t.content, via });
       return true;
     }
-    save(via) { const t = this.curTab(); if (!t) return false; const ok = this.saveTab(t, via); if (ok) Toast.show('Lagret: ' + this.nodeName(t)); return ok; }
+    save(via) { const t = this.curTab(); if (!t) return false; const ok = this.saveTab(t, via); if (ok) Toast.show(T('Lagret: {0}', this.nodeName(t))); return ok; }
     async action(a) {
       if (a === 'new') return this.newFile(this.folderId);
       if (a === 'save') return this.save('menu');
-      if (a === 'openfolder') { const r = await Dialog.fileChooser({ mode: 'folder', title: 'Åpne mappe', start: this.folderId || FS.roots().documents }); if (r && r.folderId) { this.openFolder(r.folderId); Bus.emit('kode-open', { folderId: r.folderId, name: FS.get(r.folderId).name, via: 'dialog' }); } return; }
+      if (a === 'openfolder') { const r = await Dialog.fileChooser({ mode: 'folder', title: T('Åpne mappe'), start: this.folderId || FS.roots().documents }); if (r && r.folderId) { this.openFolder(r.folderId); Bus.emit('kode-open', { folderId: r.folderId, name: FS.get(r.folderId).name, via: 'dialog' }); } return; }
       if (a === 'run') {
-        const t = this.curTab(); if (!t) { Toast.show('Åpne en fil først.'); return; }
+        const t = this.curTab(); if (!t) { Toast.show(T('Åpne en fil først.')); return; }
         const e = this.ext(t);
-        if (!['py', 'ps1'].includes(e)) { Toast.show('Bare .py og .ps1 kan kjøres. Filen er .' + e); return; }
+        if (!['py', 'ps1'].includes(e)) { Toast.show(T('Bare .py og .ps1 kan kjøres. Filen er .{0}', e)); return; }
         if (t.dirty && !this.saveTab(t, 'run')) return;
         Bus.emit('kode-run', { id: t.id, name: this.nodeName(t) });
         if (window.Terminal) Terminal.runFile(t.id);
       }
     }
     async newFile(folderId) {
-      if (folderId == null) { const r = await Dialog.fileChooser({ mode: 'folder', title: 'Velg mappe for den nye filen', start: FS.roots().documents }); if (!r) return; folderId = r.folderId; this.openFolder(folderId); }
-      const name = await Dialog.prompt('Ny fil', 'Filnavn (for eksempel hei.py):', '', v => FS.validate(v) || (FS.hasChild(folderId, v.trim()) ? 'Det finnes allerede en fil med dette navnet.' : null) || (!FS.ext(v.trim()) ? 'Ta med filendelsen, for eksempel .py' : null));
+      if (folderId == null) { const r = await Dialog.fileChooser({ mode: 'folder', title: T('Velg mappe for den nye filen'), start: FS.roots().documents }); if (!r) return; folderId = r.folderId; this.openFolder(folderId); }
+      const name = await Dialog.prompt(T('Ny fil'), T('Filnavn (for eksempel hei.py):'), '', v => FS.validate(v) || (FS.hasChild(folderId, v.trim()) ? T('Det finnes allerede en fil med dette navnet.') : null) || (!FS.ext(v.trim()) ? T('Ta med filendelsen, for eksempel .py') : null));
       if (!name) return;
       const r = FS.createFile(folderId, name, '', { via: 'kode' });
       if (r.error) { Toast.show(r.error); return; }
@@ -147,8 +147,8 @@ const Kode = (() => {
       this.openFile(r.id);
     }
     async newFolder(folderId) {
-      if (folderId == null) { Toast.show('Åpne en mappe først.'); return; }
-      const name = await Dialog.prompt('Ny mappe', 'Mappenavn:', '', v => FS.validate(v) || (FS.hasChild(folderId, v.trim()) ? 'Det finnes allerede en mappe med dette navnet.' : null));
+      if (folderId == null) { Toast.show(T('Åpne en mappe først.')); return; }
+      const name = await Dialog.prompt(T('Ny mappe'), T('Mappenavn:'), '', v => FS.validate(v) || (FS.hasChild(folderId, v.trim()) ? T('Det finnes allerede en mappe med dette navnet.') : null));
       if (!name) return;
       const r = FS.createFolder(folderId, name, { via: 'kode' });
       if (r.error) { Toast.show(r.error); return; }
@@ -198,7 +198,7 @@ const Kode = (() => {
     render() { this.renderTree(); this.renderTabs(); this.renderEditor(); }
     renderTree() {
       const tree = this.root.querySelector('.k-tree'); tree.innerHTML = '';
-      if (this.folderId == null) { tree.appendChild(el('<div class="k-tree-empty">Ingen mappe er åpnet.<br><br>Skriv <code>code .</code> i terminalen, eller klikk «Åpne mappe».</div>')); return; }
+      if (this.folderId == null) { tree.appendChild(el('<div class="k-tree-empty">' + T('Ingen mappe er åpnet.<br><br>Skriv <code>code .</code> i terminalen, eller klikk «Åpne mappe».') + '</div>')); return; }
       const rootN = FS.get(this.folderId);
       const head = el(`<div class="k-tree-root">${esc(rootN.name.toUpperCase())}</div>`);
       head.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); this.folderMenu(e, rootN.id); });
@@ -218,35 +218,35 @@ const Kode = (() => {
     }
     folderMenu(e, id) {
       Ctx.show(e.clientX, e.clientY, [
-        { label: 'Ny fil …', action: () => this.newFile(id) },
-        { label: 'Ny mappe …', action: () => this.newFolder(id) },
+        { label: T('Ny fil …'), action: () => this.newFile(id) },
+        { label: T('Ny mappe …'), action: () => this.newFolder(id) },
         '-',
-        { label: 'Åpne i terminal', action: () => { if (window.Terminal) { const t = Terminal.active() || Terminal.open(id); if (t) { WM.focus(t.win); t.submit('cd "' + Terminal.pathOf({ id }) + '"'); } } } },
-        { label: 'Vis i Filutforsker', action: () => Explorer.open(id) },
+        { label: T('Åpne i terminal'), action: () => { if (window.Terminal) { const t = Terminal.active() || Terminal.open(id); if (t) { WM.focus(t.win); t.submit('cd "' + Terminal.pathOf({ id }) + '"'); } } } },
+        { label: T('Vis i Filutforsker'), action: () => Explorer.open(id) },
         '-',
-        { label: 'Gi nytt navn …', disabled: id === this.folderId, action: async () => { const n = FS.get(id); const v = await Dialog.prompt('Gi nytt navn', 'Nytt navn:', n.name); if (v) { const r = FS.rename(id, v, { via: 'kode' }); if (r.error) Toast.show(r.error); } } },
-        { label: 'Slett', disabled: id === this.folderId, action: async () => { const n = FS.get(id); if (await Dialog.confirm('Slett', `Flytte mappen «${n.name}» til papirkurven?`)) { const r = FS.remove(id, { via: 'kode' }); if (r && r.error) Toast.show(r.error); } } }
-      ], 'kode-folder', 'mappen i Kode-utforskeren');
+        { label: T('Gi nytt navn …'), disabled: id === this.folderId, action: async () => { const n = FS.get(id); const v = await Dialog.prompt(T('Gi nytt navn'), T('Nytt navn:'), n.name); if (v) { const r = FS.rename(id, v, { via: 'kode' }); if (r.error) Toast.show(r.error); } } },
+        { label: T('Slett'), disabled: id === this.folderId, action: async () => { const n = FS.get(id); if (await Dialog.confirm(T('Slett'), T('Flytte mappen «{0}» til papirkurven?', n.name))) { const r = FS.remove(id, { via: 'kode' }); if (r && r.error) Toast.show(r.error); } } }
+      ], 'kode-folder', T('mappen i Kode-utforskeren'));
     }
     fileMenu(e, n) {
       const runnable = ['py', 'ps1'].includes(FS.ext(n.name));
       Ctx.show(e.clientX, e.clientY, [
-        { label: 'Åpne', action: () => this.openFile(n.id) },
-        { label: 'Kjør i terminalen', disabled: !runnable, action: () => { const t = this.tabs.find(x => x.id === n.id); if (t && t.dirty) this.saveTab(t, 'run'); Bus.emit('kode-run', { id: n.id, name: n.name }); if (window.Terminal) Terminal.runFile(n.id); } },
+        { label: T('Åpne'), action: () => this.openFile(n.id) },
+        { label: T('Kjør i terminalen'), disabled: !runnable, action: () => { const t = this.tabs.find(x => x.id === n.id); if (t && t.dirty) this.saveTab(t, 'run'); Bus.emit('kode-run', { id: n.id, name: n.name }); if (window.Terminal) Terminal.runFile(n.id); } },
         '-',
-        { label: 'Vis i Filutforsker', action: () => Explorer.open(n.parent, { select: n.id }) },
-        { label: 'Kopier sti', action: () => { const p = window.Terminal ? Terminal.pathOf({ id: n.id }) : FS.pathString(n.id); if (navigator.clipboard) navigator.clipboard.writeText(p).catch(() => {}); Toast.show('Kopierte: ' + p); } },
+        { label: T('Vis i Filutforsker'), action: () => Explorer.open(n.parent, { select: n.id }) },
+        { label: T('Kopier sti'), action: () => { const p = window.Terminal ? Terminal.pathOf({ id: n.id }) : FS.pathString(n.id); if (navigator.clipboard) navigator.clipboard.writeText(p).catch(() => {}); Toast.show(T('Kopierte: {0}', p)); } },
         '-',
-        { label: 'Gi nytt navn …', action: async () => { const v = await Dialog.prompt('Gi nytt navn', 'Nytt navn:', n.name); if (v) { const r = FS.rename(n.id, v, { via: 'kode' }); if (r.error) Toast.show(r.error); } } },
-        { label: 'Slett', action: async () => { if (await Dialog.confirm('Slett', `Flytte «${n.name}» til papirkurven?`)) { const t = this.tabs.find(x => x.id === n.id); if (t) { this.tabs.splice(this.tabs.indexOf(t), 1); if (this.cur === n.id) this.cur = null; } const r = FS.remove(n.id, { via: 'kode' }); if (r && r.error) Toast.show(r.error); } } }
-      ], 'kode-file', 'filen i Kode-utforskeren');
+        { label: T('Gi nytt navn …'), action: async () => { const v = await Dialog.prompt(T('Gi nytt navn'), T('Nytt navn:'), n.name); if (v) { const r = FS.rename(n.id, v, { via: 'kode' }); if (r.error) Toast.show(r.error); } } },
+        { label: T('Slett'), action: async () => { if (await Dialog.confirm(T('Slett'), T('Flytte «{0}» til papirkurven?', n.name))) { const t = this.tabs.find(x => x.id === n.id); if (t) { this.tabs.splice(this.tabs.indexOf(t), 1); if (this.cur === n.id) this.cur = null; } const r = FS.remove(n.id, { via: 'kode' }); if (r && r.error) Toast.show(r.error); } } }
+      ], 'kode-file', T('filen i Kode-utforskeren'));
     }
     renderTabs() {
       const tabs = this.root.querySelector('.k-tabs'); tabs.innerHTML = '';
       this.tabs.forEach(t => {
-        const d = el(`<div class="k-tab${t.id === this.cur ? ' active' : ''}"><span class="k-ico">${Icons.file(this.ext(t), 14)}</span><span>${esc(this.nodeName(t))}</span><span class="k-close" title="Lukk">${t.dirty ? '●' : '✕'}</span></div>`);
+        const d = el(`<div class="k-tab${t.id === this.cur ? ' active' : ''}"><span class="k-ico">${Icons.file(this.ext(t), 14)}</span><span>${esc(this.nodeName(t))}</span><span class="k-close" title="${T('Lukk')}">${t.dirty ? '●' : '✕'}</span></div>`);
         d.addEventListener('click', e => { if (e.target.classList.contains('k-close')) { this.closeTab(t.id); return; } this.cur = t.id; this.render(); });
-        d.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); Ctx.show(e.clientX, e.clientY, [{ label: 'Lukk', action: () => this.closeTab(t.id) }, { label: 'Lukk alle', action: async () => { for (const x of this.tabs.slice()) { if (!(await this.closeTab(x.id))) break; } } }, '-', { label: 'Lagre', kbd: 'Ctrl+S', action: () => this.saveTab(t, 'menu') }], 'kode-tab', 'fanen i Kode'); });
+        d.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); Ctx.show(e.clientX, e.clientY, [{ label: T('Lukk'), action: () => this.closeTab(t.id) }, { label: T('Lukk alle'), action: async () => { for (const x of this.tabs.slice()) { if (!(await this.closeTab(x.id))) break; } } }, '-', { label: T('Lagre'), kbd: 'Ctrl+S', action: () => this.saveTab(t, 'menu') }], 'kode-tab', T('fanen i Kode')); });
         tabs.appendChild(d);
       });
     }
@@ -272,7 +272,7 @@ const Kode = (() => {
       const t = this.curTab(); if (!t) return;
       const v = this.ta.value.slice(0, this.ta.selectionStart); const ln = v.split('\n').length; const col = v.length - v.lastIndexOf('\n');
       this.root.querySelector('.k-pos').textContent = `Ln ${ln}, Col ${col}`;
-      this.root.querySelector('.k-lang').textContent = LANG[this.ext(t)] || this.ext(t).toUpperCase();
+      this.root.querySelector('.k-lang').textContent = LANG[this.ext(t)] ? T(LANG[this.ext(t)]) : this.ext(t).toUpperCase();
       this.root.querySelector('.k-file').textContent = (t.dirty ? '● ' : '') + (window.Terminal ? Terminal.pathOf({ id: t.id }) : FS.pathString(t.id));
     }
   }

@@ -13,14 +13,14 @@ const FS = (() => {
   function contentBytes() { let b = 0; for (const k in nodes) b += (nodes[k].content || '').length; return b; }
   /* Returnerer feilmelding hvis noe ikke kan legges til i mappen pid, ellers null */
   function canAdd(pid, n = 1, isFolder = false, countTotal = true) {
-    const p = nodes[pid]; if (!p || !p.children) return 'Fant ikke mappen.';
-    if (pid !== roots.bin && p.children.length + 1 > LIMITS.perFolder) return 'Mappen «' + p.name + '» er full (maks ' + LIMITS.perFolder + ' elementer). Slett noe, eller bruk en annen mappe.';
-    if (countTotal && total() + n > LIMITS.total) return 'Øvings-PC-en er full (maks ' + LIMITS.total + ' filer og mapper til sammen). Slett noe og tøm papirkurven.';
-    if (isFolder && depth(pid) + 1 >= LIMITS.depth) return 'Du kan ikke lage mapper dypere enn ' + LIMITS.depth + ' nivåer.';
+    const p = nodes[pid]; if (!p || !p.children) return T('Fant ikke mappen.');
+    if (pid !== roots.bin && p.children.length + 1 > LIMITS.perFolder) return T('Mappen «{0}» er full (maks {1} elementer). Slett noe, eller bruk en annen mappe.', p.name, LIMITS.perFolder);
+    if (countTotal && total() + n > LIMITS.total) return T('Øvings-PC-en er full (maks {0} filer og mapper til sammen). Slett noe og tøm papirkurven.', LIMITS.total);
+    if (isFolder && depth(pid) + 1 >= LIMITS.depth) return T('Du kan ikke lage mapper dypere enn {0} nivåer.', LIMITS.depth);
     return null;
   }
   function checkContent(content, oldLen = 0) {
-    if (contentBytes() - oldLen + content.length > LIMITS.storage) return 'Øvings-PC-en har ikke mer lagringsplass. Slett noen filer først.';
+    if (contentBytes() - oldLen + content.length > LIMITS.storage) return T('Øvings-PC-en har ikke mer lagringsplass. Slett noen filer først.');
     return null;
   }
   function pushUndo(u) { undoStack.push(u); if (undoStack.length > LIMITS.undo) undoStack.shift(); }
@@ -48,9 +48,9 @@ const FS = (() => {
   function displayName(n, showExt) { return (n.type === 'file' && !showExt && ext(n.name)) ? base(n.name) : n.name; }
   function validate(name) {
     name = (name || '').trim();
-    if (!name) return 'Du må skrive inn et navn.';
-    if (INVALID.test(name)) return 'Et navn kan ikke inneholde disse tegnene:  \\ / : * ? " < > |';
-    if (name.length > LIMITS.name) return 'Navnet er for langt (maks ' + LIMITS.name + ' tegn).';
+    if (!name) return T('Du må skrive inn et navn.');
+    if (INVALID.test(name)) return T('Et navn kan ikke inneholde disse tegnene:  \\ / : * ? " < > |');
+    if (name.length > LIMITS.name) return T('Navnet er for langt (maks {0} tegn).', LIMITS.name);
     return null;
   }
   function hasChild(pid, name, except) { return children(pid).some(c => c.id !== except && c.name.toLowerCase() === name.toLowerCase()); }
@@ -58,9 +58,10 @@ const FS = (() => {
     if (!hasChild(pid, name)) return name;
     const b = base(name), e = ext(name), s = e ? '.' + e : '';
     if (copy) {
-      if (!hasChild(pid, b + ' - Kopi' + s)) return b + ' - Kopi' + s;
-      let i = 2; while (hasChild(pid, b + ' - Kopi (' + i + ')' + s)) i++;
-      return b + ' - Kopi (' + i + ')' + s;
+      const k = T(' - Kopi');
+      if (!hasChild(pid, b + k + s)) return b + k + s;
+      let i = 2; while (hasChild(pid, b + k + ' (' + i + ')' + s)) i++;
+      return b + k + ' (' + i + ')' + s;
     }
     let i = 2; while (hasChild(pid, b + ' (' + i + ')' + s)) i++;
     return b + ' (' + i + ')' + s;
@@ -75,7 +76,7 @@ const FS = (() => {
   function createFolder(pid, name, opts = {}) {
     const err = validate(name); if (err) return { error: err };
     name = name.trim();
-    if (hasChild(pid, name)) return { error: 'Det finnes allerede en mappe eller fil med navnet «' + name + '» her.' };
+    if (hasChild(pid, name)) return { error: T('Det finnes allerede en mappe eller fil med navnet «{0}» her.', name) };
     const lim = canAdd(pid, 1, true); if (lim) return { error: lim };
     const n = mk(name, 'folder', pid, { modified: now() });
     touch(pid);
@@ -86,7 +87,7 @@ const FS = (() => {
   function createFile(pid, name, content = '', opts = {}) {
     const err = validate(name); if (err) return { error: err };
     name = name.trim();
-    if (hasChild(pid, name)) return { error: 'Det finnes allerede en fil med navnet «' + name + '» her.' };
+    if (hasChild(pid, name)) return { error: T('Det finnes allerede en fil med navnet «{0}» her.', name) };
     const lim = canAdd(pid, 1, false); if (lim) return { error: lim };
     content = String(content || '').slice(0, LIMITS.content);
     const cl = checkContent(content); if (cl) return { error: cl };
@@ -97,7 +98,7 @@ const FS = (() => {
     return n;
   }
   function write(id, content) {
-    const n = nodes[id]; if (!n) return { error: 'Fant ikke filen.' };
+    const n = nodes[id]; if (!n) return { error: T('Fant ikke filen.') };
     content = String(content || '').slice(0, LIMITS.content);
     const cl = checkContent(content, (n.content || '').length); if (cl) return { error: cl };
     n.content = content; n.size = Math.max(1024, content.length * 12); n.modified = now();
@@ -109,8 +110,8 @@ const FS = (() => {
     const err = validate(newName); if (err) return { error: err };
     newName = newName.trim();
     if (newName === n.name) return n;
-    if (n.system) return { error: 'Denne mappen kan ikke få nytt navn.' };
-    if (hasChild(n.parent, newName, id)) return { error: 'Det finnes allerede en fil eller mappe med navnet «' + newName + '» her.' };
+    if (n.system) return { error: T('Denne mappen kan ikke få nytt navn.') };
+    if (hasChild(n.parent, newName, id)) return { error: T('Det finnes allerede en fil eller mappe med navnet «{0}» her.', newName) };
     const old = n.name; n.name = newName; n.modified = now();
     pushUndo({ type: 'rename', id, old });
     emit('rename', { id, old, name: newName, parent: n.parent, kind: n.type, via: opts.via });
@@ -118,10 +119,10 @@ const FS = (() => {
   }
   function move(id, pid, opts = {}) {
     const n = nodes[id];
-    if (!n || !nodes[pid]) return { error: 'Fant ikke mappen.' };
+    if (!n || !nodes[pid]) return { error: T('Fant ikke mappen.') };
     if (n.parent === pid) return n;
-    if (id === pid || isDesc(pid, id)) return { error: 'Du kan ikke flytte en mappe inn i seg selv.' };
-    if (n.system) return { error: 'Denne mappen kan ikke flyttes.' };
+    if (id === pid || isDesc(pid, id)) return { error: T('Du kan ikke flytte en mappe inn i seg selv.') };
+    if (n.system) return { error: T('Denne mappen kan ikke flyttes.') };
     if (pid === roots.bin) return remove(id, opts);
     const lim = canAdd(pid, 0, n.type === 'folder', false); if (lim) return { error: lim };
     const from = n.parent;
@@ -140,8 +141,8 @@ const FS = (() => {
   }
   function copy(id, pid, opts = {}) {
     const n = nodes[id];
-    if (!n || !nodes[pid]) return { error: 'Fant ikke mappen.' };
-    if (id === pid || isDesc(pid, id)) return { error: 'Du kan ikke kopiere en mappe inn i seg selv.' };
+    if (!n || !nodes[pid]) return { error: T('Fant ikke mappen.') };
+    if (id === pid || isDesc(pid, id)) return { error: T('Du kan ikke kopiere en mappe inn i seg selv.') };
     const lim = canAdd(pid, subtreeSize(id), n.type === 'folder'); if (lim) return { error: lim };
     if (n.type === 'file') { const cl = checkContent(n.content || ''); if (cl) return { error: cl }; }
     const nm = uniqueName(pid, n.name, n.parent === pid);
@@ -153,8 +154,8 @@ const FS = (() => {
   }
   function remove(id, opts = {}) {
     const n = nodes[id];
-    if (!n) return { error: 'Fant ikke filen.' };
-    if (n.system) return { error: 'Denne mappen kan ikke slettes.' };
+    if (!n) return { error: T('Fant ikke filen.') };
+    if (n.system) return { error: T('Denne mappen kan ikke slettes.') };
     if (inBin(id)) return purge(id);
     const from = n.parent;
     n.origParent = from;
@@ -277,7 +278,7 @@ const FS = (() => {
   function flush() {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
     try { localStorage.setItem('dt-fs', serialize()); saveFailed = false; }
-    catch (e) { if (!saveFailed) { saveFailed = true; if (window.Toast) Toast.show('Nettleseren har ikke plass til å lagre flere filer. Slett noe, eller tøm papirkurven.', 6000); } }
+    catch (e) { if (!saveFailed) { saveFailed = true; if (window.Toast) Toast.show(T('Nettleseren har ikke plass til å lagre flere filer. Slett noe, eller tøm papirkurven.'), 6000); } }
   }
   window.addEventListener('pagehide', flush);
   window.addEventListener('beforeunload', flush);
@@ -298,30 +299,30 @@ const FS = (() => {
   function reset() { nodes = {}; nextId = 1; roots = {}; undoStack.length = 0; seed(); save(); Bus.emit('fs', { op: 'reset' }); }
 
   function seed() {
-    const pc = mk('Denne PC-en', 'folder', null, { system: true }); roots.pc = pc.id;
-    const desk = mk('Skrivebord', 'folder', pc.id, { system: true }); roots.desktop = desk.id;
-    const docs = mk('Dokumenter', 'folder', pc.id, { system: true }); roots.documents = docs.id;
-    const dl = mk('Nedlastinger', 'folder', pc.id, { system: true }); roots.downloads = dl.id;
-    const pics = mk('Bilder', 'folder', pc.id, { system: true }); roots.pictures = pics.id;
+    const pc = mk(T('Denne PC-en'), 'folder', null, { system: true }); roots.pc = pc.id;
+    const desk = mk(T('Skrivebord'), 'folder', pc.id, { system: true }); roots.desktop = desk.id;
+    const docs = mk(T('Dokumenter'), 'folder', pc.id, { system: true }); roots.documents = docs.id;
+    const dl = mk(T('Nedlastinger'), 'folder', pc.id, { system: true }); roots.downloads = dl.id;
+    const pics = mk(T('Bilder'), 'folder', pc.id, { system: true }); roots.pictures = pics.id;
     const od = mk('OneDrive', 'folder', null, { system: true }); roots.onedrive = od.id;
-    mk('Skole', 'folder', od.id);
-    const bin = mk('Papirkurv', 'folder', null, { system: true }); roots.bin = bin.id;
+    mk(T('Skole'), 'folder', od.id);
+    const bin = mk(T('Papirkurv'), 'folder', null, { system: true }); roots.bin = bin.id;
 
-    const gml = mk('Gammelt', 'folder', docs.id);
-    const pr = mk('Prosjekter', 'folder', gml.id);
-    const kt = mk('Klassetur', 'folder', pr.id);
-    mk('Klassetur-budsjett.xlsx', 'file', kt.id);
-    mk('Sommerprosjekt.docx', 'file', pr.id, { content: 'Sommerprosjekt – planter i skolegården\n\nVi plantet solsikker og målte hvor fort de vokste.' });
-    mk('Leksjon-1.pptx', 'file', gml.id);
-    mk('Notater-7-trinn.txt', 'file', gml.id, { content: 'Husk: gymtøy på tirsdager.\nInnlevering naturfag fredag.' });
-    mk('Dokument (3).docx', 'file', docs.id, { content: 'Analyse av diktet «Nordlys»\n\nDiktet handler om lyset som danser over himmelen om vinteren. Dikteren bruker mange bilder ...' });
-    mk('Fotosyntese.pptx', 'file', docs.id);
-    mk('Matteprøve.pdf', 'file', docs.id);
-    mk('gammel-liste.txt', 'file', docs.id, { content: 'melk\nbrød\nost\nepler' });
+    const gml = mk(T('Gammelt'), 'folder', docs.id);
+    const pr = mk(T('Prosjekter'), 'folder', gml.id);
+    const kt = mk(T('Klassetur'), 'folder', pr.id);
+    mk(T('Klassetur-budsjett.xlsx'), 'file', kt.id);
+    mk(T('Sommerprosjekt.docx'), 'file', pr.id, { content: T('Sommerprosjekt – planter i skolegården\n\nVi plantet solsikker og målte hvor fort de vokste.') });
+    mk(T('Leksjon-1.pptx'), 'file', gml.id);
+    mk(T('Notater-7-trinn.txt'), 'file', gml.id, { content: T('Husk: gymtøy på tirsdager.\nInnlevering naturfag fredag.') });
+    mk(T('Dokument (3).docx'), 'file', docs.id, { content: T('Analyse av diktet «Nordlys»\n\nDiktet handler om lyset som danser over himmelen om vinteren. Dikteren bruker mange bilder ...') });
+    mk(T('Fotosyntese.pptx'), 'file', docs.id);
+    mk(T('Matteprøve.pdf'), 'file', docs.id);
+    mk(T('gammel-liste.txt'), 'file', docs.id, { content: T('melk\nbrød\nost\nepler') });
     mk('IMG_2031.jpg', 'file', dl.id);
-    mk('skjema.pdf', 'file', dl.id);
-    mk('Klassebilde.jpg', 'file', pics.id);
-    mk('Tur-til-fjellet.jpg', 'file', pics.id);
+    mk(T('skjema.pdf'), 'file', dl.id);
+    mk(T('Klassebilde.jpg'), 'file', pics.id);
+    mk(T('Tur-til-fjellet.jpg'), 'file', pics.id);
   }
   function init() { if (!load()) { nodes = {}; nextId = 1; roots = {}; seed(); flush(); } }
 

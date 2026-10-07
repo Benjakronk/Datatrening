@@ -5,58 +5,58 @@ const Intro = (() => {
 
   function pages(firstRun) {
     const navn = firstRun
-      ? `<label for="intro-name">Hva heter du?</label><input class="txt" id="intro-name" autofocus placeholder="Fornavn og etternavn" maxlength="60"><div class="wiz-err"></div><p class="muted">Navnet brukes bare til å vise fremdriften din, og lagres på denne maskinen.</p>`
+      ? `<label for="intro-name">${T('Hva heter du?')}</label><input class="txt" id="intro-name" autofocus placeholder="${T('Fornavn og etternavn')}" maxlength="60"><div class="wiz-err"></div>${T('<p class="muted">Navnet brukes bare til å vise fremdriften din, og lagres på denne maskinen.</p>')}`
       : '';
     return [
       {
-        title: prog() ? 'Velkommen til programmeringskurset' : 'Velkommen til Datatrening',
+        title: prog() ? T('Velkommen til programmeringskurset') : T('Velkommen til Datatrening'),
         body: `
           <div class="wiz-hero">${prog() ? '⌨️' : '💻'}</div>
           ${prog()
-            ? `<p>Her lærer du å bruke <b>terminalen</b>, skrive kode i en <b>editor</b> og kjøre programmene dine, slik det gjøres på en ekte PC.</p>
-               <p>Kurset bygger på grunnkurset om filer og mapper. Kan du ikke det ennå, ta det først.</p>`
-            : `<p>Her lærer du å bruke en PC slik vi gjør på skolen: <b>filer og mapper</b>, lagring, formatering, e-post, notater og innlevering.</p>`}
-          <p>Alt skjer på en <b>øvings-PC</b> inne i nettleseren. Den ser ut som en vanlig Windows-PC, men den er en simulering.
-          <b>Du kan ikke ødelegge noe.</b> Alt du gjør her, skjer bare her.</p>
+            ? `${T('<p>Her lærer du å bruke <b>terminalen</b>, skrive kode i en <b>editor</b> og kjøre programmene dine, slik det gjøres på en ekte PC.</p>')}
+               ${T('<p>Kurset bygger på grunnkurset om filer og mapper. Kan du ikke det ennå, ta det først.</p>')}`
+            : T('<p>Her lærer du å bruke en PC slik vi gjør på skolen: <b>filer og mapper</b>, lagring, formatering, e-post, notater og innlevering.</p>')}
+          ${T('<p>Alt skjer på en <b>øvings-PC</b> inne i nettleseren. Den ser ut som en vanlig Windows-PC, men den er en simulering.')}
+          ${T('<b>Du kan ikke ødelegge noe.</b> Alt du gjør her, skjer bare her.</p>')}
           ${navn}`,
         validate: firstRun ? body => {
           const v = body.querySelector('#intro-name').value.trim();
-          if (!v) { body.querySelector('.wiz-err').textContent = 'Skriv navnet ditt, så vet læreren hvem fremdriften tilhører.'; return false; }
+          if (!v) { body.querySelector('.wiz-err').textContent = T('Skriv navnet ditt, så vet læreren hvem fremdriften tilhører.'); return false; }
           return true;
         } : null
       },
       {
-        title: 'Slik lærer du',
+        title: T('Slik lærer du'),
         body: `
-          <p>Panelet til <b>høyre</b> viser ett oppdrag om gangen, delt opp i små steg.</p>
+          ${T('<p>Panelet til <b>høyre</b> viser ett oppdrag om gangen, delt opp i små steg.</p>')}
           <ul>
-            <li>Stegene blir <b>grønne av seg selv</b> når du gjør dem riktig på øvings-PC-en. Du trenger ikke trykke «ferdig».</li>
-            <li>Noen steg er <b>spørsmål</b>. Teorispørsmålene kommer først i hvert kurs, og svaret står i <b>«Les først»</b>-boksen øverst.</li>
-            <li>Svarer du feil på et teorispørsmål, må du innom teksten før du kan prøve igjen. Det er med vilje.</li>
+            ${T('<li>Stegene blir <b>grønne av seg selv</b> når du gjør dem riktig på øvings-PC-en. Du trenger ikke trykke «ferdig».</li>')}
+            ${T('<li>Noen steg er <b>spørsmål</b>. Teorispørsmålene kommer først i hvert kurs, og svaret står i <b>«Les først»</b>-boksen øverst.</li>')}
+            ${T('<li>Svarer du feil på et teorispørsmål, må du innom teksten før du kan prøve igjen. Det er med vilje.</li>')}
           </ul>
-          <p>Når du har gjort alle oppdragene i et kurs, får du en <b>mesterprøve</b>. Der får du bare mål, ingen oppskrift og ingen hint.</p>`
+          ${T('<p>Når du har gjort alle oppdragene i et kurs, får du en <b>mesterprøve</b>. Der får du bare mål, ingen oppskrift og ingen hint.</p>')}`
       },
       {
-        title: 'Hvis du står fast',
+        title: T('Hvis du står fast'),
         body: `
           <ul>
-            <li>Klikk <b>«Vis hint»</b> på steget du står på. Hintet forteller deg hvor du skal se.</li>
-            <li>Åpne <b>«Les først»</b> øverst i oppdraget. Der står teorien du trenger.</li>
-            <li>Du kan alltid <b>starte oppdraget på nytt</b> med knappen nederst i panelet.</li>
-            <li>Henger øvings-PC-en? Fanen <b>Fremdrift</b> har en knapp som tilbakestiller den uten å slette fremdriften din.</li>
+            ${T('<li>Klikk <b>«Vis hint»</b> på steget du står på. Hintet forteller deg hvor du skal se.</li>')}
+            ${T('<li>Åpne <b>«Les først»</b> øverst i oppdraget. Der står teorien du trenger.</li>')}
+            ${T('<li>Du kan alltid <b>starte oppdraget på nytt</b> med knappen nederst i panelet.</li>')}
+            ${T('<li>Henger øvings-PC-en? Fanen <b>Fremdrift</b> har en knapp som tilbakestiller den uten å slette fremdriften din.</li>')}
           </ul>
-          <p>Og så er det helt greit å spørre læreren. Si <b>hva du gjorde</b>, <b>hva som skjedde</b> og <b>hva som står på skjermen</b>, så er det lett å hjelpe deg.</p>`
+          ${T('<p>Og så er det helt greit å spørre læreren. Si <b>hva du gjorde</b>, <b>hva som skjedde</b> og <b>hva som står på skjermen</b>, så er det lett å hjelpe deg.</p>')}`
       },
       {
-        title: 'Kom i gang',
+        title: T('Kom i gang'),
         body: `
           <ul>
-            <li>Programmene ligger nederst i <b>oppgavelinjen</b> og i <b>Start-menyen</b>.</li>
-            <li><kbd>F11</kbd> slår fullskjerm av og på. <kbd>Esc</kbd> avslutter fullskjerm.</li>
-            <li>Fanen <b>Kurs</b> viser alle kursene. Ta dem gjerne i rekkefølge.</li>
-            <li>Når du har fullført et kurs, dukker <b>Ukens øving</b> opp. Den holder ferdighetene ved like.</li>
+            ${T('<li>Programmene ligger nederst i <b>oppgavelinjen</b> og i <b>Start-menyen</b>.</li>')}
+            ${T('<li><kbd>F11</kbd> slår fullskjerm av og på. <kbd>Esc</kbd> avslutter fullskjerm.</li>')}
+            ${T('<li>Fanen <b>Kurs</b> viser alle kursene. Ta dem gjerne i rekkefølge.</li>')}
+            ${T('<li>Når du har fullført et kurs, dukker <b>Ukens øving</b> opp. Den holder ferdighetene ved like.</li>')}
           </ul>
-          <p class="wiz-tip">💡 Du finner denne introduksjonen igjen når som helst under <b>Start-menyen → Introduksjon</b>.</p>`
+          ${T('<p class="wiz-tip">💡 Du finner denne introduksjonen igjen når som helst under <b>Start-menyen → Introduksjon</b>.</p>')}`
       }
     ];
   }
@@ -74,7 +74,7 @@ const Intro = (() => {
         pages: pages(first),
         skippable: !first,
         escapable: !first,
-        doneLabel: first ? 'Start første oppdrag' : 'Lukk',
+        doneLabel: first ? T('Start første oppdrag') : T('Lukk'),
         collect: (body, values) => ({ name: (values['intro-name'] || '').trim() })
       });
       Bus.emit('intro-done', { firstRun: first });
@@ -87,7 +87,7 @@ const Intro = (() => {
     if (open || !Coach.needsName()) return false;
     const r = await show(true);
     if (!r) return false;
-    Coach.setName((r && r.name) || 'Elev');
+    Coach.setName((r && r.name) || T('Elev'));
     Coach.startFirst();
     return true;
   }

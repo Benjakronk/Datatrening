@@ -36,13 +36,13 @@ const Icons = (() => {
     return n.type === 'folder' ? folder(size) : file(FS.ext(n.name), size);
   }
   function typeName(n) {
-    if (n.type === 'folder') return 'Filmappe';
+    if (n.type === 'folder') return T('Filmappe');
     const e = FS.ext(n.name);
-    return typeNames[e] || (e ? e.toUpperCase() + '-fil' : 'Fil');
+    return typeNames[e] ? T(typeNames[e]) : (e ? T('{0}-fil', e.toUpperCase()) : T('Fil'));
   }
   function program(n) {
     const e = FS.ext(n.name);
-    return programs[e] || 'et passende program';
+    return programs[e] ? T(programs[e]) : T('et passende program');
   }
 
   const apps = {

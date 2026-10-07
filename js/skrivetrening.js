@@ -2,11 +2,11 @@
 const Skrivetrening = (() => {
   const KEY = 'dt-typing';
   const TEXTS = [
-    { id: 'hjem', name: 'Hjemmeraden', text: 'asdf jklø asdf jklø fjas løkk asdf jklø sal dal fall skal ask lask das' },
-    { id: 'ord', name: 'Vanlige ord', text: 'og i det er en til at som på de med han av ikke for var meg seg men da mot' },
-    { id: 'setn', name: 'Setninger', text: 'Jeg går på skolen hver dag. Vi lærer matte, norsk og naturfag. I dag skal vi skrive en tekst om høsten.' },
-    { id: 'aeoa', name: 'Æ, Ø og Å', text: 'Måken fløy over åsen. Søsteren min spiser rødgrøt. Å være ærlig er viktig. Gården ligger ved sjøen.' },
-    { id: 'tegn', name: 'Store bokstaver og tegn', text: 'Hei! Heter du Ola? Send meg en e-post på ola@skolen.no. Prisen er 249,50 kr (inkludert moms).' }
+    { id: 'hjem', name: T('Hjemmeraden'), text: T('asdf jklø asdf jklø fjas løkk asdf jklø sal dal fall skal ask lask das') },
+    { id: 'ord', name: T('Vanlige ord'), text: T('og i det er en til at som på de med han av ikke for var meg seg men da mot') },
+    { id: 'setn', name: T('Setninger'), text: T('Jeg går på skolen hver dag. Vi lærer matte, norsk og naturfag. I dag skal vi skrive en tekst om høsten.') },
+    { id: 'aeoa', name: T('Æ, Ø og Å'), text: T('Måken fløy over åsen. Søsteren min spiser rødgrøt. Å være ærlig er viktig. Gården ligger ved sjøen.') },
+    { id: 'tegn', name: T('Store bokstaver og tegn'), text: T('Hei! Heter du Ola? Send meg en e-post på ola@skolen.no. Prisen er 249,50 kr (inkludert moms).') }
   ];
   let best = null, win = null;
   function load() { if (best) return best; try { best = JSON.parse(localStorage.getItem(KEY) || 'null') || { runs: 0 }; } catch (e) { best = { runs: 0 }; } return best; }
@@ -18,21 +18,21 @@ const Skrivetrening = (() => {
     load();
     let cur = TEXTS[0], started = 0, done = false, typed = '';
     const root = el(`<div class="type">
-      <div class="type-top"><label>Øvelse:</label><select class="txt tsel">${TEXTS.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join('')}</select><button class="btn small again">Start på nytt</button><span class="spacer"></span><span class="type-stat"></span></div>
+      <div class="type-top"><label>${T('Øvelse:')}</label><select class="txt tsel">${TEXTS.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join('')}</select><button class="btn small again">${T('Start på nytt')}</button><span class="spacer"></span><span class="type-stat"></span></div>
       <div class="type-text"></div>
-      <input class="type-in" spellcheck="false" autocomplete="off" placeholder="Klikk her og begynn å skrive …">
+      <input class="type-in" spellcheck="false" autocomplete="off" placeholder="${T('Klikk her og begynn å skrive …')}">
       <div class="type-tips">
-        <b>Slik skriver du raskere:</b>
+        <b>${T('Slik skriver du raskere:')}</b>
         <ul>
-          <li>Plasser fingrene på <b>hjemmeraden</b>: venstre hånd på <kbd>a</kbd> <kbd>s</kbd> <kbd>d</kbd> <kbd>f</kbd>, høyre hånd på <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd> <kbd>ø</kbd>. Tomlene hviler på mellomromstasten.</li>
-          <li><kbd>F</kbd> og <kbd>J</kbd> har en liten kul du kan kjenne. Da finner du plassen uten å se ned.</li>
-          <li><b>Ikke se på tastaturet.</b> Det går saktere de første gangene, men mye raskere etterpå.</li>
-          <li>Skriv jevnt og riktig framfor fort. Hastigheten kommer av seg selv.</li>
+          <li>${T('Plasser fingrene på <b>hjemmeraden</b>: venstre hånd på <kbd>a</kbd> <kbd>s</kbd> <kbd>d</kbd> <kbd>f</kbd>, høyre hånd på <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd> <kbd>ø</kbd>. Tomlene hviler på mellomromstasten.')}</li>
+          <li>${T('<kbd>F</kbd> og <kbd>J</kbd> har en liten kul du kan kjenne. Da finner du plassen uten å se ned.')}</li>
+          <li>${T('<b>Ikke se på tastaturet.</b> Det går saktere de første gangene, men mye raskere etterpå.')}</li>
+          <li>${T('Skriv jevnt og riktig framfor fort. Hastigheten kommer av seg selv.')}</li>
         </ul>
       </div>
       <div class="type-result hidden"></div>
     </div>`);
-    win = WM.create({ app: 'skrivetrening', title: 'Skrivetrening', body: root, width: 820, height: 600 });
+    win = WM.create({ app: 'skrivetrening', title: T('Skrivetrening'), body: root, width: 820, height: 600 });
     win.onClosed = () => { win = null; };
     const textEl = root.querySelector('.type-text'), input = root.querySelector('.type-in'), stat = root.querySelector('.type-stat'), result = root.querySelector('.type-result');
 
@@ -51,7 +51,7 @@ const Skrivetrening = (() => {
     function drawStat() {
       const sec = Math.max(1, (Date.now() - started) / 1000);
       const words = typed.length / 5;
-      stat.textContent = `${Math.round(words / (sec / 60))} ord/min · ${accuracy()} % riktig · ${Math.round(sec)} s`;
+      stat.textContent = T('{0} ord/min · {1} % riktig · {2} s', Math.round(words / (sec / 60)), accuracy(), Math.round(sec));
     }
     function accuracy() {
       let ok = 0;
@@ -80,9 +80,9 @@ const Skrivetrening = (() => {
       b.runs = (b.runs || 0) + 1; b.last = { wpm, acc, level: cur.id, date: Date.now() };
       save();
       result.classList.remove('hidden');
-      result.innerHTML = `<div class="tr-big">${wpm} ord/min</div><div class="tr-sub">${acc} % riktig · ${Math.round(sec)} sekunder</div>
-        <div class="muted">${acc < 90 ? 'Prøv å skrive litt saktere og treffe riktig. Treffsikkerhet er viktigere enn fart.' : wpm < 15 ? 'Bra treffsikkerhet! Nå kan du prøve å øke farten litt.' : wpm < 30 ? 'Bra jobbet! Fortsett å øve uten å se på tastaturet.' : 'Veldig bra! Du skriver raskt og riktig.'}</div>
-        ${prev ? `<div class="muted">Din beste på denne øvelsen: ${Math.max(wpm, prev.wpm)} ord/min</div>` : ''}`;
+      result.innerHTML = `<div class="tr-big">${T('{0} ord/min', wpm)}</div><div class="tr-sub">${T('{0} % riktig · {1} sekunder', acc, Math.round(sec))}</div>
+        <div class="muted">${acc < 90 ? T('Prøv å skrive litt saktere og treffe riktig. Treffsikkerhet er viktigere enn fart.') : wpm < 15 ? T('Bra treffsikkerhet! Nå kan du prøve å øke farten litt.') : wpm < 30 ? T('Bra jobbet! Fortsett å øve uten å se på tastaturet.') : T('Veldig bra! Du skriver raskt og riktig.')}</div>
+        ${prev ? `<div class="muted">${T('Din beste på denne øvelsen: {0} ord/min', Math.max(wpm, prev.wpm))}</div>` : ''}`;
       input.disabled = true;
       Bus.emit('typing-done', { wpm, acc, level: cur.id, seconds: Math.round(sec) });
     }

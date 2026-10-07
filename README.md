@@ -174,6 +174,26 @@ Kursene (8 kurs, 13 oppdrag) ligger i `js/oppdrag-prog.js`: terminalen, filer fr
 installere programmer fra Firmaportalen, Kode-editoren, feilsøking, prosjektstruktur og PowerShell-skript. Fremdriften lagres separat fra grunnkurset,
 og veilederpanelet lenker mellom de to sidene.
 
+## Engelsk utgave (en/)
+
+Begge kurssettene finnes også på engelsk, som et alternativ for elever som trenger det:
+`en/index.html` (grunnkurset) og `en/programming.html` (programmeringskurset). Lenken «🌐 English version»
+på startbildet, i Start-menyen og nederst i kurslisten bytter til samme side på det andre språket.
+Den engelske øvings-PC-en har engelske mappe- og filnavn (This PC, Documents, OneDrive › School › Norwegian …),
+slik en engelsk Windows har, og hjemmemappen i terminalen er `C:\Users\Student`.
+
+- **Programmene** er skrevet på norsk. All tekst eleven ser går gjennom `T('norsk tekst')` (`js/i18n.js`),
+  som på de engelske sidene slår opp i `js/en/strings.js`. Navn på programmer, mapper og filer står i
+  `js/en/names.js`. Mangler en oversettelse, vises den norske teksten, så ingenting går i stykker.
+- **Kursinnholdet** har egne engelske filer: `js/en/oppdrag.js`, `js/en/oppdrag-mer.js` og
+  `js/en/oppdrag-prog.js`. De har nøyaktig samme kurs, oppdrag, steg og id-er som de norske, og sjekkene
+  leter etter de engelske navnene. Endrer du et oppdrag, gjør den samme endringen i den engelske filen.
+- **Fremdrift og filer** lagres for seg på hvert språk, siden et engelsk filsystem har andre navn.
+  Rapportkoden til læreren har samme format, så `laerer.html` leser koder fra begge språk.
+
+Ny tekst i programmene skrives som `T('…')` med en engelsk oversettelse i `js/en/strings.js`.
+Tekst med variabler bruker plassholdere: `T('Mappen «{0}» er full.', navn)`.
+
 ## Tilpasse innholdet
 
 Alt kursinnhold ligger i `js/oppdrag.js`. Et oppdrag ser slik ut:
@@ -208,7 +228,7 @@ kurs 1, siden de andre kursene bruker navigasjonshendelser som fungerer uansett 
 
 ### Tester
 
-`node tests/kjor.js` kjører veiledertesten mot begge kurssettene i Edge uten vindu, og skriver ut hvor mange
+`node tests/kjor.js` kjører veiledertesten mot begge kurssettene, på norsk og engelsk, i Edge uten vindu, og skriver ut hvor mange
 sjekker som gikk bra. Den dekker teorisperren, låsing ved feil svar, mesterprøvene, rydding av programmer
 mellom oppdrag og rapportkoden, og den rydder opp etter seg. Krever Node og Edge (eller Chrome).
 
@@ -221,7 +241,10 @@ skoleportalen ligger i `LINKS` i `js/apps.js`, og innleveringsoppgavene i `ASSIG
 index.html        – grunnkurset
 programmering.html – programmeringskurset
 laerer.html       – klasseoversikt for læreren
+en/               – de engelske sidene (index.html, programming.html)
 css/style.css     – utseende (Windows 11-inspirert)
+js/i18n.js        – T() for oversettelse, og egen lagring for den engelske utgaven
+js/en/            – engelsk ordliste (names.js, strings.js) og engelsk kursinnhold
 js/ui.js          – hendelsesbuss, kontekstmeny, dra og slipp, varsler, mappetre
 js/icons.js       – SVG-ikoner
 js/fs.js          – virtuelt filsystem (lagres i localStorage)

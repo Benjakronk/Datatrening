@@ -6,7 +6,7 @@ const WM = (() => {
   const PIN_KEY = 'dt-pinned' + (window.DT_PAGE ? '-' + window.DT_PAGE : '');
   let PINNED = (() => { try { return JSON.parse(localStorage.getItem(PIN_KEY) || 'null') || null; } catch (e) { return null; } })() || (window.DT_PINNED || ['explorer', 'skriv', 'nettleser', 'innlevering']).slice();
   function savePinned() { try { localStorage.setItem(PIN_KEY, JSON.stringify(PINNED)); } catch (e) { /* ignorer */ } }
-  const APPNAMES = { explorer: 'Filutforsker', skriv: 'Skriv', nettleser: 'Nettleser', innlevering: 'Innleveringer', papirkurv: 'Papirkurv', bilder: 'Bilder', viewer: 'Filvisning', innstillinger: 'Innstillinger', taskmgr: 'Oppgavebehandling', terminal: 'Terminal', kode: 'Kode', notater: 'Notater', epost: 'E-post', skrivetrening: 'Skrivetrening', firmaportal: 'Firmaportalen', intro: 'Introduksjon' };
+  const APPNAMES = { explorer: T('Filutforsker'), skriv: T('Skriv'), nettleser: T('Nettleser'), innlevering: T('Innleveringer'), papirkurv: T('Papirkurv'), bilder: T('Bilder'), viewer: T('Filvisning'), innstillinger: T('Innstillinger'), taskmgr: T('Oppgavebehandling'), terminal: T('Terminal'), kode: T('Kode'), notater: T('Notater'), epost: T('E-post'), skrivetrening: T('Skrivetrening'), firmaportal: T('Firmaportalen'), intro: T('Introduksjon') };
   const FS_ICON = '<svg viewBox="0 0 16 16" width="18" height="18"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="#333" stroke-width="1.6"/></svg>';
 
   const layer = () => document.getElementById('windows');
@@ -14,7 +14,7 @@ const WM = (() => {
   /* Sjekk før et program åpner et vindu: for mange vinduer gjør siden treg */
   function full() {
     if (wins.length < MAX_WINDOWS) return false;
-    Toast.show('Du har for mange vinduer åpne (maks ' + MAX_WINDOWS + '). Lukk noen vinduer først.');
+    Toast.show(T('Du har for mange vinduer åpne (maks {0}). Lukk noen vinduer først.', MAX_WINDOWS));
     Bus.emit('window-limit', {});
     return true;
   }
@@ -31,7 +31,7 @@ const WM = (() => {
     const x = o.x != null ? o.x : Math.max(8, Math.min(area.width - w - 8, 70 + off));
     const y = o.y != null ? o.y : Math.max(8, Math.min(area.height - h - 8, 30 + off));
     elm.style.left = x + 'px'; elm.style.top = y + 'px'; elm.style.width = w + 'px'; elm.style.height = h + 'px';
-    elm.innerHTML = `<div class="win-title"><span class="win-icon">${Icons.app(o.app, 18)}</span><span class="win-name"></span><div class="win-ctrl"><button class="wc min" title="Minimer">&#8212;</button><button class="wc max" title="Maksimer">&#9744;</button><button class="wc close" title="Lukk">&#10005;</button></div></div><div class="win-body"></div>`;
+    elm.innerHTML = `<div class="win-title"><span class="win-icon">${Icons.app(o.app, 18)}</span><span class="win-name"></span><div class="win-ctrl"><button class="wc min" title="${T('Minimer')}">&#8212;</button><button class="wc max" title="${T('Maksimer')}">&#9744;</button><button class="wc close" title="${T('Lukk')}">&#10005;</button></div></div><div class="win-body"></div>`;
     const win = { id, app: o.app, el: elm, title: o.title || '', maximized: false, minimized: false, onClose: o.onClose, onKey: null, data: {} };
     elm.querySelector('.win-name').textContent = win.title;
     if (o.body) elm.querySelector('.win-body').appendChild(o.body);
@@ -44,12 +44,12 @@ const WM = (() => {
     tb.addEventListener('contextmenu', e => {
       e.preventDefault(); e.stopPropagation();
       Ctx.show(e.clientX, e.clientY, [
-        { label: 'Gjenopprett', disabled: !win.maximized, action: () => toggleMax(win) },
-        { label: 'Minimer', action: () => minimize(win) },
-        { label: 'Maksimer', disabled: win.maximized, action: () => toggleMax(win) },
+        { label: T('Gjenopprett'), disabled: !win.maximized, action: () => toggleMax(win) },
+        { label: T('Minimer'), action: () => minimize(win) },
+        { label: T('Maksimer'), disabled: win.maximized, action: () => toggleMax(win) },
         '-',
-        { label: 'Lukk', kbd: 'Alt+F4', action: () => close(win, 'menu') }
-      ], 'window', 'tittellinjen til vinduet «' + win.title + '»');
+        { label: T('Lukk'), kbd: 'Alt+F4', action: () => close(win, 'menu') }
+      ], 'window', T('tittellinjen til vinduet «{0}»', win.title));
     });
     elm.querySelector('.wc.min').addEventListener('click', e => { e.stopPropagation(); minimize(win); });
     elm.querySelector('.wc.max').addEventListener('click', e => { e.stopPropagation(); toggleMax(win); });
@@ -124,7 +124,7 @@ const WM = (() => {
     win.el.classList.toggle('maximized', win.maximized);
     const b = win.el.querySelector('.wc.max');
     b.innerHTML = win.maximized ? '&#10697;' : '&#9744;';
-    b.title = win.maximized ? 'Gjenopprett ned' : 'Maksimer';
+    b.title = win.maximized ? T('Gjenopprett ned') : T('Maksimer');
     Bus.emit(win.maximized ? 'window-max' : 'window-restore', { app: win.app });
   }
   async function close(win, via) {
@@ -170,18 +170,18 @@ const WM = (() => {
     start.addEventListener('contextmenu', e => {
       e.preventDefault(); e.stopPropagation(); hideStart();
       Ctx.show(e.clientX, e.clientY - 8, [
-        { label: 'Programmer og funksjoner', action: () => Apps.launch('innstillinger') },
-        { label: 'Oppgavebehandling', icon: Icons.app('taskmgr', 16), action: () => Apps.launch('taskmgr') },
-        { label: 'Innstillinger', icon: Icons.app('innstillinger', 16), action: () => Apps.launch('innstillinger') },
-        { label: 'Filutforsker', icon: Icons.app('explorer', 16), action: () => Apps.launch('explorer') },
+        { label: T('Programmer og funksjoner'), action: () => Apps.launch('innstillinger') },
+        { label: T('Oppgavebehandling'), icon: Icons.app('taskmgr', 16), action: () => Apps.launch('taskmgr') },
+        { label: T('Innstillinger'), icon: Icons.app('innstillinger', 16), action: () => Apps.launch('innstillinger') },
+        { label: T('Filutforsker'), icon: Icons.app('explorer', 16), action: () => Apps.launch('explorer') },
         '-',
-        { label: 'Slå av eller logg av', sub: [
-          { label: 'Logg av', action: () => Toast.show('På en ekte PC logger dette deg av. Øvings-PC-en fortsetter.') },
-          { label: 'Slå av', action: () => Toast.show('På en ekte PC slår dette av maskinen. Husk å lagre først!') },
-          { label: 'Start på nytt', action: () => Toast.show('På en ekte PC starter maskinen på nytt nå.') }
+        { label: T('Slå av eller logg av'), sub: [
+          { label: T('Logg av'), action: () => Toast.show(T('På en ekte PC logger dette deg av. Øvings-PC-en fortsetter.')) },
+          { label: T('Slå av'), action: () => Toast.show(T('På en ekte PC slår dette av maskinen. Husk å lagre først!')) },
+          { label: T('Start på nytt'), action: () => Toast.show(T('På en ekte PC starter maskinen på nytt nå.')) }
         ] },
-        { label: 'Skrivebord', action: showDesktop }
-      ], 'start', 'Start-knappen');
+        { label: T('Skrivebord'), action: showDesktop }
+      ], 'start', T('Start-knappen'));
     });
     c.appendChild(start);
     const apps = PINNED.filter(a => !window.Apps || Apps.available(a));
@@ -201,9 +201,9 @@ const WM = (() => {
         e.preventDefault(); e.stopPropagation(); hideStart();
         const pinned = PINNED.includes(app);
         const items = [{ label: appName(app), icon: Icons.app(app, 16), action: () => Apps.launch(app, { via: 'taskbar-menu' }) }, '-'];
-        items.push({ label: pinned ? 'Løsne fra oppgavelinjen' : 'Fest til oppgavelinjen', action: () => { if (pinned) PINNED = PINNED.filter(a => a !== app); else PINNED.push(app); savePinned(); Bus.emit('pin', { app, pinned: !pinned }); renderTaskbar(); } });
-        if (ws.length) items.push('-', { label: ws.length > 1 ? 'Lukk alle vinduer' : 'Lukk vindu', action: () => ws.forEach(w => close(w, 'taskbar-menu')) });
-        Ctx.show(e.clientX, e.clientY - 8, items, 'taskbar-app', appName(app) + '-ikonet i oppgavelinjen');
+        items.push({ label: pinned ? T('Løsne fra oppgavelinjen') : T('Fest til oppgavelinjen'), action: () => { if (pinned) PINNED = PINNED.filter(a => a !== app); else PINNED.push(app); savePinned(); Bus.emit('pin', { app, pinned: !pinned }); renderTaskbar(); } });
+        if (ws.length) items.push('-', { label: ws.length > 1 ? T('Lukk alle vinduer') : T('Lukk vindu'), action: () => ws.forEach(w => close(w, 'taskbar-menu')) });
+        Ctx.show(e.clientX, e.clientY - 8, items, 'taskbar-app', T('{0}-ikonet i oppgavelinjen', appName(app)));
       });
       c.appendChild(b);
     });
@@ -214,15 +214,15 @@ const WM = (() => {
         if (e.target.closest('.tb-app')) return;
         e.preventDefault();
         Ctx.show(e.clientX, e.clientY - 8, [
-          { label: 'Oppgavebehandling', icon: Icons.app('taskmgr', 16), action: () => Apps.launch('taskmgr') },
+          { label: T('Oppgavebehandling'), icon: Icons.app('taskmgr', 16), action: () => Apps.launch('taskmgr') },
           '-',
-          { label: 'Innstillinger for oppgavelinjen', icon: Icons.app('innstillinger', 16), action: () => Apps.launch('innstillinger') },
+          { label: T('Innstillinger for oppgavelinjen'), icon: Icons.app('innstillinger', 16), action: () => Apps.launch('innstillinger') },
           '-',
-          { label: 'Vis skrivebordet', action: showDesktop }
-        ], 'taskbar', 'oppgavelinjen');
+          { label: T('Vis skrivebordet'), action: showDesktop }
+        ], 'taskbar', T('oppgavelinjen'));
       });
       const right = document.getElementById('taskbar-right');
-      const fsb = el(`<button class="tb-app fs-btn" title="Fullskjerm av/på (F11)">${FS_ICON}</button>`);
+      const fsb = el(`<button class="tb-app fs-btn" title="${T('Fullskjerm av/på (F11)')}">${FS_ICON}</button>`);
       fsb.addEventListener('click', e => { e.stopPropagation(); if (window.Fullscreen) Fullscreen.toggle(); });
       right.insertBefore(fsb, right.firstChild);
     }
@@ -234,19 +234,26 @@ const WM = (() => {
     const m = document.getElementById('startmenu');
     const g = m.querySelector('.sm-grid');
     g.innerHTML = '';
-    const apps = [['explorer', 'Filutforsker'], ['skriv', 'Skriv'], ['nettleser', 'Nettleser'], ['innlevering', 'Innleveringer'], ['bilder', 'Bilder'], ['papirkurv', 'Papirkurv'], ['innstillinger', 'Innstillinger']];
-    if (window.Notater) apps.splice(2, 0, ['notater', 'Notater']);
-    if (window.Epost) apps.splice(3, 0, ['epost', 'E-post']);
-    if (window.Skrivetrening) apps.push(['skrivetrening', 'Skrivetrening']);
-    if (window.Kode) apps.splice(1, 0, ['kode', 'Kode']);
-    if (window.Terminal) apps.splice(2, 0, ['terminal', 'Terminal']);
-    if (window.Firmaportal) apps.push(['firmaportal', 'Firmaportalen']);
-    if (window.Intro) apps.push(['intro', 'Introduksjon']);
+    const apps = [['explorer', T('Filutforsker')], ['skriv', T('Skriv')], ['nettleser', T('Nettleser')], ['innlevering', T('Innleveringer')], ['bilder', T('Bilder')], ['papirkurv', T('Papirkurv')], ['innstillinger', T('Innstillinger')]];
+    if (window.Notater) apps.splice(2, 0, ['notater', T('Notater')]);
+    if (window.Epost) apps.splice(3, 0, ['epost', T('E-post')]);
+    if (window.Skrivetrening) apps.push(['skrivetrening', T('Skrivetrening')]);
+    if (window.Kode) apps.splice(1, 0, ['kode', T('Kode')]);
+    if (window.Terminal) apps.splice(2, 0, ['terminal', T('Terminal')]);
+    if (window.Firmaportal) apps.push(['firmaportal', T('Firmaportalen')]);
+    if (window.Intro) apps.push(['intro', T('Introduksjon')]);
     apps.filter(([app]) => !window.Apps || Apps.available(app)).forEach(([app, name]) => {
       const a = el(`<div class="sm-app">${Icons.app(app, 36)}<span>${esc(name)}</span></div>`);
       a.addEventListener('click', () => { hideStart(); Apps.launch(app, { via: 'startmenu' }); });
       g.appendChild(a);
     });
+    /* Lenke til den samme siden på det andre språket, nederst i Start-menyen */
+    const foot = m.querySelector('.sm-foot');
+    if (foot && window.otherLangUrl && !foot.querySelector('.sm-lang')) {
+      const l = el(`<a class="sm-lang" href="${esc(otherLangUrl())}" style="color:#0a64c8;text-decoration:none;white-space:nowrap;margin-left:12px">🌐 ${esc(T('English version'))}</a>`);
+      l.addEventListener('click', () => Bus.emit('lang-switch', { where: 'startmenu' }));
+      foot.appendChild(l);
+    }
     m.classList.remove('hidden');
     Bus.emit('startmenu-open', {});
   }

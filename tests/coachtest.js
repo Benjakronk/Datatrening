@@ -42,7 +42,7 @@
     ok(!Coach.theoryDone(k), 'theoryDone er false før teorien er besvart');
     rows()[1].click(); await tick(30);
     ok(!P().active, 'klikk på låst oppdrag starter det ikke');
-    ok([...document.querySelectorAll('#toasts .toast')].some(t => /Teorien først/.test(t.textContent)), 'eleven får beskjed om hvorfor');
+    ok([...document.querySelectorAll('#toasts .toast')].some(t => t.textContent.startsWith(T('Teorien først: svar på spørsmålene i oppdrag {0}.1, så åpner resten av kurset seg.').split(':')[0])), 'eleven får beskjed om hvorfor');
     ok(P().openKurs === k.id, 'kurskortet forblir åpent');
 
     rows()[0].click(); await tick(30);
@@ -100,7 +100,7 @@
     const slaaOpp = document.querySelector('#coach-body details.laer.oppslag');
     ok(!!slaaOpp, 'teorien er tilgjengelig i mesterprøven');
     ok(!slaaOpp.open, 'oppslaget er lukket som standard, så eleven prøver selv først');
-    ok(/Slå opp/.test(slaaOpp.querySelector('summary').textContent), 'merket som oppslag, ikke som «les først»');
+    ok(slaaOpp.querySelector('summary').textContent.startsWith(T('📖 Slå opp: {0}').split(':')[0]), 'merket som oppslag, ikke som «les først»');
     ok(slaaOpp.textContent.length > 300, 'hele teksten ligger der, ikke bare overskriften');
     ok(!document.querySelector('#coach-body .linkbtn'), 'ingen hint-knapp i mesterprøven');
     const forOppslag = Bus.log.length;

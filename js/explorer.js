@@ -6,7 +6,7 @@ const Explorer = (() => {
   };
   const Clip = { ids: [], cut: false };
   const views = [];
-  const T = Icons.tools;
+  const TL = Icons.tools;
 
   function setShowExt(on, via) {
     settings.showExt = !!on;
@@ -50,22 +50,25 @@ const Explorer = (() => {
     const names = ids.map(id => FS.get(id).name);
     let n = 0;
     ids.forEach(id => { const r = FS.remove(id, { via }); if (r && r.error) Toast.show(r.error); else n++; });
-    if (n) Toast.show(n === 1 ? `«${FS.displayName({ name: names[0], type: 'file' }, settings.showExt)}» ble flyttet til papirkurven.` : `${n} elementer ble flyttet til papirkurven.`);
+    if (n) Toast.show(n === 1 ? T('«{0}» ble flyttet til papirkurven.', FS.displayName({ name: names[0], type: 'file' }, settings.showExt)) : T('{0} elementer ble flyttet til papirkurven.', n));
     Bus.emit('delete-action', { ids, names, via });
   }
   const NEW_ITEMS = [
-    { kind: 'folder', label: 'Mappe', icon: Icons.folder(16), name: 'Ny mappe' },
+    { kind: 'folder', label: T('Mappe'), icon: Icons.folder(16), name: T('Ny mappe') },
     '-',
-    { kind: 'file', label: 'Tekstdokument', icon: Icons.file('txt', 16), name: 'Nytt tekstdokument.txt' },
-    { kind: 'file', label: 'Microsoft Word-dokument', icon: Icons.file('docx', 16), name: 'Nytt Microsoft Word-dokument.docx' },
-    { kind: 'file', label: 'Microsoft PowerPoint-presentasjon', icon: Icons.file('pptx', 16), name: 'Ny Microsoft PowerPoint-presentasjon.pptx' },
-    { kind: 'file', label: 'Microsoft Excel-regneark', icon: Icons.file('xlsx', 16), name: 'Nytt Microsoft Excel-regneark.xlsx' }
+    { kind: 'file', label: T('Tekstdokument'), icon: Icons.file('txt', 16), name: T('Nytt tekstdokument.txt') },
+    { kind: 'file', label: T('Microsoft Word-dokument'), icon: Icons.file('docx', 16), name: T('Nytt Microsoft Word-dokument.docx') },
+    { kind: 'file', label: T('Microsoft PowerPoint-presentasjon'), icon: Icons.file('pptx', 16), name: T('Ny Microsoft PowerPoint-presentasjon.pptx') },
+    { kind: 'file', label: T('Microsoft Excel-regneark'), icon: Icons.file('xlsx', 16), name: T('Nytt Microsoft Excel-regneark.xlsx') }
   ];
+  /* Standardnavnene på nye elementer (begynnelsen av navnet), for å se om eleven har gitt nytt navn */
+  const DEFAULT_PREFIXES = ['Ny mappe', 'Nytt tekstdokument', 'Nytt Microsoft', 'Ny Microsoft', 'ny.py', 'nytt-skript'];
+  function isDefaultName(name) { const lc = name.toLowerCase(); return DEFAULT_PREFIXES.some(p => lc.startsWith(T(p).toLowerCase())); }
   function newItems() {
     if (!window.Kode) return NEW_ITEMS;
     return NEW_ITEMS.concat(['-',
-      { kind: 'file', label: 'Python-fil', icon: Icons.file('py', 16), name: 'ny.py' },
-      { kind: 'file', label: 'PowerShell-skript', icon: Icons.file('ps1', 16), name: 'nytt-skript.ps1' }]);
+      { kind: 'file', label: T('Python-fil'), icon: Icons.file('py', 16), name: T('ny.py') },
+      { kind: 'file', label: T('PowerShell-skript'), icon: Icons.file('ps1', 16), name: T('nytt-skript.ps1') }]);
   }
   function newMenu(folderId, via, then) {
     return newItems().map(it => it === '-' ? '-' : ({
@@ -102,13 +105,14 @@ const Explorer = (() => {
       if (commit && v && v !== full) {
         if (n.type === 'file' && !showExt && e) v = v + '.' + e;
         const r = FS.rename(n.id, v, { via: 'inline' });
-        if (r.error) { await Dialog.alert('Gi nytt navn', r.error); } else renamed = true;
+        if (r.error) { await Dialog.alert(T('Gi nytt navn'), r.error); } else renamed = true;
       }
       if (onDone) onDone();
       /* Ble mappen stående med standardnavnet? Fortell hvordan man gir nytt navn etterpå. */
       const cur = FS.get(n.id);
-      if (!renamed && cur && /^(Ny mappe|Nytt tekstdokument|Nytt Microsoft|Ny Microsoft|ny\.py|nytt-skript)/i.test(cur.name)) {
-        Toast.show((cur.type === 'folder' ? 'Mappen' : 'Filen') + ' heter fortsatt «' + FS.displayName(cur, showExt) + '». Gi nytt navn: klikk én gang på ' + (cur.type === 'folder' ? 'mappen' : 'filen') + ', trykk F2, skriv navnet og trykk Enter. (Eller høyreklikk → Gi nytt navn.)', 7000);
+      if (!renamed && cur && isDefaultName(cur.name)) {
+        const dn = FS.displayName(cur, showExt);
+        Toast.show(cur.type === 'folder' ? T('Mappen heter fortsatt «{0}». Gi nytt navn: klikk én gang på mappen, trykk F2, skriv navnet og trykk Enter. (Eller høyreklikk → Gi nytt navn.)', dn) : T('Filen heter fortsatt «{0}». Gi nytt navn: klikk én gang på filen, trykk F2, skriv navnet og trykk Enter. (Eller høyreklikk → Gi nytt navn.)', dn), 7000);
         Bus.emit('rename-skipped', { id: n.id, name: cur.name });
       }
     };
@@ -127,37 +131,37 @@ const Explorer = (() => {
     /* ctx: {ids (valgte), inBin, refresh, renameFn} */
     if (ctx.inBin) {
       return [
-        { label: 'Gjenopprett', icon: T.restore, action: () => { ctx.ids.forEach(id => FS.restore(id)); Toast.show('Gjenopprettet.'); } },
+        { label: T('Gjenopprett'), icon: TL.restore, action: () => { ctx.ids.forEach(id => FS.restore(id)); Toast.show(T('Gjenopprettet.')); } },
         '-',
-        { label: 'Slett permanent', icon: T.del, action: async () => { if (await Dialog.confirm('Slett fil', ctx.ids.length === 1 ? `Er du sikker på at du vil slette «${n.name}» for alltid?` : `Er du sikker på at du vil slette disse ${ctx.ids.length} elementene for alltid?`)) ctx.ids.forEach(id => FS.purge(id)); } },
+        { label: T('Slett permanent'), icon: TL.del, action: async () => { if (await Dialog.confirm(T('Slett fil'), ctx.ids.length === 1 ? T('Er du sikker på at du vil slette «{0}» for alltid?', n.name) : T('Er du sikker på at du vil slette disse {0} elementene for alltid?', ctx.ids.length))) ctx.ids.forEach(id => FS.purge(id)); } },
         '-',
-        { label: 'Egenskaper', icon: T.props, action: () => Dialog.properties(n) }
+        { label: T('Egenskaper'), icon: TL.props, action: () => Dialog.properties(n) }
       ];
     }
     const e = FS.ext(n.name);
-    const items = [{ label: 'Åpne', icon: T.open, kbd: 'Enter', action: () => Apps.openFile(n.id, { via: 'menu' }) }];
+    const items = [{ label: T('Åpne'), icon: TL.open, kbd: 'Enter', action: () => Apps.openFile(n.id, { via: 'menu' }) }];
     if (n.type === 'folder') {
-      items.push({ label: 'Åpne i nytt vindu', action: () => Explorer.open(n.id) });
+      items.push({ label: T('Åpne i nytt vindu'), action: () => Explorer.open(n.id) });
     } else {
       const sub = [];
-      if (['docx', 'doc', 'txt', 'md'].includes(e)) sub.push({ label: 'Skriv', icon: Icons.app('skriv', 16), action: () => Skriv.open(n.id) });
-      sub.push({ label: Icons.program(n) + ' (simulert)', icon: Icons.app('viewer', 16), action: () => Viewer.open(n.id) });
-      items.push({ label: 'Åpne med', sub });
-      if (['jpg', 'jpeg', 'png'].includes(e)) items.push({ label: 'Angi som skrivebordsbakgrunn', action: () => Desktop.setBackground(n.name) });
-      if (e === 'zip') items.push({ label: 'Pakk ut alle …', action: () => Toast.show('En ZIP-fil er en pakket mappe. På en ekte PC pakkes filene ut i en ny mappe her.') });
-      if (['docx', 'doc', 'pdf', 'txt', 'pptx', 'xlsx'].includes(e)) items.push({ label: 'Skriv ut', action: () => Toast.show('«' + n.name + '» ble sendt til skriveren (simulert).') });
+      if (['docx', 'doc', 'txt', 'md'].includes(e)) sub.push({ label: T('Skriv'), icon: Icons.app('skriv', 16), action: () => Skriv.open(n.id) });
+      sub.push({ label: T('{0} (simulert)', Icons.program(n)), icon: Icons.app('viewer', 16), action: () => Viewer.open(n.id) });
+      items.push({ label: T('Åpne med'), sub });
+      if (['jpg', 'jpeg', 'png'].includes(e)) items.push({ label: T('Angi som skrivebordsbakgrunn'), action: () => Desktop.setBackground(n.name) });
+      if (e === 'zip') items.push({ label: T('Pakk ut alle …'), action: () => Toast.show(T('En ZIP-fil er en pakket mappe. På en ekte PC pakkes filene ut i en ny mappe her.')) });
+      if (['docx', 'doc', 'pdf', 'txt', 'pptx', 'xlsx'].includes(e)) items.push({ label: T('Skriv ut'), action: () => Toast.show(T('«{0}» ble sendt til skriveren (simulert).', n.name)) });
     }
     items.push('-',
-      { label: 'Klipp ut', icon: T.cut, kbd: 'Ctrl+X', action: () => doCut(ctx.ids, 'menu') },
-      { label: 'Kopier', icon: T.copy, kbd: 'Ctrl+C', action: () => doCopy(ctx.ids, 'menu') },
-      { label: 'Kopier som bane', action: () => { if (navigator.clipboard) navigator.clipboard.writeText(FS.pathString(n.id)).catch(() => {}); Toast.show('Kopierte banen: ' + FS.pathString(n.id)); } },
+      { label: T('Klipp ut'), icon: TL.cut, kbd: 'Ctrl+X', action: () => doCut(ctx.ids, 'menu') },
+      { label: T('Kopier'), icon: TL.copy, kbd: 'Ctrl+C', action: () => doCopy(ctx.ids, 'menu') },
+      { label: T('Kopier som bane'), action: () => { if (navigator.clipboard) navigator.clipboard.writeText(FS.pathString(n.id)).catch(() => {}); Toast.show(T('Kopierte banen: {0}', FS.pathString(n.id))); } },
       '-',
-      { label: 'Del', action: () => share(n) },
+      { label: T('Del'), action: () => share(n) },
       '-',
-      { label: 'Gi nytt navn', icon: T.rename, kbd: 'F2', action: () => ctx.renameFn(n.id) },
-      { label: 'Slett', icon: T.del, kbd: 'Delete', action: () => doDelete(ctx.ids, 'menu') },
+      { label: T('Gi nytt navn'), icon: TL.rename, kbd: 'F2', action: () => ctx.renameFn(n.id) },
+      { label: T('Slett'), icon: TL.del, kbd: 'Delete', action: () => doDelete(ctx.ids, 'menu') },
       '-',
-      { label: 'Egenskaper', icon: T.props, action: () => Dialog.properties(n) });
+      { label: T('Egenskaper'), icon: TL.props, action: () => Dialog.properties(n) });
     return items;
   }
   /* Deling: lenke til filen i OneDrive, i stedet for å sende en kopi som vedlegg */
@@ -166,83 +170,83 @@ const Explorer = (() => {
     const link = 'https://skolen-my.sharepoint.com/elev/' + encodeURIComponent(n.name);
     const body = el(`<div class="share">
       <div class="sh-head"><span class="ico">${Icons.node(n, 32)}</span><div><b>${esc(n.name)}</b><div class="muted">${esc(FS.pathString(n.parent))}</div></div></div>
-      ${inOD ? '' : '<div class="sh-warn">⚠ Filen ligger ikke i OneDrive. Bare filer i OneDrive kan deles med lenke, fordi de ligger i skyen. Flytt filen til OneDrive først, eller send den som vedlegg.</div>'}
-      <label>Hvem skal få tilgang?</label>
-      <select class="txt sh-who"><option value="klassen">Alle i klassen 8A</option><option value="laerer">Bare læreren</option><option value="gruppe">Jonas og Kari (gruppa mi)</option></select>
-      <label>Hva skal de få lov til?</label>
-      <select class="txt sh-perm"><option value="edit">Kan redigere (skrive i dokumentet)</option><option value="read">Kan bare lese</option></select>
+      ${inOD ? '' : '<div class="sh-warn">' + T('⚠ Filen ligger ikke i OneDrive. Bare filer i OneDrive kan deles med lenke, fordi de ligger i skyen. Flytt filen til OneDrive først, eller send den som vedlegg.') + '</div>'}
+      <label>${T('Hvem skal få tilgang?')}</label>
+      <select class="txt sh-who"><option value="klassen">${T('Alle i klassen 8A')}</option><option value="laerer">${T('Bare læreren')}</option><option value="gruppe">${T('Jonas og Kari (gruppa mi)')}</option></select>
+      <label>${T('Hva skal de få lov til?')}</label>
+      <select class="txt sh-perm"><option value="edit">${T('Kan redigere (skrive i dokumentet)')}</option><option value="read">${T('Kan bare lese')}</option></select>
       <div class="sh-link"><input class="txt" readonly value="${esc(link)}"></div>
-      <div class="sh-tip"><b>Lenke eller vedlegg?</b> En <b>lenke</b> peker til filen i OneDrive, så alle ser den samme filen og siste versjon. Et <b>vedlegg</b> er en kopi: hvis andre skriver i kopien, får ikke du endringene. Bruk lenke når dere skal samarbeide.</div>
+      <div class="sh-tip">${T('<b>Lenke eller vedlegg?</b> En <b>lenke</b> peker til filen i OneDrive, så alle ser den samme filen og siste versjon. Et <b>vedlegg</b> er en kopi: hvis andre skriver i kopien, får ikke du endringene. Bruk lenke når dere skal samarbeide.')}</div>
     </div>`);
     const r = await Dialog.show({
-      title: 'Del «' + FS.displayName(n, settings.showExt) + '»', body,
-      buttons: [{ label: 'Kopier lenke', value: 'link', primary: true }, { label: 'Lukk', value: null }],
+      title: T('Del «{0}»', FS.displayName(n, settings.showExt)), body,
+      buttons: [{ label: T('Kopier lenke'), value: 'link', primary: true }, { label: T('Lukk'), value: null }],
       validate: () => ({ who: body.querySelector('.sh-who').value, perm: body.querySelector('.sh-perm').value })
     });
     if (!r) return;
-    if (!inOD) { Toast.show('Filen må ligge i OneDrive for å kunne deles med lenke.'); return; }
+    if (!inOD) { Toast.show(T('Filen må ligge i OneDrive for å kunne deles med lenke.')); return; }
     n.shared = true; n.sharedWith = r.who; n.sharedPerm = r.perm;
     FS.notify();
     if (navigator.clipboard) navigator.clipboard.writeText(link).catch(() => {});
-    Toast.show('Lenken er kopiert. Lim den inn i Teams eller e-post, så ser de andre den samme filen.', 5000);
+    Toast.show(T('Lenken er kopiert. Lim den inn i Teams eller e-post, så ser de andre den samme filen.'), 5000);
     Bus.emit('share', { name: n.name, who: r.who, perm: r.perm, link });
   }
   function itemWhere(n) { return n.type === 'folder' ? 'folder' : 'file'; }
-  function itemLabel(n) { return (n.type === 'folder' ? 'mappen «' : 'filen «') + FS.displayName(n, settings.showExt) + '»'; }
+  function itemLabel(n) { const dn = FS.displayName(n, settings.showExt); return n.type === 'folder' ? T('mappen «{0}»', dn) : T('filen «{0}»', dn); }
   function navMenu(n, view) {
     const R = FS.roots();
     const items = [
-      { label: 'Åpne', icon: T.open, action: () => view.navigate(n.id) },
-      { label: 'Åpne i nytt vindu', action: () => Explorer.open(n.id) },
+      { label: T('Åpne'), icon: TL.open, action: () => view.navigate(n.id) },
+      { label: T('Åpne i nytt vindu'), action: () => Explorer.open(n.id) },
       '-'
     ];
-    if (n.id === R.bin) items.push({ label: 'Tøm papirkurv', icon: T.del, disabled: !FS.children(R.bin).length, action: () => emptyBin() });
-    else items.push({ label: 'Lim inn', icon: T.paste, disabled: !Clip.ids.length, action: () => doPaste(n.id, 'menu') });
-    items.push('-', { label: 'Egenskaper', icon: T.props, action: () => Dialog.properties(n) });
+    if (n.id === R.bin) items.push({ label: T('Tøm papirkurv'), icon: TL.del, disabled: !FS.children(R.bin).length, action: () => emptyBin() });
+    else items.push({ label: T('Lim inn'), icon: TL.paste, disabled: !Clip.ids.length, action: () => doPaste(n.id, 'menu') });
+    items.push('-', { label: T('Egenskaper'), icon: TL.props, action: () => Dialog.properties(n) });
     return items;
   }
   function bgMenu(folderId, ctx) {
     /* ctx: {inBin, view, setView, sort, setSort, refresh, renameFn, via} */
     if (ctx.inBin) {
       return [
-        { label: 'Tøm papirkurv', icon: T.del, disabled: !FS.children(folderId).length, action: () => emptyBin() },
-        { label: 'Oppdater', action: ctx.refresh }
+        { label: T('Tøm papirkurv'), icon: TL.del, disabled: !FS.children(folderId).length, action: () => emptyBin() },
+        { label: T('Oppdater'), action: ctx.refresh }
       ];
     }
     const items = [];
-    if (ctx.setView) items.push({ label: 'Vis', icon: T.view, sub: viewMenu(ctx) });
-    if (ctx.setSort) items.push({ label: 'Sorter etter', icon: T.sort, sub: sortMenu(ctx) });
-    items.push({ label: 'Oppdater', action: ctx.refresh }, '-');
-    items.push({ label: 'Lim inn', icon: T.paste, kbd: 'Ctrl+V', disabled: !Clip.ids.length, action: () => { const ids = doPaste(folderId, 'menu'); if (ctx.afterPaste) ctx.afterPaste(ids); } });
-    if (FS.canUndo()) items.push({ label: 'Angre', kbd: 'Ctrl+Z', action: () => FS.undo() });
-    items.push('-', { label: 'Ny', icon: T.newf, sub: newMenu(folderId, ctx.via, ctx.renameFn) });
+    if (ctx.setView) items.push({ label: T('Vis'), icon: TL.view, sub: viewMenu(ctx) });
+    if (ctx.setSort) items.push({ label: T('Sorter etter'), icon: TL.sort, sub: sortMenu(ctx) });
+    items.push({ label: T('Oppdater'), action: ctx.refresh }, '-');
+    items.push({ label: T('Lim inn'), icon: TL.paste, kbd: 'Ctrl+V', disabled: !Clip.ids.length, action: () => { const ids = doPaste(folderId, 'menu'); if (ctx.afterPaste) ctx.afterPaste(ids); } });
+    if (FS.canUndo()) items.push({ label: T('Angre'), kbd: 'Ctrl+Z', action: () => FS.undo() });
+    items.push('-', { label: T('Ny'), icon: TL.newf, sub: newMenu(folderId, ctx.via, ctx.renameFn) });
     if (ctx.extra) items.push('-', ...ctx.extra);
     return items;
   }
   function viewMenu(ctx) {
     return [
-      { label: 'Store ikoner', checked: ctx.view === 'icons', action: () => ctx.setView('icons') },
-      { label: 'Detaljer', checked: ctx.view === 'details', action: () => ctx.setView('details') },
+      { label: T('Store ikoner'), checked: ctx.view === 'icons', action: () => ctx.setView('icons') },
+      { label: T('Detaljer'), checked: ctx.view === 'details', action: () => ctx.setView('details') },
       '-',
-      { label: 'Vis filendelser', checked: settings.showExt, action: () => setShowExt(!settings.showExt, 'menu') }
+      { label: T('Vis filendelser'), checked: settings.showExt, action: () => setShowExt(!settings.showExt, 'menu') }
     ];
   }
   function sortMenu(ctx) {
     const s = ctx.sort;
     return [
-      { label: 'Navn', checked: s.by === 'name', action: () => ctx.setSort('name') },
-      { label: 'Endringsdato', checked: s.by === 'modified', action: () => ctx.setSort('modified') },
-      { label: 'Type', checked: s.by === 'type', action: () => ctx.setSort('type') },
-      { label: 'Størrelse', checked: s.by === 'size', action: () => ctx.setSort('size') },
+      { label: T('Navn'), checked: s.by === 'name', action: () => ctx.setSort('name') },
+      { label: T('Endringsdato'), checked: s.by === 'modified', action: () => ctx.setSort('modified') },
+      { label: T('Type'), checked: s.by === 'type', action: () => ctx.setSort('type') },
+      { label: T('Størrelse'), checked: s.by === 'size', action: () => ctx.setSort('size') },
       '-',
-      { label: 'Stigende', checked: s.dir === 1, action: () => ctx.setSort(s.by, 1) },
-      { label: 'Synkende', checked: s.dir === -1, action: () => ctx.setSort(s.by, -1) }
+      { label: T('Stigende'), checked: s.dir === 1, action: () => ctx.setSort(s.by, 1) },
+      { label: T('Synkende'), checked: s.dir === -1, action: () => ctx.setSort(s.by, -1) }
     ];
   }
   async function emptyBin() {
     const n = FS.children(FS.roots().bin).length;
     if (!n) return;
-    if (await Dialog.confirm('Tøm papirkurv', `Er du sikker på at du vil slette ${n === 1 ? 'dette elementet' : 'disse ' + n + ' elementene'} for alltid?`)) FS.emptyBin();
+    if (await Dialog.confirm(T('Tøm papirkurv'), n === 1 ? T('Er du sikker på at du vil slette dette elementet for alltid?') : T('Er du sikker på at du vil slette disse {0} elementene for alltid?', n))) FS.emptyBin();
   }
   function sortItems(list, by, dir) {
     const key = n => by === 'modified' ? n.modified : by === 'size' ? (n.size || 0) : by === 'type' ? Icons.typeName(n) : n.name;
@@ -277,7 +281,7 @@ const Explorer = (() => {
     build() {
       this.root.innerHTML = `
         <div class="ex-toolbar"></div>
-        <div class="ex-address"><button class="nav-btn back" title="Tilbake">←</button><button class="nav-btn fwd" title="Frem">→</button><button class="nav-btn up" title="Opp ett nivå">↑</button><div class="crumbs"></div><input class="ex-search" placeholder="Søk"></div>
+        <div class="ex-address"><button class="nav-btn back" title="${T('Tilbake')}">←</button><button class="nav-btn fwd" title="${T('Frem')}">→</button><button class="nav-btn up" title="${T('Opp ett nivå')}">↑</button><div class="crumbs"></div><input class="ex-search" placeholder="${T('Søk')}"></div>
         <div class="ex-main"><div class="ex-nav"></div><div class="ex-content" tabindex="-1"></div></div>
         <div class="ex-status"></div>`;
       this.root.querySelector('.back').addEventListener('click', () => this.back());
@@ -296,7 +300,7 @@ const Explorer = (() => {
       c.addEventListener('contextmenu', e => {
         e.preventDefault();
         if (e.target.closest('.item, .row')) return;
-        Ctx.show(e.clientX, e.clientY, bgMenu(this.cwd, this.bgCtx()), this.inBin ? 'bin-bg' : 'explorer', 'et tomt sted i mappen «' + FS.get(this.cwd).name + '»');
+        Ctx.show(e.clientX, e.clientY, bgMenu(this.cwd, this.bgCtx()), this.inBin ? 'bin-bg' : 'explorer', T('et tomt sted i mappen «{0}»', FS.get(this.cwd).name));
       });
       DnD.target(c, () => this.cwd, () => this.render(), () => !this.inBin && !this.query);
     }
@@ -346,23 +350,23 @@ const Explorer = (() => {
       const menuAt = (b, items) => { const r = b.getBoundingClientRect(); Ctx.show(r.left, r.bottom + 2, items, 'toolbar'); };
       const has = this.sel.size > 0;
       if (this.inBin) {
-        btn('Gjenopprett', T.restore, () => { [...this.sel].forEach(id => FS.restore(id)); Toast.show('Gjenopprettet.'); }, !has);
-        btn('Slett permanent', T.del, async () => { if (await Dialog.confirm('Slett', 'Er du sikker på at du vil slette dette for alltid?')) [...this.sel].forEach(id => FS.purge(id)); }, !has);
+        btn(T('Gjenopprett'), TL.restore, () => { [...this.sel].forEach(id => FS.restore(id)); Toast.show(T('Gjenopprettet.')); }, !has);
+        btn(T('Slett permanent'), TL.del, async () => { if (await Dialog.confirm(T('Slett'), T('Er du sikker på at du vil slette dette for alltid?'))) [...this.sel].forEach(id => FS.purge(id)); }, !has);
         t.appendChild(el('<span class="vsep"></span>'));
-        btn('Tøm papirkurv', T.del, () => emptyBin(), !FS.children(this.cwd).length);
+        btn(T('Tøm papirkurv'), TL.del, () => emptyBin(), !FS.children(this.cwd).length);
         t.appendChild(el('<span class="vsep"></span>'));
       } else {
-        btn('Ny ▾', T.newf, (e, b) => menuAt(b, newMenu(this.cwd, 'toolbar', id => this.startRename(id))), !!this.query);
+        btn(T('Ny ▾'), TL.newf, (e, b) => menuAt(b, newMenu(this.cwd, 'toolbar', id => this.startRename(id))), !!this.query);
         t.appendChild(el('<span class="vsep"></span>'));
-        btn('Klipp ut', T.cut, () => doCut([...this.sel], 'toolbar'), !has);
-        btn('Kopier', T.copy, () => doCopy([...this.sel], 'toolbar'), !has);
-        btn('Lim inn', T.paste, () => this.select(doPaste(this.cwd, 'toolbar')), !Clip.ids.length || !!this.query);
-        btn('Gi nytt navn', T.rename, () => this.startRename([...this.sel][0]), this.sel.size !== 1);
-        btn('Slett', T.del, () => doDelete([...this.sel], 'toolbar'), !has);
+        btn(T('Klipp ut'), TL.cut, () => doCut([...this.sel], 'toolbar'), !has);
+        btn(T('Kopier'), TL.copy, () => doCopy([...this.sel], 'toolbar'), !has);
+        btn(T('Lim inn'), TL.paste, () => this.select(doPaste(this.cwd, 'toolbar')), !Clip.ids.length || !!this.query);
+        btn(T('Gi nytt navn'), TL.rename, () => this.startRename([...this.sel][0]), this.sel.size !== 1);
+        btn(T('Slett'), TL.del, () => doDelete([...this.sel], 'toolbar'), !has);
         t.appendChild(el('<span class="vsep"></span>'));
       }
-      btn('Sorter ▾', T.sort, (e, b) => menuAt(b, sortMenu(this.bgCtx())));
-      btn('Vis ▾', T.view, (e, b) => menuAt(b, viewMenu(this.bgCtx())));
+      btn(T('Sorter ▾'), TL.sort, (e, b) => menuAt(b, sortMenu(this.bgCtx())));
+      btn(T('Vis ▾'), TL.view, (e, b) => menuAt(b, viewMenu(this.bgCtx())));
     }
     renderAddress() {
       const cr = this.root.querySelector('.crumbs'); cr.innerHTML = '';
@@ -376,12 +380,12 @@ const Explorer = (() => {
       this.root.querySelector('.back').disabled = this.hi <= 0;
       this.root.querySelector('.fwd').disabled = this.hi >= this.hist.length - 1;
       this.root.querySelector('.up').disabled = FS.get(this.cwd).parent == null;
-      this.root.querySelector('.ex-search').placeholder = 'Søk i ' + FS.get(this.cwd).name;
+      this.root.querySelector('.ex-search').placeholder = T('Søk i {0}', FS.get(this.cwd).name);
     }
     renderNav() {
       NavTree.render(this.root.querySelector('.ex-nav'), {
         cwd: this.cwd, expanded: this.expanded, onNav: id => this.navigate(id), drop: true, onDropped: () => this.render(),
-        onCtx: (n, e) => Ctx.show(e.clientX, e.clientY, navMenu(n, this), 'nav', '«' + n.name + '» i menyen til venstre')
+        onCtx: (n, e) => Ctx.show(e.clientX, e.clientY, navMenu(n, this), 'nav', T('«{0}» i menyen til venstre', n.name))
       });
     }
     renderContent() {
@@ -393,11 +397,11 @@ const Explorer = (() => {
       c.innerHTML = '';
       c._cwd = this.cwd;
       if (details) {
-        const h = el(`<div class="dt-head${withLoc ? ' with-loc' : ''}"><span data-s="name">Navn</span>${withLoc ? `<span>${this.inBin ? 'Opprinnelig plassering' : 'Plassering'}</span>` : ''}<span data-s="modified">Endringsdato</span><span data-s="type">Type</span><span data-s="size">Størrelse</span></div>`);
+        const h = el(`<div class="dt-head${withLoc ? ' with-loc' : ''}"><span data-s="name">${T('Navn')}</span>${withLoc ? `<span>${this.inBin ? T('Opprinnelig plassering') : T('Plassering')}</span>` : ''}<span data-s="modified">${T('Endringsdato')}</span><span data-s="type">${T('Type')}</span><span data-s="size">${T('Størrelse')}</span></div>`);
         h.querySelectorAll('[data-s]').forEach(s => s.addEventListener('click', () => this.setSort(s.dataset.s, this.sort.by === s.dataset.s ? -this.sort.dir : 1)));
         c.appendChild(h);
       }
-      if (!list.length) c.appendChild(el(`<div class="empty">${this.query ? 'Ingen treff på «' + esc(this.query) + '».' : this.inBin ? 'Papirkurven er tom.' : 'Denne mappen er tom.'}</div>`));
+      if (!list.length) c.appendChild(el(`<div class="empty">${this.query ? T('Ingen treff på «{0}».', esc(this.query)) : this.inBin ? T('Papirkurven er tom.') : T('Denne mappen er tom.')}</div>`));
       list.forEach(n => c.appendChild(this.itemEl(n, details, withLoc)));
       this.renderStatus();
       this.renderToolbar();
@@ -407,7 +411,7 @@ const Explorer = (() => {
       const nm = esc(FS.displayName(n, settings.showExt));
       let d;
       if (details) {
-        const loc = withLoc ? `<div class="col">${esc(this.inBin ? (n.origParent != null && FS.get(n.origParent) ? FS.pathString(n.origParent) : 'Ukjent') : FS.pathString(n.parent))}</div>` : '';
+        const loc = withLoc ? `<div class="col">${esc(this.inBin ? (n.origParent != null && FS.get(n.origParent) ? FS.pathString(n.origParent) : T('Ukjent')) : FS.pathString(n.parent))}</div>` : '';
         d = el(`<div class="row${withLoc ? ' with-loc' : ''}${this.sel.has(n.id) ? ' selected' : ''}${isCut ? ' cut' : ''}" data-id="${n.id}"><div class="name"><span class="ico">${Icons.node(n, 20)}</span><span class="nm">${nm}</span></div>${loc}<div class="col">${fmtDate(n.modified)}</div><div class="col">${esc(Icons.typeName(n))}</div><div class="col">${n.type === 'file' ? fmtSize(n.size) : ''}</div></div>`);
       } else {
         d = el(`<div class="item${this.sel.has(n.id) ? ' selected' : ''}${isCut ? ' cut' : ''}" data-id="${n.id}"><div class="ico">${Icons.node(n, 48)}</div><div class="name"><span class="nm">${nm}</span></div></div>`);
@@ -417,7 +421,7 @@ const Explorer = (() => {
       d.addEventListener('contextmenu', e => {
         e.preventDefault(); e.stopPropagation();
         if (!this.sel.has(n.id)) this.select([n.id]);
-        Ctx.show(e.clientX, e.clientY, itemMenu(n, { ids: [...this.sel], inBin: this.inBin, renameFn: id => this.startRename(id) }), this.inBin ? 'bin-item' : itemWhere(n), itemLabel(n) + (this.inBin ? ' i papirkurven' : ''));
+        Ctx.show(e.clientX, e.clientY, itemMenu(n, { ids: [...this.sel], inBin: this.inBin, renameFn: id => this.startRename(id) }), this.inBin ? 'bin-item' : itemWhere(n), this.inBin ? T('{0} i papirkurven', itemLabel(n)) : itemLabel(n));
       });
       DnD.source(d, () => { if (!this.sel.has(n.id)) this.select([n.id]); return [...this.sel]; });
       if (n.type === 'folder' && !this.inBin) DnD.target(d, n.id, () => this.render());
@@ -426,7 +430,7 @@ const Explorer = (() => {
     renderStatus() {
       const s = this.root.querySelector('.ex-status');
       const n = this.items().length;
-      s.innerHTML = `<span>${n} element${n === 1 ? '' : 'er'}</span>${this.sel.size ? `<span>${this.sel.size} element${this.sel.size === 1 ? '' : 'er'} valgt</span>` : ''}${settings.showExt ? '' : '<span class="muted">Filendelser er skjult (Vis → Vis filendelser)</span>'}`;
+      s.innerHTML = `<span>${n === 1 ? T('{0} element', n) : T('{0} elementer', n)}</span>${this.sel.size ? `<span>${this.sel.size === 1 ? T('{0} element valgt', this.sel.size) : T('{0} elementer valgt', this.sel.size)}</span>` : ''}${settings.showExt ? '' : '<span class="muted">' + T('Filendelser er skjult (Vis → Vis filendelser)') + '</span>'}`;
     }
     /* Valg */
     select(ids) {
@@ -447,7 +451,7 @@ const Explorer = (() => {
       } else { this.anchor = n.id; this.select([n.id]); }
     }
     open(n) {
-      if (this.inBin) { Toast.show('Gjenopprett filen først for å åpne den.'); return; }
+      if (this.inBin) { Toast.show(T('Gjenopprett filen først for å åpne den.')); return; }
       if (n.type === 'folder') this.navigate(n.id);
       else Apps.openFile(n.id, { via: 'explorer' });
     }
@@ -472,7 +476,7 @@ const Explorer = (() => {
         else if (k === 'x') doCut(ids, 'keyboard');
         else if (k === 'v') { if (!this.inBin && !this.query) this.select(doPaste(this.cwd, 'keyboard')); }
         else if (k === 'a') this.select(this.items().map(x => x.id));
-        else if (k === 'z') { if (FS.undo()) Toast.show('Angret.'); }
+        else if (k === 'z') { if (FS.undo()) Toast.show(T('Angret.')); }
         else if (k === 'f' || k === 'e') this.root.querySelector('.ex-search').focus();
         return;
       }
@@ -482,12 +486,12 @@ const Explorer = (() => {
         const elx = (id && this.root.querySelector(`[data-id="${id}"]`)) || this.root.querySelector('.ex-content');
         const r = elx.getBoundingClientRect();
         if (id) { const n = FS.get(id); Ctx.show(r.left + 40, r.top + r.height / 2, itemMenu(n, { ids, inBin: this.inBin, renameFn: x => this.startRename(x) }), this.inBin ? 'bin-item' : itemWhere(n), itemLabel(n)); }
-        else Ctx.show(r.left + 60, r.top + 60, bgMenu(this.cwd, this.bgCtx()), this.inBin ? 'bin-bg' : 'explorer', 'et tomt sted i mappen «' + FS.get(this.cwd).name + '»');
+        else Ctx.show(r.left + 60, r.top + 60, bgMenu(this.cwd, this.bgCtx()), this.inBin ? 'bin-bg' : 'explorer', T('et tomt sted i mappen «{0}»', FS.get(this.cwd).name));
         return;
       }
       if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); this.back(); return; }
       if (e.altKey && e.key === 'ArrowUp') { e.preventDefault(); this.up(); return; }
-      if (e.key === 'Delete') { e.preventDefault(); Bus.emit('shortcut', { key: 'delete', app: 'explorer' }); if (this.inBin) { if (ids.length) Dialog.confirm('Slett', 'Slette for alltid?').then(ok => { if (ok) ids.forEach(id => FS.purge(id)); }); } else doDelete(ids, 'keyboard'); }
+      if (e.key === 'Delete') { e.preventDefault(); Bus.emit('shortcut', { key: 'delete', app: 'explorer' }); if (this.inBin) { if (ids.length) Dialog.confirm(T('Slett'), T('Slette for alltid?')).then(ok => { if (ok) ids.forEach(id => FS.purge(id)); }); } else doDelete(ids, 'keyboard'); }
       else if (e.key === 'F2') { e.preventDefault(); Bus.emit('shortcut', { key: 'f2', app: 'explorer' }); if (ids.length === 1) this.startRename(ids[0]); }
       else if (e.key === 'Enter') { e.preventDefault(); if (ids.length === 1) this.open(FS.get(ids[0])); }
       else if (e.key === 'Backspace') { e.preventDefault(); this.back(); }

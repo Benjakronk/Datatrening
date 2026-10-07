@@ -531,7 +531,7 @@ const Pyth = (() => {
     if (r.error) throw new PyError(r.errorType || 'FileNotFoundError', r.error, line);
     return new FileObj(path, mode, r.content);
   });
-  B('help', function* () { yield { type: 'out', text: 'Hjelp: se kurset i veilederen til høyre. Innebygde funksjoner: print, input, int, float, str, len, range, list, abs, round, min, max, sum, sorted, open\n' }; });
+  B('help', function* () { yield { type: 'out', text: T('Hjelp: se kurset i veilederen til høyre. Innebygde funksjoner: print, input, int, float, str, len, range, list, abs, round, min, max, sum, sorted, open\n') }; });
   const MATH = new Module('math', new Map(Object.entries({ pi: new F(Math.PI), e: new F(Math.E), sqrt: new Builtin('sqrt', a => new F(Math.sqrt(num(a[0])))), floor: new Builtin('floor', a => Math.floor(num(a[0]))), ceil: new Builtin('ceil', a => Math.ceil(num(a[0]))), pow: new Builtin('pow', a => new F(Math.pow(num(a[0]), num(a[1])))), sin: new Builtin('sin', a => new F(Math.sin(num(a[0])))), cos: new Builtin('cos', a => new F(Math.cos(num(a[0])))), tan: new Builtin('tan', a => new F(Math.tan(num(a[0])))), fabs: new Builtin('fabs', a => new F(Math.abs(num(a[0])))), log: new Builtin('log', a => new F(a.length > 1 ? Math.log(num(a[0])) / Math.log(num(a[1])) : Math.log(num(a[0])))) })));
   const RANDOM = new Module('random', new Map(Object.entries({
     randint: new Builtin('randint', (a, k, c, line) => { const lo = num(a[0]), hi = num(a[1]); if (hi < lo) throw new PyError('ValueError', 'empty range for randrange()', line); return lo + Math.floor(Math.random() * (hi - lo + 1)); }),

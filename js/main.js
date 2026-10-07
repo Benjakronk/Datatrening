@@ -6,8 +6,8 @@ const Desktop = (() => {
   function render() {
     const R = FS.roots(); const c = root(); c.innerHTML = '';
     const specials = [
-      { id: R.pc, name: 'Denne PC-en', icon: Icons.app('pc', 48) },
-      { id: R.bin, name: 'Papirkurv', icon: Icons.app('papirkurv', 48) }
+      { id: R.pc, name: T('Denne PC-en'), icon: Icons.app('pc', 48) },
+      { id: R.bin, name: T('Papirkurv'), icon: Icons.app('papirkurv', 48) }
     ];
     specials.forEach(s => {
       const d = el(`<div class="dicon" data-id="${s.id}"><div class="ico">${s.icon}</div><div class="name"><span class="nm">${esc(s.name)}</span></div></div>`);
@@ -15,10 +15,10 @@ const Desktop = (() => {
       d.addEventListener('dblclick', e => { e.stopPropagation(); Bus.emit('desktop-open', { name: s.name }); Explorer.open(s.id); });
       d.addEventListener('contextmenu', e => {
         e.preventDefault(); e.stopPropagation(); select([s.id]);
-        const items = [{ label: 'Åpne', icon: Icons.tools.open, action: () => Explorer.open(s.id) }];
-        if (s.id === R.bin) items.push('-', { label: 'Tøm papirkurv', icon: Icons.tools.del, disabled: !FS.children(R.bin).length, action: () => Explorer.emptyBin() });
-        items.push('-', { label: 'Egenskaper', icon: Icons.tools.props, action: () => Dialog.properties(FS.get(s.id)) });
-        Ctx.show(e.clientX, e.clientY, items, s.id === R.bin ? 'bin-icon' : 'pc-icon', s.name + '-ikonet på skrivebordet');
+        const items = [{ label: T('Åpne'), icon: Icons.tools.open, action: () => Explorer.open(s.id) }];
+        if (s.id === R.bin) items.push('-', { label: T('Tøm papirkurv'), icon: Icons.tools.del, disabled: !FS.children(R.bin).length, action: () => Explorer.emptyBin() });
+        items.push('-', { label: T('Egenskaper'), icon: Icons.tools.props, action: () => Dialog.properties(FS.get(s.id)) });
+        Ctx.show(e.clientX, e.clientY, items, s.id === R.bin ? 'bin-icon' : 'pc-icon', T('{0}-ikonet på skrivebordet', s.name));
       });
       if (s.id === R.bin) DnD.target(d, 'bin', render);
       c.appendChild(d);
@@ -31,7 +31,7 @@ const Desktop = (() => {
       d.addEventListener('contextmenu', e => {
         e.preventDefault(); e.stopPropagation();
         if (!sel.has(n.id)) select([n.id]);
-        Ctx.show(e.clientX, e.clientY, Explorer.itemMenu(n, { ids: [...sel], inBin: false, renameFn: startRename }), Explorer.itemWhere(n), Explorer.itemLabel(n) + ' på skrivebordet');
+        Ctx.show(e.clientX, e.clientY, Explorer.itemMenu(n, { ids: [...sel], inBin: false, renameFn: startRename }), Explorer.itemWhere(n), T('{0} på skrivebordet', Explorer.itemLabel(n)));
       });
       DnD.source(d, () => { if (!sel.has(n.id)) select([n.id]); return [...sel]; });
       if (n.type === 'folder') DnD.target(d, n.id, render);
@@ -61,7 +61,7 @@ const Desktop = (() => {
       else if (k === 'x') Explorer.doCut(ids, 'keyboard');
       else if (k === 'v') select(Explorer.doPaste(FS.roots().desktop, 'keyboard'));
       else if (k === 'a') select(FS.children(FS.roots().desktop).map(x => x.id));
-      else if (k === 'z') { if (FS.undo()) Toast.show('Angret.'); }
+      else if (k === 'z') { if (FS.undo()) Toast.show(T('Angret.')); }
       return;
     }
     if (e.key === 'Delete') { e.preventDefault(); Bus.emit('shortcut', { key: 'delete', app: 'desktop' }); Explorer.doDelete(ids, 'keyboard'); }
@@ -78,10 +78,10 @@ const Desktop = (() => {
       Ctx.show(e.clientX, e.clientY, Explorer.bgMenu(FS.roots().desktop, {
         inBin: false, via: 'desktop', refresh: render, renameFn: startRename, afterPaste: select,
         extra: [
-          { label: 'Skjerminnstillinger', icon: Icons.app('innstillinger', 16), action: () => Apps.launch('innstillinger') },
-          { label: 'Tilpass', sub: [{ label: 'Standard bakgrunn', action: () => setBackground(null) }, { label: 'Velg et bilde …', action: () => Toast.show('Høyreklikk på et bilde i Filutforsker og velg «Angi som skrivebordsbakgrunn».') }] }
+          { label: T('Skjerminnstillinger'), icon: Icons.app('innstillinger', 16), action: () => Apps.launch('innstillinger') },
+          { label: T('Tilpass'), sub: [{ label: T('Standard bakgrunn'), action: () => setBackground(null) }, { label: T('Velg et bilde …'), action: () => Toast.show(T('Høyreklikk på et bilde i Filutforsker og velg «Angi som skrivebordsbakgrunn».')) }] }
         ]
-      }), 'desktop', 'skrivebordet (bakgrunnen)');
+      }), 'desktop', T('skrivebordet (bakgrunnen)'));
     });
     desk.addEventListener('pointerdown', e => {
       if (e.target.closest('#startmenu, #ctxmenu')) return;
@@ -98,11 +98,11 @@ const Desktop = (() => {
   /* Skrivebordsbakgrunn: fargen utledes av bildets navn, slik at «Angi som bakgrunn» gir synlig effekt */
   function setBackground(name, quiet) {
     const desk = document.getElementById('desktop');
-    if (!name) { desk.style.background = ''; localStorage.removeItem('dt-bg'); if (!quiet) Toast.show('Bakgrunnen er tilbakestilt.'); return; }
+    if (!name) { desk.style.background = ''; localStorage.removeItem('dt-bg'); if (!quiet) Toast.show(T('Bakgrunnen er tilbakestilt.')); return; }
     const hue = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
     desk.style.background = `radial-gradient(ellipse at 20% 20%, hsl(${hue},70%,75%) 0%, hsl(${hue},55%,45%) 40%, hsl(${hue},50%,22%) 100%)`;
     localStorage.setItem('dt-bg', name);
-    if (!quiet) { Bus.emit('set-background', { name }); Toast.show('«' + name + '» er nå skrivebordsbakgrunn.'); }
+    if (!quiet) { Bus.emit('set-background', { name }); Toast.show(T('«{0}» er nå skrivebordsbakgrunn.', name)); }
   }
   return { init, render, select, startRename, onKey, setBackground };
 })();
@@ -113,7 +113,7 @@ const Fullscreen = {
   enter() {
     const p = document.documentElement.requestFullscreen ? document.documentElement.requestFullscreen({ navigationUI: 'hide' }) : Promise.reject(new Error('unsupported'));
     return Promise.resolve(p).then(() => Bus.emit('fullscreen', { on: true }))
-      .catch(() => Toast.show('Nettleseren tillot ikke fullskjerm her. Trykk F11 for å slå på fullskjerm.', 5000));
+      .catch(() => Toast.show(T('Nettleseren tillot ikke fullskjerm her. Trykk F11 for å slå på fullskjerm.'), 5000));
   },
   exit() { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); },
   toggle() { this.on() ? this.exit() : this.enter(); },
@@ -121,7 +121,13 @@ const Fullscreen = {
      og ett klikk hvor som helst starter fullskjerm. Deretter kjøres done(), som viser introduksjonen. */
   overlay(done) {
     if (document.fullscreenElement) { if (done) done(); return; }
-    const o = el(`<div id="fs-overlay"><div class="fso-box"><div class="fso-logo">💻</div><h1>Datatrening</h1><p class="fso-sub">Øvings-PC for skolen. Dette er en simulering i nettleseren, ikke en ekte PC.</p><p>Klikk hvor som helst for å starte i fullskjerm.</p><p class="fso-tip">Tips: <kbd>F11</kbd> slår fullskjerm av og på. <kbd>Esc</kbd> avslutter fullskjerm.</p></div></div>`);
+    const o = el(`<div id="fs-overlay"><div class="fso-box"><div class="fso-logo">💻</div><h1>Datatrening</h1>${T('<p class="fso-sub">Øvings-PC for skolen. Dette er en simulering i nettleseren, ikke en ekte PC.</p><p>Klikk hvor som helst for å starte i fullskjerm.</p><p class="fso-tip">Tips: <kbd>F11</kbd> slår fullskjerm av og på. <kbd>Esc</kbd> avslutter fullskjerm.</p>')}</div></div>`);
+    /* Lenke til det andre språket. Klikket skal ikke starte fullskjerm, bare bytte side. */
+    if (window.otherLangUrl) {
+      const l = el(`<p class="fso-tip"><a class="fso-lang" href="${esc(otherLangUrl())}" style="color:#fff">🌐 ${esc(T('English version'))}</a></p>`);
+      l.querySelector('a').addEventListener('click', e => { e.stopPropagation(); Bus.emit('lang-switch', { where: 'overlay' }); });
+      o.querySelector('.fso-box').appendChild(l);
+    }
     o.addEventListener('click', () => {
       o.remove();
       /* Noen nettlesere bruker tid på å svare på fullskjerm-forespørselen, og enkelte svarer aldri.
@@ -139,7 +145,7 @@ window.Desktop = Desktop;
 window.Fullscreen = Fullscreen;
 document.addEventListener('fullscreenchange', () => {
   const b = document.querySelector('.fs-btn');
-  if (b) b.title = document.fullscreenElement ? 'Avslutt fullskjerm (Esc eller F11)' : 'Fullskjerm (F11)';
+  if (b) b.title = document.fullscreenElement ? T('Avslutt fullskjerm (Esc eller F11)') : T('Fullskjerm (F11)');
   Bus.emit('fullscreen', { on: !!document.fullscreenElement });
 });
 
@@ -153,7 +159,7 @@ const Recovery = {
   },
   bar(msg) {
     if (document.getElementById('recovery')) return;
-    const b = el(`<div id="recovery"><span>${esc(msg)}</span><button class="btn small">Nullstill øvings-PC-en</button></div>`);
+    const b = el(`<div id="recovery"><span>${esc(msg)}</span><button class="btn small">${T('Nullstill øvings-PC-en')}</button></div>`);
     b.querySelector('button').addEventListener('click', () => Recovery.hardReset(false));
     document.body.appendChild(b);
   }
@@ -172,7 +178,7 @@ const Recovery = {
   } catch (e) { /* ignorer */ }
 
   let errors = 0;
-  window.addEventListener('error', () => { if (++errors === 8) Recovery.bar('Siden har fått flere feil. Hvis den henger, nullstill øvings-PC-en.'); });
+  window.addEventListener('error', () => { if (++errors === 8) Recovery.bar(T('Siden har fått flere feil. Hvis den henger, nullstill øvings-PC-en.')); });
 
   try {
     FS.init();
@@ -180,7 +186,7 @@ const Recovery = {
     Desktop.init();
   } catch (e) {
     console.error(e);
-    Recovery.bar('Noe gikk galt under oppstart. Nullstill øvings-PC-en for å komme i gang igjen.');
+    Recovery.bar(T('Noe gikk galt under oppstart. Nullstill øvings-PC-en for å komme i gang igjen.'));
     return;
   }
 
@@ -207,7 +213,7 @@ const Recovery = {
   /* Hindre at nettleseren selv reagerer på Ctrl+S / Ctrl+P når fokus er på skrivebordet */
   document.addEventListener('keydown', e => { if (e.ctrlKey && ['s', 'p'].includes(e.key.toLowerCase()) && !(e.target.closest && e.target.closest('#coach'))) e.preventDefault(); });
 
-  try { Coach.init(); } catch (e) { console.error(e); Recovery.bar('Veilederen kunne ikke starte. Nullstill øvings-PC-en for å komme i gang igjen.'); }
+  try { Coach.init(); } catch (e) { console.error(e); Recovery.bar(T('Veilederen kunne ikke starte. Nullstill øvings-PC-en for å komme i gang igjen.')); }
   /* Introduksjonen kommer etter at fullskjerm er satt i gang, så den ikke havner bak startbildet */
   const start = () => { try { if (window.Intro) Intro.auto(); } catch (e) { console.error(e); } };
   if (!window.__noFullscreenOverlay) Fullscreen.overlay(start); else start();

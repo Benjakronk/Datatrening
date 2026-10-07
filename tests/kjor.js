@@ -18,6 +18,8 @@ const HEAD = '<script>'
   + 'localStorage.clear();'
   + 'localStorage.setItem("dt-progress",JSON.stringify({name:"Testelev"}));'
   + 'localStorage.setItem("dt-progress-prog",JSON.stringify({name:"Testelev"}));'
+  + 'localStorage.setItem("dt-en-progress",JSON.stringify({name:"Testelev"}));'
+  + 'localStorage.setItem("dt-en-progress-prog",JSON.stringify({name:"Testelev"}));'
   + 'window.__noFullscreenOverlay=true;window.__log=[];'
   + 'window.onerror=(m,s,l)=>window.__log.push("ERROR: "+m+" @"+String(s).split("/").pop()+":"+l);'
   + 'window.addEventListener("unhandledrejection",e=>window.__log.push("REJECTION: "+(e.reason&&e.reason.stack||e.reason)));'
@@ -27,26 +29,35 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dt-test-'));
 const made = [];
 let failed = 0;
 
-for (const [navn, side] of [['grunnkurset', 'index.html'], ['programmering', 'programmering.html']]) {
+/* De engelske sidene ligger i en/, så testsiden legges der og henter testskriptet med ../ */
+const SIDER = [['grunnkurset', 'index.html'], ['programmering', 'programmering.html'],
+  ['grunnkurset-en', 'en/index.html'], ['programmering-en', 'en/programming.html']];
+for (const [navn, side] of SIDER) {
   const src = fs.readFileSync(path.join(ROOT, side), 'utf8');
-  const harness = '_test-' + navn + '.html';
+  const opp = side.includes('/') ? '../' : '';
+  const harness = side.replace(/[^/]*$/, '_test-' + navn + '.html');
   fs.writeFileSync(path.join(ROOT, harness),
     src.replace('<head>', '<head>' + HEAD)
-       .replace('</body>', '<pre id="testlog"></pre><script src="tests/coachtest.js"></script></body>'));
+       .replace('</body>', '<pre id="testlog"></pre><script src="' + opp + 'tests/coachtest.js"></script></body>'));
   made.push(harness);
 
-  const dom = execFileSync(EDGE, [
-    '--headless=new', '--disable-gpu', '--no-first-run',
-    '--user-data-dir=' + path.join(tmp, navn),
-    '--window-size=1500,900', '--virtual-time-budget=120000',
-    '--dump-dom', 'file:///' + path.join(ROOT, harness).replace(/\\/g, '/')
-  ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+  /* Edge blir av og til hengende etter at siden er skrevet ut. Da stoppes den etter tre minutter,
+     og det den rakk å skrive ut, brukes likevel. */
+  let dom;
+  try {
+    dom = execFileSync(EDGE, [
+      '--headless=new', '--disable-gpu', '--no-first-run',
+      '--user-data-dir=' + path.join(tmp, navn),
+      '--window-size=1500,900', '--virtual-time-budget=120000',
+      '--dump-dom', 'file:///' + path.join(ROOT, harness).replace(/\\/g, '/')
+    ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'], timeout: 180000 });
+  } catch (e) { dom = String(e.stdout || ''); }
 
   const m = dom.match(/<pre id="testlog">([\s\S]*?)<\/pre>/);
   const logg = m ? m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'") : '';
   const linjer = logg.split(/(?=PASS |FAIL |EXCEPTION|INFO |ERROR|REJECTION)/).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
   const feil = linjer.filter(x => /^(FAIL|EXCEPTION|ERROR|REJECTION)/.test(x));
-  failed += feil.length;
+  failed += feil.length + (/TESTDONE/.test(dom) ? 0 : 1);
   console.log(`\n${navn}: ${linjer.filter(x => x.startsWith('PASS')).length} ok, ${feil.length} feil` + (/TESTDONE/.test(dom) ? '' : '  (testen ble ikke ferdig)'));
   linjer.filter(x => !x.startsWith('PASS')).forEach(x => console.log('   ' + x.slice(0, 200)));
 }
