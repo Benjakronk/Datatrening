@@ -34,9 +34,12 @@ const Coach = (() => {
     /* Filen ligger i en mappe med dette navnet (f.eks. «Engelsk»), uansett hvor mappen ligger.
        Brukes for fagmapper, så en elev som har laget sin egen fagmappe et annet sted også får godkjent. */
     fileInNamed(name, folderName) {
-      const f = FS.findByName(name, 'file'); if (!f) return false;
-      const p = FS.get(f.parent); if (!p) return false;
-      return p.name.trim().toLowerCase().includes(folderName.toLowerCase());
+      /* Alle filer med navnet sjekkes: har eleven først lagret feil sted og så riktig,
+         finnes det to like filer, og den riktige skal godkjennes selv om den feile ligger først */
+      const l = name.toLowerCase();
+      return FS.findAll(c => c.type === 'file' && c.name.toLowerCase() === l).some(f => {
+        const p = FS.get(f.parent); return !!p && p.name.trim().toLowerCase().includes(folderName.toLowerCase());
+      });
     },
     /* Som fileInNamed, men for en fil eleven selv har navngitt: finn på innhold eller filtype */
     anyFileInNamed(folderName, pred) {
