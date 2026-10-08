@@ -16,8 +16,19 @@ const M = {
     return FS.findAll(c => c.type === 'folder' && c.name.trim().toLowerCase() === parent.toLowerCase())
       .some(p => FS.children(p.id).some(c => pred(c)));
   },
-  /* Is the file in OneDrive (at any depth)? */
-  inOneDrive(name) { const f = FS.findByName(name, 'file'); return !!f && FS.isDesc(f.id, FS.roots().onedrive); },
+  /* Is there a matching file in OneDrive (at any depth)? Every file is checked, not just the first:
+     if the student first saved in the wrong place (or opened the attachment, which makes a copy in Downloads),
+     the correct copy in OneDrive should still be accepted. */
+  fileInOneDrive(pred) { return FS.findAll(c => c.type === 'file' && pred(c)).some(f => FS.isDesc(f.id, FS.roots().onedrive)); },
+  inOneDrive(name) { const l = name.toLowerCase(); return M.fileInOneDrive(c => c.name.toLowerCase() === l); },
+  /* A file in OneDrive whose text starts like this (the student may have given the file another name) */
+  contentInOneDrive(prefix) { return M.fileInOneDrive(c => Skriv.plainText(c.content || '').startsWith(prefix)); },
+  /* Every file (also in the Recycle Bin) whose text starts like this */
+  byContentAll(prefix, opts) { return FS.findAll(c => c.type === 'file' && Skriv.plainText(c.content || '').startsWith(prefix), opts); },
+  /* Silently removes every file with a matching name (used in setups, e.g. "Master-test" and "Master test") */
+  removeWhere(re) { [...new Set(FS.findAll(c => c.type === 'file' && re.test(c.name), { includeBin: true }).map(c => c.name))].forEach(n => FS.silentRemoveAll(n)); },
+  /* Is a File Explorer window already showing a matching folder? (then no new navigation happens) */
+  explorerIn(pred) { return typeof Explorer !== 'undefined' && Explorer.views.some(v => { const n = FS.get(v.cwd); return !!n && pred(n); }); },
   nodeInOneDrive(n) { return !!n && FS.isDesc(n.id, FS.roots().onedrive); },
   /* A subject name we accept as "a subject folder" (English names, plus the Norwegian ones) */
   isFag(name) { return /norwegian|maths?|mathematics|english|science|social|religion|music|\bart\b|food|\bpe\b|physical|spanish|german|french|norsk|matte|engelsk|naturfag|samfunn|krle|musikk|kunst|mat og helse|gym|kroppsøving|spansk|tysk|fransk/i.test(name || ''); },
@@ -58,10 +69,10 @@ const KURS_EPOST = {
         { laer: true, quiz: { q: 'What is an attachment?', options: ['A file that comes with an email', 'A link to a website', 'A picture in the signature'], answer: 0 } },
         { laer: true, quiz: { q: 'You open an attachment and write in it without saving it first. What is the risk?', options: ['None, it saves automatically', 'You are working in a temporary copy, and your work can disappear', 'The email gets deleted'], answer: 1 } },
         { laer: true, quiz: { q: 'When should you use “Reply all”?', options: ['Always, just to be safe', 'Never', 'Only when everyone who got the message needs the reply'], answer: 2 } },
-        { text: 'Open <b>Mail</b> from the taskbar. Messages you haven\'t read are shown in bold.', check: S => S.ev('window-open', d => d.app === 'epost') },
+        { text: 'Open <b>Mail</b> from the taskbar. Messages you haven\'t read are shown in bold.', check: S => S.ev('window-open', d => d.app === 'epost') || S.wins('epost') > 0 },
         { text: 'Open the message <b>Book report template</b> from your teacher.', check: S => S.ev('mail-open', d => /book report/i.test(d.subject)) },
-        { text: 'The message has an attachment. Click <b>Save as …</b> next to the attachment, and save it in <b>OneDrive › School › Norwegian</b>.', hint: 'In the window that opens: click your way to OneDrive, then School, then Norwegian, and click Save.', check: S => M.inOneDrive('Book-report-template.docx') },
-        { text: 'Go to File Explorer and check that the file is in the <b>Norwegian</b> folder.', check: S => S.ev('explorer-nav', d => /norwegian/i.test(d.name)) },
+        { text: 'The message has an attachment. Click <b>Save as …</b> next to the attachment, and save it in <b>OneDrive › School › Norwegian</b>.', hint: 'In the window that opens: click your way to OneDrive, then School, then Norwegian, and click Save. If it ended up in the wrong place, just click Save as … again.', check: S => M.inOneDrive('Book-report-template.docx') || M.contentInOneDrive('BOOK REPORT') },
+        { text: 'Go to File Explorer and check that the file is in the <b>Norwegian</b> folder.', check: S => S.ev('explorer-nav', d => /norwegian/i.test(d.name)) || M.explorerIn(n => /norwegian/i.test(n.name)) },
         { text: 'Back in Mail: open the message from <b>Jonas</b> and click <b>Reply</b> (not Reply all, since only Jonas asked).', check: S => S.ev('mail-compose', d => d.reply && !d.all) },
         { text: 'Write a short reply and click <b>Send</b>.', check: S => S.ev('mail-send', d => d.reply && (d.body || '').trim().length > 3) }
       ]
@@ -111,7 +122,7 @@ const KURS_NOTATER = {
         { laer: true, quiz: { q: 'What are the three levels in OneNote, from biggest to smallest?', options: ['Page, section, notebook', 'Notebook, section, page', 'Folder, file, text'], answer: 1 } },
         { laer: true, quiz: { q: 'How do you save in OneNote?', options: ['Ctrl+S after every sentence', 'You don\'t need to save, it happens automatically', 'With File and Save As'], answer: 1 } },
         { laer: true, quiz: { q: 'OneNote looks a bit different on a classmate\'s PC. What stays the same?', options: ['The structure: notebook, section and page', 'The colours of the sections', 'Nothing'], answer: 0 } },
-        { text: 'Open <b>Notes</b> from the taskbar. On the left you can see the sections <b>Norwegian</b> and <b>Maths</b>.', check: S => S.ev('notes-app-open') },
+        { text: 'Open <b>Notes</b> from the taskbar. On the left you can see the sections <b>Norwegian</b> and <b>Maths</b>.', check: S => S.ev('notes-app-open') || S.wins('notater') > 0 },
         { text: 'Click the <b>Maths</b> section and read the page that is there.', check: S => S.ev('notes-open-section', d => /maths/i.test(d.name)) },
         { text: 'Make a new section for a subject you have: click <b>+ Add section</b> and name it <b>Science</b>.', check: S => S.notes().sections.some(s => /science/i.test(s)) },
         { text: 'Make a <b>new page</b> in Science and call it <b>Photosynthesis</b>.', hint: 'Make sure Science is selected on the left first. Then click “+ Add page” in the middle.', check: S => S.notes().pages.some(p => /photosynthesis/i.test(p.title) && /science/i.test(p.section)) },
@@ -124,7 +135,7 @@ const KURS_NOTATER = {
       setup: F => { if (window.Notater) Notater.reset(); },
       steps: [
         { text: 'Make a section called <b>English</b>.', check: S => S.notes().sections.some(s => /english/i.test(s)) },
-        { text: 'Make a page in <b>Norwegian</b> called <b>Vocabulary</b>. It really belongs in English, but make it in Norwegian first.', check: S => S.notes().pages.some(p => /vocabulary/i.test(p.title) && /norwegian/i.test(p.section)) },
+        { text: 'Make a page in <b>Norwegian</b> called <b>Vocabulary</b>. It really belongs in English, but make it in Norwegian first.', hint: 'Click the Norwegian section on the left first, so the new page ends up there. Did it end up in the wrong section? Right-click the page and choose Move to section → Norwegian.', check: S => S.notes().pages.some(p => /vocabulary/i.test(p.title) && /norwegian/i.test(p.section)) },
         { text: 'Move the page to the right section: right-click <b>Vocabulary</b> in the page list and choose <b>Move to section → English</b>.', hint: 'Right-click the page name itself in the middle list.', check: S => S.notes().pages.some(p => /vocabulary/i.test(p.title) && /english/i.test(p.section)) },
         { text: 'Write at least three words on the page, for example “house = hus”.', check: S => S.notes().pages.some(p => /vocabulary/i.test(p.title) && p.text.trim().length > 15) },
         { text: 'Use the <b>search box</b> at the top right and search for a word you wrote on the vocabulary page.', hint: 'The search looks in both the titles and the text on the pages.', check: S => S.ev('notes-search', d => (d.query || '').length >= 3) },
@@ -167,10 +178,10 @@ const KURS_HJELP = {
         { laer: true, quiz: { q: 'You can\'t find a file. Where is it a good idea to look first?', options: ['Search for the name in File Explorer and look in the Recycle Bin', 'Make the file again', 'Restart the PC'], answer: 0 } },
         { laer: true, quiz: { q: 'What does Ctrl+Z do?', options: ['Saves', 'Undoes the last thing you did', 'Closes the app'], answer: 1 } },
         { text: 'The file <b>Important-assignment</b> has disappeared. Open File Explorer and <b>search</b> for “assignment” from This PC.', hint: 'Click This PC in the menu on the left, and type in the search box at the top right.', check: S => S.ev('search', d => /assign/i.test(d.query)) },
-        { text: 'The search can\'t find it, because it is in the <b>Recycle Bin</b>. Open the Recycle Bin.', check: S => S.ev('explorer-nav', d => d.name === 'Recycle Bin') },
+        { text: 'The search can\'t find it, because it is in the <b>Recycle Bin</b>. Open the Recycle Bin.', check: S => S.ev('explorer-nav', d => d.name === 'Recycle Bin') || M.explorerIn(n => n.id === FS.roots().bin) },
         { text: '<b>Restore</b> the file. It goes back to where it was.', check: S => !!S.file('Important-assignment.docx') && !S.inBin('Important-assignment.docx') },
         { text: 'Move it to <b>OneDrive › School › Norwegian</b>, so it is safe and saved automatically.', check: S => M.inOneDrive('Important-assignment.docx') },
-        { text: 'Delete it by accident again (select it and press <kbd>Delete</kbd>), and undo with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', check: S => S.ev('shortcut', d => d.key === 'z') && !!S.file('Important-assignment.docx') && !S.inBin('Important-assignment.docx') },
+        { text: 'Delete it by accident again (select it and press <kbd>Delete</kbd>), and undo with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', check: S => (S.ev('shortcut', d => d.key === 'z') || S.ev('fs', d => d.op === 'undo')) && !!S.file('Important-assignment.docx') && !S.inBin('Important-assignment.docx') },
         { quiz: { q: 'Where does a file go when you delete it in File Explorer?', options: ['It is gone for ever', 'To the Recycle Bin', 'To Downloads'], answer: 1 } }
       ]
     },
@@ -225,7 +236,7 @@ const KURS_HJELP = {
       { text: 'Finish the <b>Home row</b> exercise with at least <b>90% correct</b>. It is better to type slowly and correctly than fast and wrong.', check: S => S.ev('typing-done', d => d.acc >= 90) },
       { text: 'Switch to the <b>Q, X and Z</b> exercise and finish that one too.', check: S => S.ev('typing-done', d => d.level === 'aeoa') },
       { text: 'Try <b>Capitals and symbols</b>. Here you need <kbd>Shift</kbd>, and for some symbols <kbd>AltGr</kbd>.', check: S => S.ev('typing-done', d => d.level === 'tegn') },
-      { text: 'Do one more exercise and try to beat your own record in words per minute.', check: S => S.evCount('typing-done') >= 4 },
+      { text: 'Do one more exercise and try to beat your own record in words per minute.', check: S => S.ev('typing-done') },
       { quiz: { q: 'What matters most when you practise typing?', options: ['Typing correctly, the speed comes afterwards', 'Typing as fast as possible', 'Looking at the keyboard all the time'], answer: 0 } },
       { quiz: { q: 'Why do F and J have a little bump on them?', options: ['To show that they are broken', 'So you can find the home row without looking down', 'Because they are used the most'], answer: 1 } }
     ]
@@ -249,11 +260,13 @@ addMaster('k1', {
   title: 'Control the PC yourself',
   intro: 'Show that you can open apps, control windows and use right-click without instructions.',
   setup: F => { F.silentRemoveAll('Done'); F.silentRemoveAll('Test'); },
+  /* The windows the coach closes when the test starts (via 'oppdrag') must not count: the closing
+     is checked while earlier events are still included, and then the goals would be achieved from the start */
   goals: [
-    { text: 'Have <b>two apps open at the same time</b>', check: S => S.wins() >= 2 },
+    { text: 'Have <b>two apps open at the same time</b>', check: S => S.wins() >= 2 && !S.ev('window-close', d => d.via === 'oppdrag') },
     { text: 'Make a folder on the <b>desktop</b> called <b>Test</b>', check: S => S.folderIn('Test', P_DESK) },
     { text: 'Rename it to <b>Done</b>', check: S => S.folderIn('Done', P_DESK) },
-    { text: 'Close all the windows you have opened', check: S => S.ev('window-close') && S.wins() === 0 }
+    { text: 'Close all the windows you have opened', check: S => S.ev('window-close', d => d.via !== 'oppdrag') && S.wins() === 0 }
   ]
 }, [
   'Open File Explorer on your own PC and maximise the window.',
@@ -266,7 +279,7 @@ addMaster('k2', {
   intro: 'You are going to make a tidy structure in OneDrive, with no step-by-step instructions.',
   setup: F => { F.silentRemoveAll('Project'); },
   goals: [
-    { text: 'Make a folder called <b>Project</b> in OneDrive', check: S => { const f = FS.findAll(c => c.type === 'folder' && /^project$/i.test(c.name))[0]; return !!f && FS.isDesc(f.id, FS.roots().onedrive); } },
+    { text: 'Make a folder called <b>Project</b> in OneDrive', check: S => FS.findAll(c => c.type === 'folder' && /^project$/i.test(c.name.trim())).some(f => FS.isDesc(f.id, FS.roots().onedrive)) },
     { text: 'Make the folders <b>Text</b> and <b>Images</b> <i>inside</i> Project', check: S => M.folderInNamed('Text', 'Project') && M.folderInNamed('Images', 'Project') },
     { text: 'Open the Text folder, so the address bar shows OneDrive › … › Project › Text', check: S => S.ev('explorer-nav', d => /project/i.test(d.path) && /^text$/i.test(d.name)) }
   ]
@@ -298,11 +311,12 @@ addMaster('k4', {
   lukk: ['skriv'],
   title: 'From blank page to the right folder',
   intro: 'Write something new, save it in the right place with a good name, and find it again.',
-  setup: F => { F.silentRemoveAll('Master-test.docx'); F.ensureFolder(P_SK); },
+  /* "Master test" with a space (or no hyphen) is accepted too, many students type it that way */
+  setup: F => { M.removeWhere(/^master[\s-]?test\.(docx|txt)$/i); F.ensureFolder(P_SK); },
   goals: [
     { text: 'Write at least 40 characters in a new document in Write', check: S => S.editorText().trim().length >= 40 },
-    { text: 'Save it as <b>Master-test</b> in a <b>subject folder in OneDrive</b>', check: S => M.fileInFagmappe(c => /^master-test\.(docx|txt)$/i.test(c.name)) },
-    { text: 'Close Write and open the file again from File Explorer', check: S => S.ev('window-close', d => d.app === 'skriv') && S.ev('open-file', d => /^master-test/i.test(d.name)) }
+    { text: 'Save it as <b>Master-test</b> in a <b>subject folder in OneDrive</b>', check: S => M.fileInFagmappe(c => /^master[\s-]?test\.(docx|txt)$/i.test(c.name)) },
+    { text: 'Close Write and open the file again from File Explorer', check: S => S.ev('window-close', d => d.app === 'skriv') && S.ev('open-file', d => /^master[\s-]?test\./i.test(d.name)) }
   ]
 }, [
   'Make a document in Word on your own PC and save it in the right subject folder in OneDrive.',
@@ -389,14 +403,18 @@ addMaster('k7', {
   title: 'Find, tidy and name',
   intro: 'A file with a bad name is somewhere on the PC. Find it, give it a good name and put it in the right place.',
   setup: F => {
+    /* Also remove the file from an earlier attempt, where it may have been renamed (otherwise the goals would be achieved from the start).
+       Silent removal: an event in the middle of the setup would check the goals while the old file still existed. */
+    [...new Set(M.byContentAll('English essay', { includeBin: true }).map(f => f.name))].forEach(n => F.silentRemoveAll(n));
     F.silentRemoveAll('document44.docx');
     F.ensureFolder(P_ENG);
     F.ensureFile([...P_DOC, 'Old', 'Projects'], 'document44.docx', 'English essay about London\n\nLondon is the capital of England.');
   },
+  /* Every file with the text is checked: if the student copied instead of moving, the original is still there with the old name */
   goals: [
     { text: 'Find the file <b>document44</b> with search', check: S => S.ev('search', d => /document44|document/i.test(d.query)) },
-    { text: 'Give it a <b>good name</b> that says what it contains', check: S => { const f = S.byContent('English essay'); return !!f && !/^document/i.test(f.name) && f.name.length > 8; } },
-    { text: 'Put it in the right <b>subject folder</b> in OneDrive', check: S => { const f = S.byContent('English essay'); if (!f) return false; const p = FS.get(f.parent); return !!p && /engelsk|english/i.test(p.name) && FS.isDesc(f.id, FS.roots().onedrive); } }
+    { text: 'Give it a <b>good name</b> that says what it contains', check: S => M.byContentAll('English essay').some(f => !/^document/i.test(f.name) && f.name.length > 8) },
+    { text: 'Put it in the right <b>subject folder</b> in OneDrive', check: S => M.byContentAll('English essay').some(f => { const p = FS.get(f.parent); return !!p && /engelsk|english/i.test(p.name) && FS.isDesc(f.id, FS.roots().onedrive); }) }
   ]
 }, [
   'Find a file on your own PC with the search box in File Explorer.',
@@ -407,12 +425,12 @@ addMaster('k8', {
   lukk: ['skriv','skrivetrening'],
   title: 'The keyboard is in your fingers',
   intro: 'Show that your fingers find their way, both on the letters and on the shortcuts.',
-  setup: F => { F.silentRemoveAll('Keyboard-test.docx'); },
+  setup: F => { M.removeWhere(/^keyboard[\s-]?test\.(docx|txt)$/i); },
   goals: [
     { text: 'Finish a typing exercise with at least <b>92% correct</b>', check: S => S.ev('typing-done', d => d.acc >= 92) },
     { text: 'Type an email address with <b>@</b> in a document in Write', check: S => /\S+@\S+\.\w/.test(S.editorText()) },
     { text: 'Use <b>Ctrl</b>+<b>C</b> and <b>Ctrl</b>+<b>V</b> in Write', check: S => S.ev('shortcut', d => d.ctrl && d.key === 'c' && d.app === 'skriv') && S.ev('shortcut', d => d.ctrl && d.key === 'v' && d.app === 'skriv') },
-    { text: 'Save the document as <b>Keyboard-test</b>', check: S => !!S.file('Keyboard-test.docx') }
+    { text: 'Save the document as <b>Keyboard-test</b>', check: S => FS.findAll(c => c.type === 'file' && /^keyboard[\s-]?test\.(docx|txt)$/i.test(c.name)).length > 0 }
   ]
 }, [
   'Do a typing exercise on your own PC without looking at the keyboard.',
@@ -442,30 +460,33 @@ addMaster('kh', {
 
 /* ============================================================
    WEEKLY PRACTICE: short tasks without hints, taken from completed courses
+   The tasks come in random order and without any window setup, so a document or
+   a window from an earlier task may already be open. Checks on the content in Write
+   and Notes therefore also require an event, so they aren't passed before the student has done anything.
    ============================================================ */
 const REPETISJON = [
-  { id: 'rp1', kurs: 'k1', text: 'Open <b>File Explorer</b> and maximise the window.', check: S => S.ev('window-max', d => d.app === 'explorer') },
+  { id: 'rp1', kurs: 'k1', lukk: ['explorer'], text: 'Open <b>File Explorer</b> and maximise the window.', check: S => S.ev('window-max', d => d.app === 'explorer') },
   { id: 'rp2', kurs: 'k1', text: 'Right-click the <b>desktop</b> and close the menu again with <kbd>Esc</kbd>.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') && S.ev('ctxmenu-close', d => d.via === 'esc') },
   { id: 'rp3', kurs: 'k2', text: 'Make a folder called <b>Weekly test</b> in Documents.', setup: F => F.silentRemoveAll('Weekly test'), check: S => S.folderIn('Weekly test', P_DOC) },
   { id: 'rp4', kurs: 'k2', text: 'Go to <b>OneDrive › School</b> in File Explorer.', check: S => S.ev('explorer-nav', d => /^school$/i.test(d.name)) },
   { id: 'rp5', kurs: 'k3', text: 'Copy the file <b>week-file.txt</b> from the desktop to Documents.', setup: F => { F.silentRemoveAll('week-file.txt'); F.ensureFileAt(P_DESK, 'week-file.txt', 'Test file'); }, check: S => S.fileIn('week-file.txt', P_DOC) && S.fileIn('week-file.txt', P_DESK) },
   { id: 'rp6', kurs: 'k3', text: 'Delete the file <b>delete-me.txt</b> from the desktop, and empty the Recycle Bin afterwards.', setup: F => { F.silentRemoveAll('delete-me.txt'); F.ensureFileAt(P_DESK, 'delete-me.txt', 'Delete me'); }, check: S => S.gone('delete-me.txt') },
   { id: 'rp7', kurs: 'k3', text: 'Move <b>move-me.txt</b> from Downloads to Documents.', setup: F => { F.silentRemoveAll('move-me.txt'); F.ensureFileAt(P_DL, 'move-me.txt', 'Move me'); }, check: S => S.fileIn('move-me.txt', P_DOC) },
-  { id: 'rp8', kurs: 'k4', text: 'Make a document in Write, type your name, and save it as <b>Weekly-note</b> in OneDrive.', setup: F => F.silentRemoveAll('Weekly-note.docx'), check: S => M.inOneDrive('Weekly-note.docx') },
+  { id: 'rp8', kurs: 'k4', text: 'Make a document in Write, type your name, and save it as <b>Weekly-note</b> in OneDrive.', setup: F => M.removeWhere(/^weekly[\s-]?note\.(docx|txt)$/i), check: S => M.fileInOneDrive(c => /^weekly[\s-]?note\.(docx|txt)$/i.test(c.name)) },
   { id: 'rp9', kurs: 'k4', text: 'Turn on <b>File name extensions</b> in File Explorer.', setup: F => { if (Explorer.settings.showExt) Explorer.setShowExt(false, 'rep'); }, check: S => S.ev('show-ext', d => d.on) },
-  { id: 'rp10', kurs: 'kf', text: 'Write a sentence in Write and make at least one word <b>bold</b>.', check: S => S.skriv().bold },
-  { id: 'rp11', kurs: 'kf', text: 'Make a <b>bulleted list</b> with two points in Write.', check: S => S.skriv().lists.includes('ul') && S.skriv().listItems >= 2 },
+  { id: 'rp10', kurs: 'kf', text: 'Write a sentence in Write and make at least one word <b>bold</b>.', check: S => S.ev('format', d => d.cmd === 'bold') && S.skriv().bold },
+  { id: 'rp11', kurs: 'kf', text: 'Make a <b>bulleted list</b> with two points in Write.', check: S => S.ev('format', d => d.cmd === 'insertUnorderedList') && S.skriv().lists.includes('ul') && S.skriv().listItems >= 2 },
   { id: 'rp12', kurs: 'kf', text: 'Set the font to <b>Arial</b> on some text you have selected in Write.', check: S => S.ev('format', d => d.cmd === 'fontName' && /arial/i.test(d.value)) },
   { id: 'rp13', kurs: 'k5', text: 'Download <b>Worksheet on fractions</b> from the School Portal and move the file to OneDrive.', setup: F => F.silentRemoveAll('Worksheet-fractions.pdf'), check: S => M.inOneDrive('Worksheet-fractions.pdf') },
   { id: 'rp14', kurs: 'ke', text: 'Save the attachment in the message <b>Weekly plan week 39</b> in Documents.', setup: F => { if (window.Epost) Epost.reset(); F.silentRemoveAll('Weekly-plan-week-39.pdf'); }, check: S => !!S.file('Weekly-plan-week-39.pdf') },
   { id: 'rp15', kurs: 'ke', text: 'Send an email to <b>kari.hansen@skolen.no</b> with a subject and a message.', check: S => S.ev('mail-send', d => /kari/i.test(d.to) && (d.subject || '').length > 2) },
   { id: 'rp16', kurs: 'k6', text: 'Hand in <b>Maths: Fraction exercises</b> in Assignments with a file from OneDrive.', setup: F => { F.ensureFolder(P_MATTE); F.ensureFileAt(P_MATTE, 'Worksheet-fractions.pdf', 'Fractions'); if (window.Innlevering) Innlevering.reset('matte-brok'); }, check: S => S.ev('submit', d => d.assignment === 'matte-brok') },
-  { id: 'rp17', kurs: 'kn', text: 'Make a new page in Notes called <b>Word of the week</b>, and write something on it.', check: S => S.notes().pages.some(p => /word of the week/i.test(p.title) && p.text.trim().length > 5) },
+  { id: 'rp17', kurs: 'kn', text: 'Make a new page in Notes called <b>Word of the week</b>, and write something on it.', check: S => S.ev('notes-edit', d => /word of the week/i.test(d.page || '')) && S.notes().pages.some(p => /word of the week/i.test(p.title) && p.text.trim().length > 5) },
   { id: 'rp18', kurs: 'kn', text: 'Search the notebook for a word you have written.', check: S => S.ev('notes-search', d => (d.query || '').length >= 3) },
   { id: 'rp19', kurs: 'k7', text: 'Search for <b>budget</b> in File Explorer and open the result.', setup: F => F.ensureFile([...P_DOC, 'Year 7', 'Projects', 'Class trip'], 'Class-trip-budget.xlsx', ''), check: S => S.ev('search', d => /budget/i.test(d.query)) && S.ev('open-file', d => /budget/i.test(d.name)) },
-  { id: 'rp20', kurs: 'k7', text: 'Switch to <b>Details</b> view and sort by <b>Date modified</b>.', check: S => S.ev('view', d => d.view === 'details') && S.ev('sort', d => d.by === 'modified') },
+  { id: 'rp20', kurs: 'k7', text: 'Switch to <b>Details</b> view and sort by <b>Date modified</b>.', check: S => (S.ev('view', d => d.view === 'details') || Explorer.views.some(v => v.view === 'details')) && S.ev('sort', d => d.by === 'modified') },
   { id: 'rp21', kurs: 'k8', text: 'Finish a typing exercise in Typing Practice.', check: S => S.ev('typing-done') },
-  { id: 'rp22', kurs: 'k8', text: 'Type <b>test@skolen.no</b> in a document in Write.', check: S => /test@skolen\.no/i.test(S.editorText()) },
-  { id: 'rp23', kurs: 'kh', text: 'Delete <b>undo-me.txt</b> from the desktop, and undo with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', setup: F => { F.silentRemoveAll('undo-me.txt'); F.ensureFileAt(P_DESK, 'undo-me.txt', 'Undo me'); }, check: S => S.ev('shortcut', d => d.key === 'z') && S.fileIn('undo-me.txt', P_DESK) },
-  { id: 'rp24', kurs: 'kh', text: 'Open <b>Task Manager</b> from the taskbar.', check: S => S.ev('window-open', d => d.app === 'taskmgr') }
+  { id: 'rp22', kurs: 'k8', text: 'Type <b>test@skolen.no</b> in a document in Write.', check: S => S.ev('editor-input') && /test@skolen\.no/i.test(S.editorText()) },
+  { id: 'rp23', kurs: 'kh', text: 'Delete <b>undo-me.txt</b> from the desktop, and undo with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', setup: F => { F.silentRemoveAll('undo-me.txt'); F.ensureFileAt(P_DESK, 'undo-me.txt', 'Undo me'); }, check: S => (S.ev('shortcut', d => d.key === 'z') || S.ev('fs', d => d.op === 'undo')) && S.fileIn('undo-me.txt', P_DESK) },
+  { id: 'rp24', kurs: 'kh', lukk: ['taskmgr'], text: 'Open <b>Task Manager</b> from the taskbar.', check: S => S.ev('window-open', d => d.app === 'taskmgr') }
 ];

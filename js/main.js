@@ -11,7 +11,7 @@ const Desktop = (() => {
     ];
     specials.forEach(s => {
       const d = el(`<div class="dicon" data-id="${s.id}"><div class="ico">${s.icon}</div><div class="name"><span class="nm">${esc(s.name)}</span></div></div>`);
-      d.addEventListener('click', e => { e.stopPropagation(); select([s.id]); });
+      d.addEventListener('click', e => { e.stopPropagation(); WM.deactivate(); select([s.id]); });
       d.addEventListener('dblclick', e => { e.stopPropagation(); Bus.emit('desktop-open', { name: s.name }); Explorer.open(s.id); });
       d.addEventListener('contextmenu', e => {
         e.preventDefault(); e.stopPropagation(); select([s.id]);
@@ -26,7 +26,8 @@ const Desktop = (() => {
     Explorer.sortItems(FS.children(R.desktop), 'name', 1).forEach(n => {
       const isCut = Explorer.Clip.cut && Explorer.Clip.ids.includes(n.id);
       const d = el(`<div class="dicon${sel.has(n.id) ? ' selected' : ''}${isCut ? ' cut' : ''}" data-id="${n.id}"><div class="ico">${Icons.node(n, 48)}</div><div class="name"><span class="nm">${esc(FS.displayName(n, Explorer.settings.showExt))}</span></div></div>`);
-      d.addEventListener('click', e => { e.stopPropagation(); if (e.ctrlKey) { const s = new Set(sel); s.has(n.id) ? s.delete(n.id) : s.add(n.id); select([...s]); } else select([n.id]); });
+      /* Et klikk på et skrivebordsikon gjør skrivebordet aktivt, så Delete, F2 og Ctrl+C virker på ikonet og ikke på et åpent vindu */
+      d.addEventListener('click', e => { e.stopPropagation(); WM.deactivate(); if (e.ctrlKey) { const s = new Set(sel); s.has(n.id) ? s.delete(n.id) : s.add(n.id); select([...s]); } else select([n.id]); });
       d.addEventListener('dblclick', e => { e.stopPropagation(); if (e.target.tagName === 'INPUT') return; if (n.type === 'folder') Explorer.open(n.id); else Apps.openFile(n.id, { via: 'desktop' }); });
       d.addEventListener('contextmenu', e => {
         e.preventDefault(); e.stopPropagation();

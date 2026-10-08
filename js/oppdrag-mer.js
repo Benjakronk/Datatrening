@@ -16,8 +16,19 @@ const M = {
     return FS.findAll(c => c.type === 'folder' && c.name.trim().toLowerCase() === parent.toLowerCase())
       .some(p => FS.children(p.id).some(c => pred(c)));
   },
-  /* Ligger filen i OneDrive (uansett hvor dypt)? */
-  inOneDrive(name) { const f = FS.findByName(name, 'file'); return !!f && FS.isDesc(f.id, FS.roots().onedrive); },
+  /* Finnes det en fil i OneDrive (uansett hvor dypt) som passer? Alle filer sjekkes, ikke bare den første:
+     har eleven først lagret feil sted (eller åpnet vedlegget, som lager en kopi i Nedlastinger),
+     skal den riktige kopien i OneDrive likevel godkjennes. */
+  fileInOneDrive(pred) { return FS.findAll(c => c.type === 'file' && pred(c)).some(f => FS.isDesc(f.id, FS.roots().onedrive)); },
+  inOneDrive(name) { const l = name.toLowerCase(); return M.fileInOneDrive(c => c.name.toLowerCase() === l); },
+  /* En fil i OneDrive der teksten begynner slik (eleven kan ha gitt filen et annet navn) */
+  contentInOneDrive(prefix) { return M.fileInOneDrive(c => Skriv.plainText(c.content || '').startsWith(prefix)); },
+  /* Alle filer (også i papirkurven) der teksten begynner slik */
+  byContentAll(prefix, opts) { return FS.findAll(c => c.type === 'file' && Skriv.plainText(c.content || '').startsWith(prefix), opts); },
+  /* Fjerner stille alle filer med navn som passer (brukes i oppsett, f.eks. «Mesterprove» og «Mesterprøve») */
+  removeWhere(re) { [...new Set(FS.findAll(c => c.type === 'file' && re.test(c.name), { includeBin: true }).map(c => c.name))].forEach(n => FS.silentRemoveAll(n)); },
+  /* Står et Filutforsker-vindu allerede i en mappe som passer? (da kommer ingen ny navigering) */
+  explorerIn(pred) { return typeof Explorer !== 'undefined' && Explorer.views.some(v => { const n = FS.get(v.cwd); return !!n && pred(n); }); },
   nodeInOneDrive(n) { return !!n && FS.isDesc(n.id, FS.roots().onedrive); },
   /* Et fag-navn vi godtar som «en fagmappe» */
   isFag(name) { return /norsk|matte|matematikk|engelsk|naturfag|samfunn|krle|musikk|kunst|mat og helse|gym|kroppsøving|spansk|tysk|fransk/i.test(name || ''); },
@@ -58,10 +69,10 @@ const KURS_EPOST = {
         { laer: true, quiz: { q: 'Hva er et vedlegg?', options: ['En fil som henger ved en e-post', 'En lenke til en nettside', 'Et bilde i signaturen'], answer: 0 } },
         { laer: true, quiz: { q: 'Du åpner et vedlegg og skriver i det, uten å lagre det først. Hva er risikoen?', options: ['Ingen, det lagres automatisk', 'Du jobber i en midlertidig kopi, og arbeidet kan forsvinne', 'E-posten blir slettet'], answer: 1 } },
         { laer: true, quiz: { q: 'Når bør du bruke «Svar alle»?', options: ['Alltid, så er du sikker', 'Aldri', 'Bare når alle som fikk meldingen trenger svaret'], answer: 2 } },
-        { text: 'Åpne <b>E-post</b> fra oppgavelinjen. Meldinger du ikke har lest, står med fet skrift.', check: S => S.ev('window-open', d => d.app === 'epost') },
+        { text: 'Åpne <b>E-post</b> fra oppgavelinjen. Meldinger du ikke har lest, står med fet skrift.', check: S => S.ev('window-open', d => d.app === 'epost') || S.wins('epost') > 0 },
         { text: 'Åpne meldingen <b>Mal for bokrapport</b> fra læreren.', check: S => S.ev('mail-open', d => /bokrapport/i.test(d.subject)) },
-        { text: 'Meldingen har et vedlegg. Klikk <b>Lagre som …</b> ved vedlegget, og lagre det i <b>OneDrive › Skole › Norsk</b>.', hint: 'I vinduet som kommer opp: klikk deg frem til OneDrive, så Skole, så Norsk, og klikk Lagre.', check: S => M.inOneDrive('Bokrapport-mal.docx') },
-        { text: 'Gå til Filutforsker og sjekk at filen ligger i <b>Norsk</b>-mappen.', check: S => S.ev('explorer-nav', d => /norsk/i.test(d.name)) },
+        { text: 'Meldingen har et vedlegg. Klikk <b>Lagre som …</b> ved vedlegget, og lagre det i <b>OneDrive › Skole › Norsk</b>.', hint: 'I vinduet som kommer opp: klikk deg frem til OneDrive, så Skole, så Norsk, og klikk Lagre. Havnet den feil sted, klikker du bare Lagre som … igjen.', check: S => M.inOneDrive('Bokrapport-mal.docx') || M.contentInOneDrive('BOKRAPPORT') },
+        { text: 'Gå til Filutforsker og sjekk at filen ligger i <b>Norsk</b>-mappen.', check: S => S.ev('explorer-nav', d => /norsk/i.test(d.name)) || M.explorerIn(n => /norsk/i.test(n.name)) },
         { text: 'Tilbake i E-post: åpne meldingen fra <b>Jonas</b> og klikk <b>Svar</b> (ikke Svar alle, siden bare Jonas spurte).', check: S => S.ev('mail-compose', d => d.reply && !d.all) },
         { text: 'Skriv et kort svar og klikk <b>Send</b>.', check: S => S.ev('mail-send', d => d.reply && (d.body || '').trim().length > 3) }
       ]
@@ -111,7 +122,7 @@ const KURS_NOTATER = {
         { laer: true, quiz: { q: 'Hva er de tre nivåene i OneNote, fra størst til minst?', options: ['Side, inndeling, notatblokk', 'Notatblokk, inndeling, side', 'Mappe, fil, tekst'], answer: 1 } },
         { laer: true, quiz: { q: 'Hvordan lagrer du i OneNote?', options: ['Ctrl+S etter hver setning', 'Du trenger ikke lagre, det skjer automatisk', 'Via Fil og Lagre som'], answer: 1 } },
         { laer: true, quiz: { q: 'OneNote ser litt annerledes ut på PC-en til en medelev. Hva er likt?', options: ['Strukturen: notatblokk, inndeling og side', 'Fargene på inndelingene', 'Ingenting'], answer: 0 } },
-        { text: 'Åpne <b>Notater</b> fra oppgavelinjen. Til venstre ser du inndelingene <b>Norsk</b> og <b>Matte</b>.', check: S => S.ev('notes-app-open') },
+        { text: 'Åpne <b>Notater</b> fra oppgavelinjen. Til venstre ser du inndelingene <b>Norsk</b> og <b>Matte</b>.', check: S => S.ev('notes-app-open') || S.wins('notater') > 0 },
         { text: 'Klikk på inndelingen <b>Matte</b> og les siden som ligger der.', check: S => S.ev('notes-open-section', d => /matte/i.test(d.name)) },
         { text: 'Lag en ny inndeling for et fag du har: klikk <b>+ Ny inndeling</b> og gi den navnet <b>Naturfag</b>.', check: S => S.notes().sections.some(s => /naturfag/i.test(s)) },
         { text: 'Lag en <b>Ny side</b> i Naturfag og kall den <b>Fotosyntese</b>.', hint: 'Sørg for at Naturfag er valgt til venstre først. Klikk så «+ Ny side» i midten.', check: S => S.notes().pages.some(p => /fotosyntese/i.test(p.title) && /naturfag/i.test(p.section)) },
@@ -124,7 +135,7 @@ const KURS_NOTATER = {
       setup: F => { if (window.Notater) Notater.reset(); },
       steps: [
         { text: 'Lag en inndeling som heter <b>Engelsk</b>.', check: S => S.notes().sections.some(s => /engelsk/i.test(s)) },
-        { text: 'Lag en side i <b>Norsk</b> som heter <b>Gloser</b>. Den hører egentlig hjemme i Engelsk, men lag den i Norsk først.', check: S => S.notes().pages.some(p => /gloser/i.test(p.title) && /norsk/i.test(p.section)) },
+        { text: 'Lag en side i <b>Norsk</b> som heter <b>Gloser</b>. Den hører egentlig hjemme i Engelsk, men lag den i Norsk først.', hint: 'Klikk på inndelingen Norsk til venstre først, så havner den nye siden der. Havnet den i feil inndeling? Høyreklikk på siden og velg Flytt til inndeling → Norsk.', check: S => S.notes().pages.some(p => /gloser/i.test(p.title) && /norsk/i.test(p.section)) },
         { text: 'Flytt siden til riktig inndeling: høyreklikk på <b>Gloser</b> i sidelisten og velg <b>Flytt til inndeling → Engelsk</b>.', hint: 'Høyreklikk på selve sidenavnet i den midterste listen.', check: S => S.notes().pages.some(p => /gloser/i.test(p.title) && /engelsk/i.test(p.section)) },
         { text: 'Skriv minst tre gloser på siden, for eksempel «house = hus».', check: S => S.notes().pages.some(p => /gloser/i.test(p.title) && p.text.trim().length > 15) },
         { text: 'Bruk <b>søkefeltet</b> øverst til høyre og søk etter et ord du skrev på gloser-siden.', hint: 'Søket leter både i titlene og i teksten på sidene.', check: S => S.ev('notes-search', d => (d.query || '').length >= 3) },
@@ -167,10 +178,10 @@ const KURS_HJELP = {
         { laer: true, quiz: { q: 'Du finner ikke igjen en fil. Hvor er det lurt å lete først?', options: ['Søke etter navnet i Filutforsker og se i papirkurven', 'Lage filen på nytt', 'Starte PC-en på nytt'], answer: 0 } },
         { laer: true, quiz: { q: 'Hva gjør Ctrl+Z?', options: ['Lagrer', 'Angrer det siste du gjorde', 'Lukker programmet'], answer: 1 } },
         { text: 'Filen <b>Viktig-innlevering</b> er forsvunnet. Åpne Filutforsker og <b>søk</b> etter «innlevering» fra Denne PC-en.', hint: 'Klikk på Denne PC-en i menyen til venstre, og skriv i søkefeltet øverst til høyre.', check: S => S.ev('search', d => /innlev/i.test(d.query)) },
-        { text: 'Søket finner den ikke, for den ligger i <b>papirkurven</b>. Åpne Papirkurven.', check: S => S.ev('explorer-nav', d => d.name === 'Papirkurv') },
+        { text: 'Søket finner den ikke, for den ligger i <b>papirkurven</b>. Åpne Papirkurven.', check: S => S.ev('explorer-nav', d => d.name === 'Papirkurv') || M.explorerIn(n => n.id === FS.roots().bin) },
         { text: '<b>Gjenopprett</b> filen. Den går tilbake dit den lå.', check: S => !!S.file('Viktig-innlevering.docx') && !S.inBin('Viktig-innlevering.docx') },
         { text: 'Flytt den til <b>OneDrive › Skole › Norsk</b>, så den er trygg og autolagres.', check: S => M.inOneDrive('Viktig-innlevering.docx') },
-        { text: 'Slett den ved et uhell igjen (velg den og trykk <kbd>Delete</kbd>), og angre med <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', check: S => S.ev('shortcut', d => d.key === 'z') && !!S.file('Viktig-innlevering.docx') && !S.inBin('Viktig-innlevering.docx') },
+        { text: 'Slett den ved et uhell igjen (velg den og trykk <kbd>Delete</kbd>), og angre med <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', check: S => (S.ev('shortcut', d => d.key === 'z') || S.ev('fs', d => d.op === 'undo')) && !!S.file('Viktig-innlevering.docx') && !S.inBin('Viktig-innlevering.docx') },
         { quiz: { q: 'Hvor havner en fil du sletter i Filutforsker?', options: ['Den er borte for alltid', 'I papirkurven', 'I Nedlastinger'], answer: 1 } }
       ]
     },
@@ -225,7 +236,7 @@ const KURS_HJELP = {
       { text: 'Fullfør øvelsen <b>Hjemmeraden</b> med minst <b>90 % riktig</b>. Skriv heller sakte og riktig enn fort og feil.', check: S => S.ev('typing-done', d => d.acc >= 90) },
       { text: 'Bytt til øvelsen <b>Æ, Ø og Å</b> og fullfør den også.', check: S => S.ev('typing-done', d => d.level === 'aeoa') },
       { text: 'Prøv <b>Store bokstaver og tegn</b>. Her trenger du <kbd>Shift</kbd> og <kbd>AltGr</kbd>.', check: S => S.ev('typing-done', d => d.level === 'tegn') },
-      { text: 'Ta én øvelse til og prøv å slå din egen rekord i ord per minutt.', check: S => S.evCount('typing-done') >= 4 },
+      { text: 'Ta én øvelse til og prøv å slå din egen rekord i ord per minutt.', check: S => S.ev('typing-done') },
       { quiz: { q: 'Hva er viktigst når du øver på å skrive?', options: ['Å skrive riktig, farten kommer etterpå', 'Å skrive så fort som mulig', 'Å se på tastaturet hele tiden'], answer: 0 } },
       { quiz: { q: 'Hvorfor har F og J en liten kul på seg?', options: ['For å vise at de er ødelagte', 'Så du finner hjemmeraden uten å se ned', 'Fordi de brukes mest'], answer: 1 } }
     ]
@@ -249,11 +260,13 @@ addMaster('k1', {
   title: 'Styr PC-en selv',
   intro: 'Vis at du kan åpne programmer, styre vinduer og bruke høyreklikk uten oppskrift.',
   setup: F => { F.silentRemoveAll('Ferdig'); F.silentRemoveAll('Prøve'); },
+  /* Vinduene som veilederen lukker når prøven starter (via 'oppdrag'), skal ikke telle: lukkingen
+     sjekkes mens tidligere hendelser fortsatt er med, og da ville målene blitt oppnådd fra start */
   goals: [
-    { text: 'Ha <b>to programmer åpne samtidig</b>', check: S => S.wins() >= 2 },
+    { text: 'Ha <b>to programmer åpne samtidig</b>', check: S => S.wins() >= 2 && !S.ev('window-close', d => d.via === 'oppdrag') },
     { text: 'Lag en mappe på <b>skrivebordet</b> som heter <b>Prøve</b>', check: S => S.folderIn('Prøve', P_DESK) },
     { text: 'Gi den nytt navn til <b>Ferdig</b>', check: S => S.folderIn('Ferdig', P_DESK) },
-    { text: 'Lukk alle vinduene du har åpnet', check: S => S.ev('window-close') && S.wins() === 0 }
+    { text: 'Lukk alle vinduene du har åpnet', check: S => S.ev('window-close', d => d.via !== 'oppdrag') && S.wins() === 0 }
   ]
 }, [
   'Åpne Filutforsker på din egen PC og maksimer vinduet.',
@@ -266,7 +279,7 @@ addMaster('k2', {
   intro: 'Du skal lage en ryddig struktur i OneDrive, helt uten steg-for-steg.',
   setup: F => { F.silentRemoveAll('Prosjekt'); },
   goals: [
-    { text: 'Lag en mappe som heter <b>Prosjekt</b> i OneDrive', check: S => { const f = FS.findAll(c => c.type === 'folder' && /^prosjekt$/i.test(c.name))[0]; return !!f && FS.isDesc(f.id, FS.roots().onedrive); } },
+    { text: 'Lag en mappe som heter <b>Prosjekt</b> i OneDrive', check: S => FS.findAll(c => c.type === 'folder' && /^prosjekt$/i.test(c.name.trim())).some(f => FS.isDesc(f.id, FS.roots().onedrive)) },
     { text: 'Lag mappene <b>Tekst</b> og <b>Bilder</b> <i>inni</i> Prosjekt', check: S => M.folderInNamed('Tekst', 'Prosjekt') && M.folderInNamed('Bilder', 'Prosjekt') },
     { text: 'Åpne mappen Tekst, slik at adressefeltet viser OneDrive › … › Prosjekt › Tekst', check: S => S.ev('explorer-nav', d => /prosjekt/i.test(d.path) && /^tekst$/i.test(d.name)) }
   ]
@@ -298,11 +311,12 @@ addMaster('k4', {
   lukk: ['skriv'],
   title: 'Fra blankt ark til riktig mappe',
   intro: 'Skriv noe nytt, lagre det på riktig sted med et godt navn, og finn det igjen.',
-  setup: F => { F.silentRemoveAll('Mesterprove.docx'); F.ensureFolder(P_SK); },
+  /* «Mesterprøve» med ø godtas også, det er det mange skriver av vane */
+  setup: F => { M.removeWhere(/^mesterpr[oø]ve\.(docx|txt)$/i); F.ensureFolder(P_SK); },
   goals: [
     { text: 'Skriv minst 40 tegn i et nytt dokument i Skriv', check: S => S.editorText().trim().length >= 40 },
-    { text: 'Lagre det som <b>Mesterprove</b> i en <b>fagmappe i OneDrive</b>', check: S => M.fileInFagmappe(c => /^mesterprove\.(docx|txt)$/i.test(c.name)) },
-    { text: 'Lukk Skriv og åpne filen igjen fra Filutforsker', check: S => S.ev('window-close', d => d.app === 'skriv') && S.ev('open-file', d => /^mesterprove/i.test(d.name)) }
+    { text: 'Lagre det som <b>Mesterprove</b> i en <b>fagmappe i OneDrive</b>', check: S => M.fileInFagmappe(c => /^mesterpr[oø]ve\.(docx|txt)$/i.test(c.name)) },
+    { text: 'Lukk Skriv og åpne filen igjen fra Filutforsker', check: S => S.ev('window-close', d => d.app === 'skriv') && S.ev('open-file', d => /^mesterpr[oø]ve\./i.test(d.name)) }
   ]
 }, [
   'Lag et dokument i Word på din egen PC og lagre det i riktig fagmappe i OneDrive.',
@@ -389,14 +403,18 @@ addMaster('k7', {
   title: 'Finn, rydd og navngi',
   intro: 'En fil med et dårlig navn ligger et sted på PC-en. Finn den, gi den et godt navn og legg den riktig.',
   setup: F => {
+    /* Fjern også filen fra et tidligere forsøk, der den kan ha fått nytt navn (ellers ville målene vært oppnådd fra start).
+       Stille fjerning: en hendelse midt i oppsettet ville sjekket målene mens den gamle filen ennå fantes. */
+    [...new Set(M.byContentAll('English essay', { includeBin: true }).map(f => f.name))].forEach(n => F.silentRemoveAll(n));
     F.silentRemoveAll('dokument44.docx');
     F.ensureFolder(P_ENG);
     F.ensureFile([...P_DOC, 'Gammelt', 'Prosjekter'], 'dokument44.docx', 'English essay about London\n\nLondon is the capital of England.');
   },
+  /* Alle filer med teksten sjekkes: har eleven kopiert i stedet for å flytte, ligger originalen igjen med det gamle navnet */
   goals: [
     { text: 'Finn filen <b>dokument44</b> med søk', check: S => S.ev('search', d => /dokument44|dokument/i.test(d.query)) },
-    { text: 'Gi den et <b>godt navn</b> som forteller hva den inneholder', check: S => { const f = S.byContent('English essay'); return !!f && !/^dokument/i.test(f.name) && f.name.length > 8; } },
-    { text: 'Legg den i riktig <b>fagmappe</b> i OneDrive', check: S => { const f = S.byContent('English essay'); if (!f) return false; const p = FS.get(f.parent); return !!p && /engelsk|english/i.test(p.name) && FS.isDesc(f.id, FS.roots().onedrive); } }
+    { text: 'Gi den et <b>godt navn</b> som forteller hva den inneholder', check: S => M.byContentAll('English essay').some(f => !/^dokument/i.test(f.name) && f.name.length > 8) },
+    { text: 'Legg den i riktig <b>fagmappe</b> i OneDrive', check: S => M.byContentAll('English essay').some(f => { const p = FS.get(f.parent); return !!p && /engelsk|english/i.test(p.name) && FS.isDesc(f.id, FS.roots().onedrive); }) }
   ]
 }, [
   'Søk opp en fil på din egen PC med søkefeltet i Filutforsker.',
@@ -407,12 +425,12 @@ addMaster('k8', {
   lukk: ['skriv','skrivetrening'],
   title: 'Tastaturet sitter',
   intro: 'Vis at fingrene finner frem, både på bokstavene og på snarveiene.',
-  setup: F => { F.silentRemoveAll('Tastaturprove.docx'); },
+  setup: F => { M.removeWhere(/^tastaturpr[oø]ve\.(docx|txt)$/i); },
   goals: [
     { text: 'Fullfør en skriveøvelse med minst <b>92 % riktig</b>', check: S => S.ev('typing-done', d => d.acc >= 92) },
     { text: 'Skriv en e-postadresse med <b>@</b> i et dokument i Skriv', check: S => /\S+@\S+\.\w/.test(S.editorText()) },
     { text: 'Bruk <b>Ctrl</b>+<b>C</b> og <b>Ctrl</b>+<b>V</b> i Skriv', check: S => S.ev('shortcut', d => d.ctrl && d.key === 'c' && d.app === 'skriv') && S.ev('shortcut', d => d.ctrl && d.key === 'v' && d.app === 'skriv') },
-    { text: 'Lagre dokumentet som <b>Tastaturprove</b>', check: S => !!S.file('Tastaturprove.docx') }
+    { text: 'Lagre dokumentet som <b>Tastaturprove</b>', check: S => FS.findAll(c => c.type === 'file' && /^tastaturpr[oø]ve\.(docx|txt)$/i.test(c.name)).length > 0 }
   ]
 }, [
   'Ta en skriveøvelse på din egen PC uten å se på tastaturet.',
@@ -442,30 +460,33 @@ addMaster('kh', {
 
 /* ============================================================
    UKENS ØVING: korte oppgaver uten hint, trukket fra fullførte kurs
+   Oppgavene kommer i tilfeldig rekkefølge og uten oppsett av vinduer, så et dokument eller
+   et vindu fra en tidligere oppgave kan allerede være åpent. Sjekker på innholdet i Skriv
+   og Notater krever derfor også en hendelse, så de ikke blir godkjent før eleven har gjort noe.
    ============================================================ */
 const REPETISJON = [
-  { id: 'rp1', kurs: 'k1', text: 'Åpne <b>Filutforsker</b> og maksimer vinduet.', check: S => S.ev('window-max', d => d.app === 'explorer') },
+  { id: 'rp1', kurs: 'k1', lukk: ['explorer'], text: 'Åpne <b>Filutforsker</b> og maksimer vinduet.', check: S => S.ev('window-max', d => d.app === 'explorer') },
   { id: 'rp2', kurs: 'k1', text: 'Høyreklikk på <b>skrivebordet</b> og lukk menyen igjen med <kbd>Esc</kbd>.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') && S.ev('ctxmenu-close', d => d.via === 'esc') },
   { id: 'rp3', kurs: 'k2', text: 'Lag en mappe som heter <b>Uketest</b> i Dokumenter.', setup: F => F.silentRemoveAll('Uketest'), check: S => S.folderIn('Uketest', P_DOC) },
   { id: 'rp4', kurs: 'k2', text: 'Gå til <b>OneDrive › Skole</b> i Filutforsker.', check: S => S.ev('explorer-nav', d => /^skole$/i.test(d.name)) },
   { id: 'rp5', kurs: 'k3', text: 'Kopier filen <b>uke-fil.txt</b> fra skrivebordet til Dokumenter.', setup: F => { F.silentRemoveAll('uke-fil.txt'); F.ensureFileAt(P_DESK, 'uke-fil.txt', 'Testfil'); }, check: S => S.fileIn('uke-fil.txt', P_DOC) && S.fileIn('uke-fil.txt', P_DESK) },
   { id: 'rp6', kurs: 'k3', text: 'Slett filen <b>slett-meg.txt</b> fra skrivebordet, og tøm papirkurven etterpå.', setup: F => { F.silentRemoveAll('slett-meg.txt'); F.ensureFileAt(P_DESK, 'slett-meg.txt', 'Slett meg'); }, check: S => S.gone('slett-meg.txt') },
   { id: 'rp7', kurs: 'k3', text: 'Flytt <b>flytt-meg.txt</b> fra Nedlastinger til Dokumenter.', setup: F => { F.silentRemoveAll('flytt-meg.txt'); F.ensureFileAt(P_DL, 'flytt-meg.txt', 'Flytt meg'); }, check: S => S.fileIn('flytt-meg.txt', P_DOC) },
-  { id: 'rp8', kurs: 'k4', text: 'Lag et dokument i Skriv, skriv navnet ditt, og lagre det som <b>Ukesnotat</b> i OneDrive.', setup: F => F.silentRemoveAll('Ukesnotat.docx'), check: S => M.inOneDrive('Ukesnotat.docx') },
+  { id: 'rp8', kurs: 'k4', text: 'Lag et dokument i Skriv, skriv navnet ditt, og lagre det som <b>Ukesnotat</b> i OneDrive.', setup: F => M.removeWhere(/^ukesnotat\.(docx|txt)$/i), check: S => M.fileInOneDrive(c => /^ukesnotat\.(docx|txt)$/i.test(c.name)) },
   { id: 'rp9', kurs: 'k4', text: 'Slå på <b>Vis filendelser</b> i Filutforsker.', setup: F => { if (Explorer.settings.showExt) Explorer.setShowExt(false, 'rep'); }, check: S => S.ev('show-ext', d => d.on) },
-  { id: 'rp10', kurs: 'kf', text: 'Skriv en setning i Skriv og gjør minst ett ord <b>fett</b>.', check: S => S.skriv().bold },
-  { id: 'rp11', kurs: 'kf', text: 'Lag en <b>punktliste</b> med to punkter i Skriv.', check: S => S.skriv().lists.includes('ul') && S.skriv().listItems >= 2 },
+  { id: 'rp10', kurs: 'kf', text: 'Skriv en setning i Skriv og gjør minst ett ord <b>fett</b>.', check: S => S.ev('format', d => d.cmd === 'bold') && S.skriv().bold },
+  { id: 'rp11', kurs: 'kf', text: 'Lag en <b>punktliste</b> med to punkter i Skriv.', check: S => S.ev('format', d => d.cmd === 'insertUnorderedList') && S.skriv().lists.includes('ul') && S.skriv().listItems >= 2 },
   { id: 'rp12', kurs: 'kf', text: 'Sett skrifttypen til <b>Arial</b> på en tekst du har markert i Skriv.', check: S => S.ev('format', d => d.cmd === 'fontName' && /arial/i.test(d.value)) },
   { id: 'rp13', kurs: 'k5', text: 'Last ned <b>Oppgaveark om brøk</b> fra Skoleportalen og flytt filen til OneDrive.', setup: F => F.silentRemoveAll('Oppgaveark-brøk.pdf'), check: S => M.inOneDrive('Oppgaveark-brøk.pdf') },
   { id: 'rp14', kurs: 'ke', text: 'Lagre vedlegget i meldingen <b>Ukeplan uke 39</b> i Dokumenter.', setup: F => { if (window.Epost) Epost.reset(); F.silentRemoveAll('Ukeplan-uke-39.pdf'); }, check: S => !!S.file('Ukeplan-uke-39.pdf') },
   { id: 'rp15', kurs: 'ke', text: 'Send en e-post til <b>kari.hansen@skolen.no</b> med et emne og en melding.', check: S => S.ev('mail-send', d => /kari/i.test(d.to) && (d.subject || '').length > 2) },
   { id: 'rp16', kurs: 'k6', text: 'Lever inn <b>Matte: Brøk-oppgaver</b> i Innleveringer med en fil fra OneDrive.', setup: F => { F.ensureFolder(P_MATTE); F.ensureFileAt(P_MATTE, 'Oppgaveark-brøk.pdf', 'Brøk'); if (window.Innlevering) Innlevering.reset('matte-brok'); }, check: S => S.ev('submit', d => d.assignment === 'matte-brok') },
-  { id: 'rp17', kurs: 'kn', text: 'Lag en ny side i Notater som heter <b>Ukens ord</b>, og skriv noe på den.', check: S => S.notes().pages.some(p => /ukens ord/i.test(p.title) && p.text.trim().length > 5) },
+  { id: 'rp17', kurs: 'kn', text: 'Lag en ny side i Notater som heter <b>Ukens ord</b>, og skriv noe på den.', check: S => S.ev('notes-edit', d => /ukens ord/i.test(d.page || '')) && S.notes().pages.some(p => /ukens ord/i.test(p.title) && p.text.trim().length > 5) },
   { id: 'rp18', kurs: 'kn', text: 'Søk i notatblokken etter et ord du har skrevet.', check: S => S.ev('notes-search', d => (d.query || '').length >= 3) },
   { id: 'rp19', kurs: 'k7', text: 'Søk etter <b>budsjett</b> i Filutforsker og åpne treffet.', setup: F => F.ensureFile([...P_DOC, '7. trinn', 'Prosjekter', 'Klassetur'], 'Klassetur-budsjett.xlsx', ''), check: S => S.ev('search', d => /budsjett/i.test(d.query)) && S.ev('open-file', d => /budsjett/i.test(d.name)) },
-  { id: 'rp20', kurs: 'k7', text: 'Bytt til <b>Detaljer</b>-visning og sorter etter <b>endringsdato</b>.', check: S => S.ev('view', d => d.view === 'details') && S.ev('sort', d => d.by === 'modified') },
+  { id: 'rp20', kurs: 'k7', text: 'Bytt til <b>Detaljer</b>-visning og sorter etter <b>endringsdato</b>.', check: S => (S.ev('view', d => d.view === 'details') || Explorer.views.some(v => v.view === 'details')) && S.ev('sort', d => d.by === 'modified') },
   { id: 'rp21', kurs: 'k8', text: 'Fullfør en skriveøvelse i Skrivetrening.', check: S => S.ev('typing-done') },
-  { id: 'rp22', kurs: 'k8', text: 'Skriv <b>test@skolen.no</b> i et dokument i Skriv.', check: S => /test@skolen\.no/i.test(S.editorText()) },
-  { id: 'rp23', kurs: 'kh', text: 'Slett <b>angre-meg.txt</b> fra skrivebordet, og angre med <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', setup: F => { F.silentRemoveAll('angre-meg.txt'); F.ensureFileAt(P_DESK, 'angre-meg.txt', 'Angre meg'); }, check: S => S.ev('shortcut', d => d.key === 'z') && S.fileIn('angre-meg.txt', P_DESK) },
-  { id: 'rp24', kurs: 'kh', text: 'Åpne <b>Oppgavebehandling</b> fra oppgavelinjen.', check: S => S.ev('window-open', d => d.app === 'taskmgr') }
+  { id: 'rp22', kurs: 'k8', text: 'Skriv <b>test@skolen.no</b> i et dokument i Skriv.', check: S => S.ev('editor-input') && /test@skolen\.no/i.test(S.editorText()) },
+  { id: 'rp23', kurs: 'kh', text: 'Slett <b>angre-meg.txt</b> fra skrivebordet, og angre med <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', setup: F => { F.silentRemoveAll('angre-meg.txt'); F.ensureFileAt(P_DESK, 'angre-meg.txt', 'Angre meg'); }, check: S => (S.ev('shortcut', d => d.key === 'z') || S.ev('fs', d => d.op === 'undo')) && S.fileIn('angre-meg.txt', P_DESK) },
+  { id: 'rp24', kurs: 'kh', lukk: ['taskmgr'], text: 'Åpne <b>Oppgavebehandling</b> fra oppgavelinjen.', check: S => S.ev('window-open', d => d.app === 'taskmgr') }
 ];

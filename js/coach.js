@@ -17,6 +17,8 @@ const Coach = (() => {
   function isLocked() { const a = P.active; return !!(P.lock && a && a.mode !== 'master' && P.lock.opp === a.opp && P.lock.step === a.step); }
   const now = () => Date.now();
 
+  function newest(list) { return list.reduce((a, b) => (!a || (b.modified || 0) > (a.modified || 0) ? b : a), null); }
+
   /* Hjelpeobjekt som oppdragene bruker i check(S) */
   const S = {
     ev(type, pred) {
@@ -29,7 +31,9 @@ const Coach = (() => {
       return n;
     },
     folder(path) { const n = FS.resolve(path); return n && n.type === 'folder' ? n : null; },
-    file(name) { return FS.findByName(name, 'file'); },
+    /* Finnes flere filer med samme navn (eleven lagret først feil sted, så riktig), brukes den som sist
+       ble endret, ikke den som tilfeldigvis ligger først */
+    file(name) { return newest(FS.findAll(c => c.type === 'file' && c.name.toLowerCase() === name.toLowerCase())); },
     fileIn(name, path) { const f = FS.resolve(path); return !!f && FS.children(f.id).some(c => c.type === 'file' && c.name.toLowerCase() === name.toLowerCase()); },
     /* Filen ligger i en mappe med dette navnet (f.eks. «Engelsk»), uansett hvor mappen ligger.
        Brukes for fagmapper, så en elev som har laget sin egen fagmappe et annet sted også får godkjent. */
@@ -51,8 +55,8 @@ const Coach = (() => {
     folderNamed(name) { return FS.findAll(c => c.type === 'folder' && c.name.trim().toLowerCase() === name.toLowerCase())[0] || null; },
     inBin(name) { return !!FS.findInBin(name); },
     gone(name) { return !FS.findByName(name) && !FS.findInBin(name); },
-    content(name) { const f = FS.findByName(name, 'file'); return f ? Skriv.plainText(f.content || '') : ''; },
-    byContent(prefix) { return FS.findAll(c => c.type === 'file' && Skriv.plainText(c.content || '').startsWith(prefix))[0] || null; },
+    content(name) { const f = S.file(name); return f ? Skriv.plainText(f.content || '') : ''; },
+    byContent(prefix) { return newest(FS.findAll(c => c.type === 'file' && Skriv.plainText(c.content || '').startsWith(prefix))); },
     editorText() { return Skriv.activeText(); },
     skriv() { return Skriv.inspectActive(); },
     notes() { return window.Notater ? Notater.state() : { sections: [], pages: [] }; },
@@ -110,7 +114,13 @@ const Coach = (() => {
   /* ---------- Start ---------- */
   function resetRun(o) {
     /* Rydd bort programmer fra forrige oppdrag, så eleven starter med blanke ark.
-       Skjer før stepStart settes, slik at lukkingen ikke teller som et utført steg. */
+       Skjer før stepStart settes, slik at lukkingen ikke teller som et utført steg.
+       Sjekkingen holdes av mens det ryddes: ellers kunne lukkingen utløse en sjekk av det nye
+       oppdraget mens gamle hendelser fortsatt telles med, og krysse av steg eleven ikke har gjort. */
+    const was = checking; checking = true;
+    try { resetInner(o); } finally { checking = was; if (!was) pending = false; }
+  }
+  function resetInner(o) {
     if (o && o.lukk) {
       const closed = WM.closeApps(o.lukk === 'alle' ? null : o.lukk, 'oppdrag');
       if (closed.length) Toast.show(T('Lukket fra forrige oppdrag: {0}. Du starter med blanke ark.', closed.map(a => WM.appName(a)).join(', ')), 4500);

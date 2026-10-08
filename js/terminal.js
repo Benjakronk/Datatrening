@@ -324,6 +324,8 @@ const Terminal = (() => {
     err(name, msg) { return { ok: false, lines: [], error: name + ': ' + msg }; }
 
     async runCommand(seg, piped, capture, fromScript) {
+      /* PowerShell har egne funksjoner for cd.. og cd\ (uten mellomrom), og mange er vant til dem fra cmd */
+      if (seg[0] && !seg[0].q && /^cd(\.\.|\\)$/i.test(seg[0].v)) seg = [{ v: 'cd', q: false }, { v: seg[0].v.slice(2), q: false }].concat(seg.slice(1));
       const first = seg[0].v;
       const rest = seg.slice(1);
       const { args, opts } = parseArgs(rest);

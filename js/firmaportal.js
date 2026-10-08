@@ -151,6 +151,18 @@ const Firmaportal = (() => {
     if (win) win.render();
     WM.renderTaskbar();
   }
-  return { open, isInstalled, statusOf, install, reset, CATALOG, installedCount };
+  /* Setter ett program tilbake til «ikke installert», som om det aldri var prøvd installert.
+     Brukes av oppdrag som skal vise en installasjon (og feilen første gang) også når eleven tar dem på nytt. */
+  function resetApp(id) {
+    load();
+    const a = app(id); if (!a) return;
+    clearTimeout(timers[id]);
+    state.st[id] = a.preinstalled ? 'installed' : 'available';
+    delete state.tries[id];
+    save();
+    if (win) win.render();
+    WM.renderTaskbar();
+  }
+  return { open, isInstalled, statusOf, install, reset, resetApp, CATALOG, installedCount };
 })();
 window.Firmaportal = Firmaportal;

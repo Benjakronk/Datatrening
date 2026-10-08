@@ -10,6 +10,11 @@ const P_NORSK = ['OneDrive', 'School', 'Norwegian'];
 const P_MATTE = ['OneDrive', 'School', 'Maths'];
 const P_ENG = ['OneDrive', 'School', 'English'];
 const P_NAT = ['OneDrive', 'School', 'Science'];
+/* Names the student has typed are compared without caring about capital letters (“my folder” = “My folder”) */
+const sameName = (a, b) => (a || '').trim().toLowerCase() === b.toLowerCase();
+/* Is a File Explorer window already in the folder? (name or regex) Then the student doesn't have to navigate
+   away and back to get a “Go to …” step accepted, e.g. when the window is still there from the previous task. */
+const exAt = test => Explorer.views.some(v => { const n = FS.get(v.cwd); return !!n && (test instanceof RegExp ? test.test(n.name) : sameName(n.name, test)); });
 
 const KURS = [
   /* ============================================================ */
@@ -40,8 +45,8 @@ const KURS = [
           { laer: true, quiz: { q: 'What is the taskbar?', options: ['The strip at the bottom of the screen with the Start button and apps', 'The menu that appears when you right-click', 'The File Explorer window'], answer: 0 } },
           { laer: true, quiz: { q: 'What does the — (minimise) button at the top of a window do?', options: ['Closes the app', 'Hides the window in the taskbar, the app is still open', 'Makes the window bigger'], answer: 1 } },
           { laer: true, quiz: { q: 'How do you move a window?', options: ['Double-click ✕', 'Press Enter', 'Drag the title bar at the top of the window'], answer: 2 } },
-          { text: 'Click the yellow folder icon (<b>File Explorer</b>) on the taskbar at the bottom of the screen.', hint: 'The taskbar is the light strip right at the bottom. File Explorer is the yellow folder next to the Start button.', check: S => S.ev('window-open', d => d.app === 'explorer') },
-          { text: 'Maximise the window: click <b>☐</b> in the top right corner of the window.', hint: 'The middle one of the three buttons in the top right corner of the window. You can also double-click the title bar.', check: S => S.ev('window-max') },
+          { text: 'Click the yellow folder icon (<b>File Explorer</b>) on the taskbar at the bottom of the screen.', hint: 'The taskbar is the light strip right at the bottom. File Explorer is the yellow folder next to the Start button.', check: S => S.ev('window-open', d => d.app === 'explorer') || S.wins('explorer') > 0 },
+          { text: 'Maximise the window: click <b>☐</b> in the top right corner of the window.', hint: 'The middle one of the three buttons in the top right corner of the window. You can also double-click the title bar.', check: S => S.ev('window-max') || WM.list('explorer').some(w => w.maximized) },
           { text: 'Make the window smaller again: click the same button (<b>❐</b>).', check: S => S.ev('window-restore') },
           { text: 'Move the window: hold the left mouse button down on the <b>title bar</b> (the white strip at the top of the window) and drag.', hint: 'Press and hold on the title bar, move the mouse, and let go.', check: S => S.ev('window-move') },
           { text: 'Minimise the window with <b>—</b>. The window disappears, but the app is still open: look at the line under the icon on the taskbar.', check: S => S.ev('window-min') },
@@ -54,7 +59,7 @@ const KURS = [
         steps: [
           { text: 'Click the <b>Start button</b> (the Windows logo) on the taskbar.', hint: 'The blue square with four panes, furthest to the left among the icons on the taskbar.', check: S => S.ev('startmenu-open') },
           { text: 'Open the <b>Write</b> app from the Start menu.', check: S => S.ev('window-open', d => d.app === 'skriv' && d.via === 'startmenu') },
-          { text: 'Also open <b>Browser</b> from the taskbar. Now you have two apps open at the same time.', check: S => S.ev('window-open', d => d.app === 'nettleser') },
+          { text: 'Also open <b>Browser</b> from the taskbar. Now you have two apps open at the same time.', check: S => S.ev('window-open', d => d.app === 'nettleser') || S.wins('nettleser') > 0 },
           { text: 'Switch back to Write by clicking the Write icon on the <b>taskbar</b>.', hint: 'Click the blue Write icon at the bottom. Apps that are open have a line under them.', check: S => S.ev('window-focus', d => d.app === 'skriv' && d.via === 'taskbar') },
           { text: 'Close both apps with <b>✕</b>.', check: S => S.wins('skriv') === 0 && S.wins('nettleser') === 0 && S.ev('window-close') },
           { quiz: { q: 'What does it mean when an icon on the taskbar has a line under it?', options: ['The app is open', 'The app has been deleted', 'The app needs updating'], answer: 0 }, hint: 'Look at the taskbar when you have an app open.' }
@@ -67,7 +72,7 @@ const KURS = [
           { text: 'Right-click an empty spot on the <b>desktop</b> (the background). A menu pops up.', hint: 'Use the right mouse button. On the touchpad: tap with two fingers at the same time.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') },
           { text: 'Choose <b>New → Folder</b> in the menu. A folder called “New folder” appears on the desktop.', hint: 'Hold the mouse over “New” and a submenu appears to the right. Click “Folder”.', check: S => S.ev('fs', d => d.op === 'create' && d.kind === 'folder' && d.parent === FS.roots().desktop) || FS.children(FS.roots().desktop).some(c => c.type === 'folder') },
           { text: 'Name the folder <b>My folder</b>. Right after the folder has been made, you can just type the name and press <kbd>Enter</kbd>. Too late for that? Click the folder <i>once</i>, press <kbd>F2</kbd>, type the name and press <kbd>Enter</kbd>.', hint: 'F2 is at the top of the keyboard. You can also right-click the folder and choose “Rename”. The folder is called “New folder” until you have changed the name.', check: S => S.folderIn('My folder', P_DESK) },
-          { text: '<b>Double-click</b> the folder “My folder” on the desktop to open it.', hint: 'Two quick presses with the left mouse button.', check: S => S.ev('explorer-nav', d => d.name === 'My folder') },
+          { text: '<b>Double-click</b> the folder “My folder” on the desktop to open it.', hint: 'Two quick presses with the left mouse button.', check: S => S.ev('explorer-nav', d => sameName(d.name, 'My folder')) || exAt('My folder') },
           { text: 'The folder is empty. Close the window.', check: S => S.ev('window-close', d => d.app === 'explorer') },
           { quiz: { q: 'You want to see more options for a file. What do you do?', options: ['Hold the mouse still over the file', 'Right-click the file', 'Double-click the file'], answer: 1 }, hint: 'Double-clicking opens. Which button gives you a menu?' }
         ]
@@ -116,10 +121,10 @@ const KURS = [
           { laer: true, quiz: { q: 'What is a file type (file extension)?', options: ['The folder the file is in', 'The part of the name after the full stop, for example .docx, which tells you what kind of file it is', 'How big the file is'], answer: 1 } },
           { laer: true, quiz: { q: 'Where should schoolwork be saved?', options: ['In OneDrive: cloud storage that follows you on all your devices', 'On the desktop', 'In Downloads'], answer: 0 } },
           { laer: true, quiz: { q: 'What does the ↑ (Up) button in File Explorer do?', options: ['Scrolls up the list', 'Goes to the previous page', 'Goes to the folder above the one you are in'], answer: 2 } },
-          { text: 'Open <b>File Explorer</b>.', check: S => S.wins('explorer') > 0 && S.ev('window-open', d => d.app === 'explorer') },
-          { text: 'Click <b>Documents</b> in the menu on the left.', check: S => S.ev('explorer-nav', d => d.name === 'Documents') },
-          { text: 'Open the folder <b>Old</b> (double-click it).', hint: 'If you can\'t see the folder “Old”, it may be called “Year 7” because you renamed it earlier.', check: S => S.ev('explorer-nav', d => d.name === 'Old' || d.name === 'Year 7') },
-          { text: 'Look at the <b>address bar</b> at the top. It shows: This PC › Documents › Old. Now open the folder <b>Projects</b>.', check: S => S.ev('explorer-nav', d => d.name === 'Projects') },
+          { text: 'Open <b>File Explorer</b>.', check: S => S.wins('explorer') > 0 },
+          { text: 'Click <b>Documents</b> in the menu on the left.', check: S => (S.ev('explorer-nav', d => d.name === 'Documents') || exAt('Documents')) },
+          { text: 'Open the folder <b>Old</b> (double-click it).', hint: 'If you can\'t see the folder “Old”, it may be called “Year 7” because you renamed it earlier.', check: S => S.ev('explorer-nav', d => sameName(d.name, 'Old') || sameName(d.name, 'Year 7')) || exAt('Old') || exAt('Year 7') },
+          { text: 'Look at the <b>address bar</b> at the top. It shows: This PC › Documents › Old. Now open the folder <b>Projects</b>.', check: S => S.ev('explorer-nav', d => d.name === 'Projects') || exAt('Projects') },
           { text: 'Go one level <b>up</b> with the <b>↑</b> button. That takes you back to the folder that Projects is in.', hint: 'The up arrow button is next to the address bar.', check: S => S.ev('explorer-up') },
           { text: 'Click <b>←</b> (Back) to go to the previous place you were.', check: S => S.ev('explorer-back') },
           { text: 'Click <b>Pictures</b> in the menu on the left.', check: S => S.ev('explorer-nav', d => d.name === 'Pictures') },
@@ -129,12 +134,13 @@ const KURS = [
       },
       {
         id: 'k2o2', title: 'Make folders for your subjects',
+        setup: F => { F.ensureFolder(P_SK); },
         steps: [
-          { text: 'Go to <b>OneDrive › School</b> in File Explorer.', hint: 'Click ▸ next to OneDrive in the menu on the left to show its folders, or double-click your way there.', check: S => S.ev('explorer-nav', d => d.name === 'School') },
+          { text: 'Go to <b>OneDrive › School</b> in File Explorer.', hint: 'Click ▸ next to OneDrive in the menu on the left to show its folders, or double-click your way there.', check: S => S.ev('explorer-nav', d => d.name === 'School') || exAt('School') },
           { text: 'Make a new folder called <b>Norwegian</b>. Use the <b>New</b> button at the top, or right-click an empty spot → New → Folder. Type the name and press <kbd>Enter</kbd>.', hint: 'The new folder is called “New folder” and the name is highlighted. Just type “Norwegian” and press Enter. Did you click somewhere else before typing the name? Click the folder once, press F2, type the name and press Enter.', check: S => S.folderIn('Norwegian', P_SK) },
           { text: 'Make three more folders: <b>Maths</b>, <b>English</b> and <b>Science</b>.', check: S => S.folderIn('Maths', P_SK) && S.folderIn('English', P_SK) && S.folderIn('Science', P_SK) },
           { text: 'Open the folder <b>Norwegian</b> and make a folder <i>inside</i> it called <b>Poems</b>.', check: S => S.folderIn('Poems', P_NORSK) },
-          { text: 'Go into the folder <b>Poems</b>. The address bar should now show OneDrive › School › Norwegian › Poems.', check: S => S.ev('explorer-nav', d => d.name === 'Poems') },
+          { text: 'Go into the folder <b>Poems</b>. The address bar should now show OneDrive › School › Norwegian › Poems.', check: S => S.ev('explorer-nav', d => sameName(d.name, 'Poems')) || exAt('Poems') },
           { quiz: { q: 'Where is the folder Poems?', options: ['Directly in OneDrive', 'Inside Norwegian, which is inside School in OneDrive', 'On the desktop'], answer: 1 } }
         ]
       },
@@ -147,9 +153,9 @@ const KURS = [
           F.ensureFolder([...P_DOC, 'Old']);
         },
         steps: [
-          { text: 'Go to <b>Documents</b>. There is a file there called “Document (3)”. That is a bad name: you can\'t tell what the file contains.', check: S => S.ev('explorer-nav', d => d.name === 'Documents') },
+          { text: 'Go to <b>Documents</b>. There is a file there called “Document (3)”. That is a bad name: you can\'t tell what the file contains.', check: S => (S.ev('explorer-nav', d => d.name === 'Documents') || exAt('Documents')) },
           { text: 'Open the file (double-click) to see what it contains. Close it afterwards.', check: S => S.ev('open-file', d => d.name === 'Document (3).docx') },
-          { text: 'Rename the file: click the file <i>once</i>, press <kbd>F2</kbd> (or right-click → Rename). Type <b>Poem-analysis</b> and press <kbd>Enter</kbd>.', hint: 'F2 is at the top of the keyboard. After that you can just type the new name straight in.', check: S => S.file('Poem-analysis.docx') && !S.file('Document (3).docx') },
+          { text: 'Rename the file: click the file <i>once</i>, press <kbd>F2</kbd> (or right-click → Rename). Type <b>Poem-analysis</b> (without .docx) and press <kbd>Enter</kbd>.', hint: 'F2 is at the top of the keyboard. After that you can just type the new name straight in. Only type Poem-analysis: .docx is added by itself. Does it say “Poem-analysis.docx” but the step isn\'t accepted? Then you typed .docx yourself. Rename the file again and only type Poem-analysis.', check: S => S.file('Poem-analysis.docx') && (!S.file('Document (3).docx') || S.ev('fs', d => d.op === 'rename' && sameName(d.name, 'Poem-analysis.docx'))) },
           { text: 'Rename the folder <b>Old</b> to <b>Year 7</b>.', check: S => S.folderIn('Year 7', P_DOC) },
           { quiz: { q: 'Which file name is best?', options: ['asdfgh.docx', 'Document (3).docx', 'Norwegian-poem-analysis-Northern-Lights.docx'], answer: 2 }, hint: 'A good name tells you what the file contains.' }
         ]
@@ -178,9 +184,9 @@ const KURS = [
           { laer: true, quiz: { q: 'What is the difference between moving and copying a file?', options: ['Move: the file is only in the new place. Copy: you get two identical files', 'They are the same', 'Copying deletes the original'], answer: 0 } },
           { laer: true, quiz: { q: 'Which shortcut pastes?', options: ['Ctrl+C', 'Ctrl+X', 'Ctrl+V'], answer: 2 } },
           { laer: true, quiz: { q: 'What happens when you empty the Recycle Bin?', options: ['The files are moved to Documents', 'The files are gone for good', 'Nothing'], answer: 1 } },
-          { text: 'Open File Explorer and go to <b>Documents</b>.', check: S => S.ev('explorer-nav', d => d.name === 'Documents') },
+          { text: 'Open File Explorer and go to <b>Documents</b>.', check: S => (S.ev('explorer-nav', d => d.name === 'Documents') || exAt('Documents')) },
           { text: 'Drag the file <b>Poem-analysis</b> to the folder <b>Norwegian</b>: hold the left mouse button down on the file, drag it to OneDrive › School › Norwegian in the menu on the left, and let go.', hint: 'Click ▸ next to OneDrive and School in the menu on the left, and you\'ll see Norwegian there. Drag the file there until the folder is highlighted, and let go.', check: S => S.fileInNamed('Poem-analysis.docx', 'Norwegian') },
-          { text: 'Go to the folder <b>Norwegian</b> and check that the file is there.', check: S => S.ev('explorer-nav', d => /norwegian/i.test(d.name)) },
+          { text: 'Go to the folder <b>Norwegian</b> and check that the file is there.', check: S => S.ev('explorer-nav', d => /norwegian/i.test(d.name)) || exAt(/norwegian/i) },
           { quiz: { q: 'When you drag a file to another folder on the same PC, what happens?', options: ['The file is moved: it is only in the new folder', 'The file is copied: you get two', 'The file is deleted'], answer: 0 } }
         ]
       },
@@ -189,8 +195,8 @@ const KURS = [
         setup: F => { F.ensureFolder(P_NAT); F.ensureFileAt(P_DOC, 'Photosynthesis.pptx', 'Photosynthesis\nPlants make sugar from light, water and CO2.'); },
         steps: [
           { text: 'Go to <b>Documents</b> and click <b>Photosynthesis</b> <i>once</i> to select it.', check: S => S.ev('select', d => d.names.includes('Photosynthesis.pptx')) },
-          { text: 'Right-click the file and choose <b>Cut</b> (or press <kbd>Ctrl</kbd>+<kbd>X</kbd>). The file becomes a bit see-through.', check: S => S.ev('cut', d => d.names.includes('Photosynthesis.pptx')) },
-          { text: 'Go to <b>OneDrive › School › Science</b>.', hint: 'If you have made your own Science folder somewhere else, you can use that.', check: S => S.ev('explorer-nav', d => /science/i.test(d.name)) },
+          { text: 'Right-click the file and choose <b>Cut</b> (or press <kbd>Ctrl</kbd>+<kbd>X</kbd>). The file becomes a bit see-through.', check: S => S.ev('cut', d => d.names.includes('Photosynthesis.pptx')) || S.fileInNamed('Photosynthesis.pptx', 'Science') },
+          { text: 'Go to <b>OneDrive › School › Science</b>.', hint: 'If you have made your own Science folder somewhere else, you can use that.', check: S => S.ev('explorer-nav', d => /science/i.test(d.name)) || exAt(/science/i) || S.fileInNamed('Photosynthesis.pptx', 'Science') },
           { text: 'Right-click an empty spot and choose <b>Paste</b> (or press <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.fileInNamed('Photosynthesis.pptx', 'Science') }
         ]
       },
@@ -201,7 +207,7 @@ const KURS = [
           { text: 'Go to <b>Pictures</b> and select <b>Class-photo</b>.', check: S => S.ev('select', d => d.names.includes('Class-photo.jpg')) },
           { text: 'Copy the file: press <kbd>Ctrl</kbd>+<kbd>C</kbd> (or right-click → Copy).', check: S => S.ev('copy', d => d.names.includes('Class-photo.jpg')) },
           { text: 'Go to <b>Desktop</b> and paste with <kbd>Ctrl</kbd>+<kbd>V</kbd>.', check: S => S.fileIn('Class-photo.jpg', P_DESK) },
-          { text: 'Look at the desktop behind the window: the copy is shown there! Go back to <b>Pictures</b> and check that the original is still there.', check: S => S.fileIn('Class-photo.jpg', P_PIC) && S.ev('explorer-nav', d => d.name === 'Pictures') },
+          { text: 'Look at the desktop behind the window: the copy is shown there! Go back to <b>Pictures</b> and check that the original is still there.', hint: 'Is Class-photo no longer in Pictures? Then the picture was moved instead of copied. Copy it from the desktop (Ctrl+C) and paste it into Pictures (Ctrl+V).', check: S => S.fileIn('Class-photo.jpg', P_PIC) && (S.ev('explorer-nav', d => d.name === 'Pictures') || exAt('Pictures')) },
           { quiz: { q: 'What is the difference between Cut and Copy?', options: ['Cut deletes the file for good', 'They are the same', 'Cut moves the file. Copy makes an extra copy.'], answer: 2 } }
         ]
       },
@@ -212,7 +218,7 @@ const KURS = [
           { text: 'Go to <b>Documents</b> and select <b>Maths-test</b>.', check: S => S.ev('select', d => d.names.includes('Maths-test.pdf')) },
           { text: 'Press <kbd>Ctrl</kbd>+<kbd>X</kbd> on the keyboard (hold Ctrl down and press X).', hint: 'Ctrl is in the bottom left corner of the keyboard. Click the file first, so the window is “listening” to the keyboard.', check: S => S.ev('shortcut', d => d.key === 'x' && d.app === 'explorer') },
           { text: 'Go to <b>OneDrive › School › Maths</b> and press <kbd>Ctrl</kbd>+<kbd>V</kbd>.', hint: 'Click an empty spot in the folder before you press Ctrl+V.', check: S => S.fileInNamed('Maths-test.pdf', 'Maths') && S.ev('shortcut', d => d.key === 'v') },
-          { text: 'Try undoing: press <kbd>Ctrl</kbd>+<kbd>Z</kbd>. The file moves back to Documents!', check: S => S.ev('shortcut', d => d.key === 'z') && S.fileIn('Maths-test.pdf', P_DOC) },
+          { text: 'Try undoing: press <kbd>Ctrl</kbd>+<kbd>Z</kbd>. The file moves back to Documents!', check: S => (S.ev('shortcut', d => d.key === 'z') || S.ev('fs', d => d.op === 'undo')) && S.fileIn('Maths-test.pdf', P_DOC) },
           { text: 'Move it to <b>Maths</b> again (<kbd>Ctrl</kbd>+<kbd>X</kbd>, go to Maths, <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.fileInNamed('Maths-test.pdf', 'Maths') }
         ]
       },
@@ -221,10 +227,10 @@ const KURS = [
         setup: F => { F.ensureFileAt(P_DOC, 'old-list.txt', 'milk\nbread\ncheese\napples'); },
         steps: [
           { text: 'Go to <b>Documents</b>, select <b>old-list</b> and press <kbd>Delete</kbd> (or right-click → Delete).', hint: 'The Delete key is above the arrow keys, or in the top right corner on small keyboards.', check: S => S.inBin('old-list.txt') },
-          { text: 'Open the <b>Recycle Bin</b>: double-click its icon on the desktop, or click Recycle Bin at the bottom of the menu on the left.', check: S => S.ev('explorer-nav', d => d.name === 'Recycle Bin') },
-          { text: 'Select the file and click <b>Restore</b> (or right-click → Restore). The file goes back to Documents.', check: S => S.fileIn('old-list.txt', P_DOC) && S.ev('fs', d => d.op === 'restore') },
+          { text: 'Open the <b>Recycle Bin</b>: double-click its icon on the desktop, or click Recycle Bin at the bottom of the menu on the left.', check: S => S.ev('explorer-nav', d => d.name === 'Recycle Bin') || exAt('Recycle Bin') },
+          { text: 'Select the file and click <b>Restore</b> (or right-click → Restore). The file goes back to Documents.', check: S => S.fileIn('old-list.txt', P_DOC) && !S.inBin('old-list.txt') },
           { text: 'Delete the file again.', check: S => S.inBin('old-list.txt') },
-          { text: '<b>Empty the Recycle Bin</b> (the button at the top of the Recycle Bin, or right-click an empty spot). Now the file is gone for good.', check: S => S.gone('old-list.txt') && S.ev('fs', d => d.op === 'empty-bin') },
+          { text: '<b>Empty the Recycle Bin</b> (the button at the top of the Recycle Bin, or right-click an empty spot). Now the file is gone for good.', check: S => S.gone('old-list.txt') && S.ev('fs', d => d.op === 'empty-bin' || d.op === 'purge') },
           { quiz: { q: 'You deleted the wrong file by accident. What do you do?', options: ['Nothing, it is gone for good', 'Open the Recycle Bin and restore the file', 'Make the file again'], answer: 1 } }
         ]
       }
@@ -257,7 +263,7 @@ const KURS = [
           { laer: true, quiz: { q: 'What is the difference between Save and Save As?', options: ['They are the same', 'Save As lets you choose the place and name. Save saves into the same file as before', 'Save As makes a shortcut'], answer: 1 } },
           { laer: true, quiz: { q: 'What does an asterisk * in an app\'s title bar mean?', options: ['The file is big', 'The file is shared with others', 'There are changes that haven\'t been saved'], answer: 2 } },
           { laer: true, quiz: { q: 'Which file type belongs to PowerPoint?', options: ['.docx', '.xlsx', '.pptx'], answer: 2 } },
-          { text: 'Open the <b>Write</b> app (taskbar or Start menu).', check: S => S.ev('window-open', d => d.app === 'skriv') },
+          { text: 'Open the <b>Write</b> app (taskbar or Start menu).', check: S => S.ev('window-open', d => d.app === 'skriv') || S.wins('skriv') > 0 },
           { text: 'Write at least one sentence about what you like doing in your free time.', check: S => S.editorText().trim().length >= 20 },
           { text: 'Click <b>Save</b> (or press <kbd>Ctrl</kbd>+<kbd>S</kbd>). In the window that comes up: choose <b>OneDrive › School › Norwegian</b> on the left, type the file name <b>My first document</b> and click Save.<br><i>Saved in the wrong place or with the wrong name? Click <b>Save As</b> and save again. Plain Save only saves into the same file again.</i>', hint: 'Click ▸ next to OneDrive in the menu on the left of the window, then School, then Norwegian. Check that the address bar at the top shows OneDrive › School › Norwegian before you click Save. Have you already saved somewhere else? Once a document has a name, Save doesn\'t ask where you want to save it. Use <b>Save As</b> in the menu at the top of Write to choose the folder and name again.', check: S => S.fileInNamed('My first document.docx', 'Norwegian') },
           { text: 'Look at the title bar in Write: now the file name is there. Write a bit more text.', check: S => S.ev('editor-input') },
@@ -269,8 +275,8 @@ const KURS = [
         id: 'k4o2', title: 'Open the document again', lukk: ['skriv'],
         setup: F => { F.ensureFile(P_NORSK, 'My first document.docx', 'In my free time I like to ...'); },
         steps: [
-          { text: 'Open File Explorer and go to the folder <b>Norwegian</b> (in OneDrive › School, or wherever you saved the document).', check: S => S.ev('explorer-nav', d => /norwegian/i.test(d.name)) },
-          { text: 'Double-click <b>My first document</b> to open it in Write.', check: S => S.ev('open-file', d => d.name === 'My first document.docx') },
+          { text: 'Open File Explorer and go to the folder <b>Norwegian</b> (in OneDrive › School, or wherever you saved the document).', check: S => S.ev('explorer-nav', d => /norwegian/i.test(d.name)) || exAt(/norwegian/i) },
+          { text: 'Double-click <b>My first document</b> to open it in Write.', check: S => S.ev('open-file', d => sameName(d.name, 'My first document.docx')) },
           { text: 'Write a new line, and save with <kbd>Ctrl</kbd>+<kbd>S</kbd>.', check: S => S.ev('save', d => d.via === 'shortcut') },
           { text: 'Close Write. Notice that it doesn\'t ask about saving, because everything is already saved.', check: S => S.ev('window-close', d => d.app === 'skriv') }
         ]
@@ -279,8 +285,8 @@ const KURS = [
         id: 'k4o3', title: 'File types and file extensions',
         setup: F => { F.silentRemoveAll('Reminders.txt'); },
         steps: [
-          { text: 'Open File Explorer, click the <b>View</b> menu and turn on <b>File name extensions</b>. Now you see .docx, .pdf and so on after the file names.', hint: 'The View button is on the far right of the toolbar at the top of File Explorer.', check: S => S.ev('show-ext', d => d.on) },
-          { text: 'Go to <b>Documents</b> and look at the file extensions of the files there.', check: S => S.ev('explorer-nav', d => d.name === 'Documents') },
+          { text: 'Open File Explorer, click the <b>View</b> menu and turn on <b>File name extensions</b>. Now you see .docx, .pdf and so on after the file names.', hint: 'The View button is on the far right of the toolbar at the top of File Explorer.', check: S => S.ev('show-ext', d => d.on) || Explorer.settings.showExt },
+          { text: 'Go to <b>Documents</b> and look at the file extensions of the files there.', check: S => (S.ev('explorer-nav', d => d.name === 'Documents') || exAt('Documents')) },
           { quiz: { q: 'A file is called “Report.docx”. Which app opens it?', options: ['Word', 'PowerPoint', 'Excel'], answer: 0 } },
           { quiz: { q: '“Talk.pptx” is ...', options: ['a spreadsheet', 'a presentation (PowerPoint)', 'a picture'], answer: 1 } },
           { quiz: { q: '“Budget.xlsx” opens in ...', options: ['Photos', 'Word', 'Excel'], answer: 2 } },
@@ -295,8 +301,8 @@ const KURS = [
         setup: F => { F.silentRemoveAll('Note.docx'); },
         steps: [
           { text: 'Open <b>Write</b> and type a few words.', check: S => S.wins('skriv') > 0 && S.ev('editor-input') },
-          { text: 'Try closing Write with <b>✕</b> without saving. Write asks: “Do you want to save your changes?” Choose <b>Save</b>.', check: S => S.ev('save-dialog', d => d.choice === 'save') },
-          { text: 'Save the file in <b>Documents</b> with the name <b>Note</b>.', check: S => S.fileIn('Note.docx', P_DOC) },
+          { text: 'Try closing Write with <b>✕</b> without saving. Write asks: “Do you want to save your changes?” Choose <b>Save</b>.<br><i>Did you save before closing, or choose “Don\'t save”? Open Write again, type a few words and try again.</i>', check: S => S.ev('save-dialog', d => d.choice === 'save') },
+          { text: 'Save the file in <b>Documents</b> with the name <b>Note</b>.', hint: 'Saved in the wrong place or with the wrong name? Find the file in File Explorer, rename it (F2) or move it to Documents.', check: S => S.fileIn('Note.docx', P_DOC) },
           { quiz: { q: 'The title bar shows “*Report.docx - Write”. What does the asterisk mean?', options: ['The file is important', 'There are changes that haven\'t been saved', 'The file is read-only'], answer: 1 } }
         ]
       }
@@ -331,7 +337,7 @@ const KURS = [
           { text: 'Select an important word (drag over it with the mouse) and make it <b>bold</b> with <kbd>Ctrl</kbd>+<kbd>B</kbd> or the <b>B</b> button.', hint: 'Hold the left mouse button down at the start of the word, drag to the end and let go. The word turns blue. Then press Ctrl+B.', check: S => S.skriv().bold },
           { text: 'Select the title of the book or film and make it <i>italic</i> (<kbd>Ctrl</kbd>+<kbd>I</kbd>).', check: S => S.skriv().italic },
           { text: 'Select something else and <u>underline</u> it (<kbd>Ctrl</kbd>+<kbd>U</kbd>). See how it looks like a link. Remove the underline again: select the text and press <kbd>Ctrl</kbd>+<kbd>U</kbd> once more.', hint: 'The same button turns the formatting on and off.', check: S => S.evCount('format', d => d.cmd === 'underline') >= 2 && !S.skriv().underline },
-          { text: 'Save the document as <b>Formatting</b> in <b>OneDrive › School › Norwegian</b>.', check: S => S.fileInNamed('Formatting.docx', 'Norwegian') },
+          { text: 'Save the document as <b>Formatting</b> in <b>OneDrive › School › Norwegian</b>.<br><i>Saved in the wrong place or with the wrong name? Click <b>Save As</b> and save again.</i>', check: S => S.fileInNamed('Formatting.docx', 'Norwegian') },
           { quiz: { q: 'What do you use italics for?', options: ['Everything that is important', 'Titles of books and films, foreign words and quotes', 'Headings'], answer: 1 } }
         ]
       },
@@ -357,7 +363,7 @@ const KURS = [
           { text: 'Press <kbd>Enter</kbd>, type “Monday” and give the line the style <b>Heading 2</b>.', check: S => S.skriv().headings.includes('h2') },
           { text: 'Press <kbd>Enter</kbd>, set the style back to <b>Normal</b>, and make a <b>bulleted list</b> with at least three things you are going to do on Monday: click the Bullets button and write one item per line.', hint: 'The Bullets button is the one with three dots and lines. Enter gives you a new bullet.', check: S => S.skriv().lists.includes('ul') && S.skriv().listItems >= 3 },
           { text: 'Write your name on a line of its own at the bottom (press Enter twice to end the list), and <b>centre</b> the line.', check: S => S.skriv().aligns.includes('center') },
-          { text: 'Save as <b>Weekly-plan</b> in <b>OneDrive › School › Norwegian</b>.', check: S => S.fileInNamed('Weekly-plan.docx', 'Norwegian') },
+          { text: 'Save as <b>Weekly-plan</b> in <b>OneDrive › School › Norwegian</b>.<br><i>Saved in the wrong place or with the wrong name? Click <b>Save As</b> and save again.</i>', check: S => S.fileInNamed('Weekly-plan.docx', 'Norwegian') },
           { quiz: { q: 'Why use the Heading 1 style instead of just choosing big text?', options: ['It is the same thing', 'Because it is quicker to type', 'The headings are consistent and tidy, and the app knows it is a heading'], answer: 2 } }
         ]
       }
@@ -380,10 +386,10 @@ const KURS = [
           { laer: true, quiz: { q: 'Where do files you download from the internet end up, unless you choose something else?', options: ['In the Recycle Bin', 'In Downloads', 'In OneDrive'], answer: 1 } },
           { laer: true, quiz: { q: 'What does “Show in folder” in the download message do?', options: ['Opens Downloads in File Explorer with the file selected', 'Deletes the file', 'Downloads the file again'], answer: 0 } },
           { laer: true, quiz: { q: 'You open a downloaded template and write in it. What should you do?', options: ['Press Save and leave it in Downloads', 'Nothing, it saves automatically', 'Use Save As to save it in the right folder in OneDrive, so the template in Downloads is left untouched'], answer: 2 } },
-          { text: 'Open <b>Browser</b> from the taskbar.', check: S => S.ev('window-open', d => d.app === 'nettleser') },
+          { text: 'Open <b>Browser</b> from the taskbar.', check: S => S.ev('window-open', d => d.app === 'nettleser') || S.wins('nettleser') > 0 },
           { text: 'Click <b>Download</b> next to “Worksheet on fractions”.', check: S => S.ev('download', d => d.base === 'Worksheet-fractions.pdf') },
-          { text: 'Click <b>Show in folder</b> in the download message (or open Downloads in File Explorer).', check: S => S.ev('explorer-nav', d => d.name === 'Downloads') },
-          { text: 'Move <b>Worksheet-fractions</b> to <b>OneDrive › School › Maths</b> (drag it, or use <kbd>Ctrl</kbd>+<kbd>X</kbd> and <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.fileInNamed('Worksheet-fractions.pdf', 'Maths') }
+          { text: 'Click <b>Show in folder</b> in the download message (or open Downloads in File Explorer).', check: S => S.ev('explorer-nav', d => d.name === 'Downloads') || exAt('Downloads') },
+          { text: 'Move <b>Worksheet-fractions</b> to <b>OneDrive › School › Maths</b> (drag it, or use <kbd>Ctrl</kbd>+<kbd>X</kbd> and <kbd>Ctrl</kbd>+<kbd>V</kbd>).', check: S => S.anyFileInNamed('Maths', c => /^worksheet-fractions( \(\d+\))?\.pdf$/i.test(c.name)) }
         ]
       },
       {
@@ -391,7 +397,7 @@ const KURS = [
         setup: F => { F.ensureFolder(P_NAT); F.silentRemoveAll('Report-photosynthesis.docx'); F.silentRemoveAll('Report-template.docx'); },
         steps: [
           { text: 'In Browser: download <b>Report template</b>.', check: S => S.ev('download', d => d.base === 'Report-template.docx') },
-          { text: 'Click <b>Open file</b> in the download message. The template opens in Write.', check: S => S.ev('open-file', d => d.name === 'Report-template.docx') },
+          { text: 'Click <b>Open file</b> in the download message. The template opens in Write.', check: S => S.ev('open-file', d => /^report-template( \(\d+\))?\.docx$/i.test(d.name)) },
           { text: 'Type a title after “Title:” in the template.', check: S => S.ev('editor-input') },
           { text: 'Choose <b>Save As</b> and save in <b>OneDrive › School › Science</b> with the name <b>Report-photosynthesis</b>. Now you have your own copy, and the template in Downloads is left untouched.', hint: 'Use the “Save As” button, not “Save”. Save would have overwritten the template in Downloads.', check: S => S.fileInNamed('Report-photosynthesis.docx', 'Science') },
           { text: 'Delete <b>Report-template</b> from Downloads. You don\'t need it any more.', check: S => !S.file('Report-template.docx') },
@@ -417,9 +423,9 @@ const KURS = [
         steps: [
           { laer: true, quiz: { q: 'In which order do you hand in on Teams?', options: ['Hand in → Add work → open the assignment', 'Open the assignment → Add work → choose the file → Hand in', 'Choose the file → delete it → Hand in'], answer: 1 } },
           { laer: true, quiz: { q: 'What does the window where you choose the file look like, and what does that mean for you?', options: ['The browser, so you need internet', 'The Recycle Bin, so the file must be deleted', 'File Explorer, so you need to know where the file is'], answer: 2 } },
-          { text: 'Open <b>Assignments</b> from the taskbar.', check: S => S.ev('window-open', d => d.app === 'innlevering') },
+          { text: 'Open <b>Assignments</b> from the taskbar.', check: S => S.ev('window-open', d => d.app === 'innlevering') || S.wins('innlevering') > 0 },
           { text: 'Click the assignment <b>Norwegian: Poem analysis</b>.', check: S => S.ev('assignment-open', d => d.id === 'norsk-dikt') },
-          { text: 'Click <b>Add work</b>. Find the file <b>Poem-analysis</b> in OneDrive › School › Norwegian, select it and click Open.', hint: 'Click ▸ next to OneDrive on the left of the window, then School, then Norwegian. Click the file and then Open (or double-click the file).', check: S => S.ev('attach', d => d.assignment === 'norsk-dikt' && d.name === 'Poem-analysis.docx') },
+          { text: 'Click <b>Add work</b>. Find the file <b>Poem-analysis</b> in OneDrive › School › Norwegian, select it and click Open.', hint: 'Click ▸ next to OneDrive on the left of the window, then School, then Norwegian. Click the file and then Open (or double-click the file).', check: S => S.ev('attach', d => d.assignment === 'norsk-dikt' && sameName(d.name, 'Poem-analysis.docx')) },
           { text: 'Click <b>Hand in</b>.', check: S => S.ev('submit', d => d.assignment === 'norsk-dikt') }
         ]
       },
@@ -428,7 +434,7 @@ const KURS = [
         setup: F => { F.ensureFileAt(P_MATTE, 'Worksheet-fractions.pdf', 'Worksheet: Fractions'); Innlevering.reset('matte-brok'); },
         steps: [
           { text: 'Open the assignment <b>Maths: Fraction exercises</b> in Assignments.', check: S => S.ev('assignment-open', d => d.id === 'matte-brok') },
-          { text: 'Add the file <b>Worksheet-fractions</b> from OneDrive › School › Maths.', check: S => S.ev('attach', d => d.assignment === 'matte-brok' && d.name === 'Worksheet-fractions.pdf') },
+          { text: 'Add the file <b>Worksheet-fractions</b> from OneDrive › School › Maths.', check: S => S.ev('attach', d => d.assignment === 'matte-brok' && sameName(d.name, 'Worksheet-fractions.pdf')) },
           { text: 'Hand it in.', check: S => S.ev('submit', d => d.assignment === 'matte-brok') },
           { quiz: { q: 'You can\'t find your file in the “Add work” window. What is most likely?', options: ['Teams is broken', 'The file is in a different folder. Check Downloads, Desktop or Documents.', 'The file doesn\'t exist any more'], answer: 1 } }
         ]
@@ -460,7 +466,7 @@ const KURS = [
           { laer: true, quiz: { q: 'What is a good file name for a science report about photosynthesis?', options: ['Document (7).docx', 'report.docx', 'Science-report-photosynthesis.docx'], answer: 2 } },
           { laer: true, quiz: { q: 'Where does the search box in File Explorer look?', options: ['In the folder you are in and all its subfolders', 'On the whole internet', 'Only on the desktop'], answer: 0 } },
           { laer: true, quiz: { q: 'Which view shows the date, type and size in columns?', options: ['Large icons', 'Details', 'Preview'], answer: 1 } },
-          { text: 'Go to <b>Documents</b>. There are four files there that belong in the subject folders <b>OneDrive › School › English / Science / Maths / Norwegian</b>. The folders already exist.', check: S => S.ev('explorer-nav', d => d.name === 'Documents') },
+          { text: 'Go to <b>Documents</b>. There are four files there that belong in the subject folders <b>OneDrive › School › English / Science / Maths / Norwegian</b>. The folders already exist.', check: S => (S.ev('explorer-nav', d => d.name === 'Documents') || exAt('Documents')) },
           { text: 'Move <b>English-vocabulary-week-3</b> to the folder <b>English</b> in OneDrive › School.', hint: 'Drag the file to English in the menu on the left (click ▸ next to OneDrive and School first), or use Ctrl+X and Ctrl+V. If you have made your own English folder somewhere else, that is accepted too.', check: S => S.fileInNamed('English-vocabulary-week-3.docx', 'English') },
           { text: 'Move <b>Science-lab-report</b> to <b>Science</b>.', check: S => S.fileInNamed('Science-lab-report.docx', 'Science') },
           { text: 'Move <b>Maths-exercises-ch2</b> to <b>Maths</b>.', check: S => S.fileInNamed('Maths-exercises-ch2.pdf', 'Maths') },
@@ -471,7 +477,7 @@ const KURS = [
         id: 'k7o2', title: 'Search for a file',
         setup: F => { F.ensureFile([...P_DOC, 'Year 7', 'Projects', 'Class trip'], 'Class-trip-budget.xlsx', ''); },
         steps: [
-          { text: 'Open File Explorer and go to <b>Documents</b>.', check: S => S.ev('explorer-nav', d => d.name === 'Documents') },
+          { text: 'Open File Explorer and go to <b>Documents</b>.', check: S => (S.ev('explorer-nav', d => d.name === 'Documents') || exAt('Documents')) },
           { text: 'Somewhere deep inside the folders there is a budget. Type <b>budget</b> in the <b>search box</b> in the top right and press <kbd>Enter</kbd>.', check: S => S.ev('search', d => d.query.toLowerCase().includes('budget')) },
           { text: 'Look at the <b>Location</b> column: it shows where the file is. Double-click <b>Class-trip-budget</b> to open it.', check: S => S.ev('open-file', d => d.name === 'Class-trip-budget.xlsx') },
           { text: 'Close the window with the spreadsheet.', check: S => S.ev('window-close', d => d.app === 'viewer') },
@@ -481,8 +487,8 @@ const KURS = [
       {
         id: 'k7o3', title: 'Sort and view details',
         steps: [
-          { text: 'Go to <b>Documents</b> in File Explorer.', check: S => S.ev('explorer-nav', d => d.name === 'Documents') },
-          { text: 'Switch to the <b>Details</b> view (View → Details). Now you see columns with date, type and size.', check: S => S.ev('view', d => d.view === 'details') },
+          { text: 'Go to <b>Documents</b> in File Explorer.', check: S => (S.ev('explorer-nav', d => d.name === 'Documents') || exAt('Documents')) },
+          { text: 'Switch to the <b>Details</b> view (View → Details). Now you see columns with date, type and size.', check: S => S.ev('view', d => d.view === 'details') || Explorer.views.some(v => v.view === 'details') },
           { text: 'Sort by <b>Type</b> (Sort → Type, or click the “Type” column heading).', check: S => S.ev('sort', d => d.by === 'type') },
           { text: 'Sort by <b>Date modified</b>.', check: S => S.ev('sort', d => d.by === 'modified') },
           { text: 'Switch back to <b>Large icons</b> if you like that better (View → Large icons), or keep Details. Click <b>Pictures</b> to carry on.', check: S => S.ev('explorer-nav', d => d.name === 'Pictures') },
@@ -491,7 +497,14 @@ const KURS = [
       },
       {
         id: 'k7o4', title: 'Good file names', lukk: ['skriv'],
-        setup: F => { F.ensureFolder(P_NORSK); const f = F.findAll(c => c.type === 'file' && (c.content || '').startsWith('Book report:'))[0]; if (f) F.purge(f.id); F.ensureFileAt(P_DOC, 'Document1.docx', 'Book report: "Sophie\'s World"\n\nThe book is about Sophie, who gets mysterious letters with questions about philosophy ...'); },
+        setup: F => {
+          F.ensureFolder(P_NORSK);
+          /* Remove all old book reports (saved from Write, the content is HTML, hence plainText) */
+          F.findAll(c => c.type === 'file' && Skriv.plainText(c.content || '').startsWith('Book report:'), { includeBin: true }).forEach(f => F.purge(f.id));
+          /* Write calls new documents “Document1”. A document of the student's own saved with that name gets another name, so the task gets its own file. */
+          F.findAll(c => c.type === 'file' && sameName(c.name, 'Document1.docx'), { includeBin: true }).forEach(f => F.silentRename(f.id, 'Document1 (own).docx'));
+          F.ensureFileAt(P_DOC, 'Document1.docx', 'Book report: "Sophie\'s World"\n\nThe book is about Sophie, who gets mysterious letters with questions about philosophy ...');
+        },
         steps: [
           { text: 'Go to <b>Documents</b> and open <b>Document1</b> to see what it contains.', check: S => S.ev('open-file', d => d.name === 'Document1.docx') },
           { text: 'Close Write, and give the file a name that tells you what it contains, for example <b>Norwegian-book-report-Sophies-World</b>.', hint: 'Click the file once and press F2. The name must contain the word “book” or “report” to be accepted.', check: S => { const f = S.byContent('Book report:'); return f && !/^document/i.test(f.name) && /book|report/i.test(f.name); } },
@@ -532,13 +545,13 @@ const KURS = [
           { laer: true, quiz: { q: 'Which key gives a capital letter, or the character at the top of a key?', options: ['Shift', 'Ctrl', 'Tab'], answer: 0 } },
           { laer: true, quiz: { q: 'What does Caps Lock do?', options: ['Deletes a character', 'Turns on CAPITAL LETTERS until you turn it off again', 'Saves the document'], answer: 1 } },
           { laer: true, quiz: { q: 'What does the Tab key do in a form?', options: ['Makes a capital letter', 'Clears the field', 'Jumps to the next field'], answer: 2 } },
-          { text: 'Open <b>Write</b>.', check: S => S.ev('window-open', d => d.app === 'skriv') },
+          { text: 'Open <b>Write</b>.', check: S => S.ev('window-open', d => d.app === 'skriv') || S.wins('skriv') > 0 },
           { text: 'Type the sentence: <b>I am learning to use a PC!</b> (with a capital I, capital PC and an exclamation mark). <kbd>Shift</kbd> gives a capital letter and the character at the top of the key.', hint: 'The exclamation mark is on the 1 key: hold Shift and press 1.', check: S => S.editorText().includes('I am learning to use a PC!') },
           { text: 'Press <kbd>Enter</kbd> for a new line, and type an email address, for example <b>test@school.no</b>. On a Norwegian keyboard you type the at sign (@) with <kbd>AltGr</kbd>+<kbd>2</kbd>.', hint: 'AltGr is the key to the right of the space bar. Hold it down and press 2. (On some keyboards: Ctrl+Alt+2. On a UK keyboard: Shift+\'.)', check: S => S.editorText().includes('@') && S.editorText().includes('\n') },
           { text: 'Select all the text with <kbd>Ctrl</kbd>+<kbd>A</kbd>.', check: S => S.ev('shortcut', d => d.key === 'a' && d.app === 'skriv') },
           { text: 'Copy with <kbd>Ctrl</kbd>+<kbd>C</kbd>, click at the bottom of the text, and paste twice with <kbd>Ctrl</kbd>+<kbd>V</kbd>.', check: S => S.ev('shortcut', d => d.key === 'c' && d.app === 'skriv') && S.evCount('shortcut', d => d.key === 'v' && d.app === 'skriv') >= 2 },
           { text: 'Undo the last thing with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.', check: S => S.ev('shortcut', d => d.key === 'z' && d.app === 'skriv') },
-          { text: 'Save as <b>Keyboard-practice</b> in <b>OneDrive › School › Norwegian</b>.', check: S => S.fileInNamed('Keyboard-practice.docx', 'Norwegian') },
+          { text: 'Save as <b>Keyboard-practice</b> in <b>OneDrive › School › Norwegian</b>.<br><i>Saved in the wrong place or with the wrong name? Click <b>Save As</b> and save again.</i>', check: S => S.fileInNamed('Keyboard-practice.docx', 'Norwegian') },
           { text: 'Close Write.', check: S => S.ev('window-close', d => d.app === 'skriv') },
           { quiz: { q: 'How do you type @ on a Norwegian keyboard?', options: ['Shift + 2', 'AltGr + 2', 'Ctrl + 2'], answer: 1 } },
           { quiz: { q: 'What does Ctrl+Z do?', options: ['Undoes the last thing you did', 'Saves', 'Zooms in'], answer: 0 } },
