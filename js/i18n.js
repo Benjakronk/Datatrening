@@ -27,6 +27,15 @@ if (window.DT_LANG !== 'nb') {
   });
 }
 
+/* Hurtigtaster for formatering følger språket, slik Word gjør: norsk Word bruker Ctrl+F (fet) og
+   Ctrl+K (kursiv), engelsk Word Ctrl+B og Ctrl+I. Understreking er Ctrl+U i begge. */
+const FMT_KEYS = window.DT_LANG === 'nb' ? { bold: 'f', italic: 'k', underline: 'u' } : { bold: 'b', italic: 'i', underline: 'u' };
+/* Hvilken formatering en Ctrl+tast gir (null hvis ingen) */
+function fmtCmd(key) { const k = String(key || '').toLowerCase(); return Object.keys(FMT_KEYS).find(c => FMT_KEYS[c] === k) || null; }
+/* Tasten som tekst, for verktøytips og menyer: «Ctrl+F» */
+function fmtKbd(cmd) { return 'Ctrl+' + FMT_KEYS[cmd].toUpperCase(); }
+window.FMT_KEYS = FMT_KEYS; window.fmtCmd = fmtCmd; window.fmtKbd = fmtKbd;
+
 /* Adressen til den samme siden på det andre språket (norsk ↔ engelsk) */
 function otherLangUrl() {
   const prog = window.DT_PAGE === 'prog';

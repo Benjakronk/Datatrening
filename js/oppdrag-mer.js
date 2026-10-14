@@ -335,7 +335,7 @@ addMaster('kf', {
   ]
 }, [
   'Skriv en overskrift i Word på din egen PC og gi den stilen Overskrift 1.',
-  'Lag en punktliste og gjør ett ord fett med Ctrl+B.'
+  'Lag en punktliste og gjør ett ord fett med Ctrl+F.'
 ]);
 
 addMaster('k5', {

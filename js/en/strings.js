@@ -860,5 +860,6 @@ Object.assign(I18N.en, {
   "Det er for mange filer til å komprimere her (maks {0}).": "There are too many files to compress here (max {0}).",
   "Et navn eller ord med årstall er noe av det første som blir prøvd.": "A name or word with a year is one of the first things that gets tried.",
   "Gjentakelser gjør passordet lettere å gjette.": "Repetition makes the password easier to guess.",
-  "[Øvings-PC: «{0}» følger med Python og trenger ikke installeres. Skriv bare import {0} i programmet.]": "[Practice PC: \"{0}\" comes with Python and doesn't need installing. Just write import {0} in your program.]"
+  "[Øvings-PC: «{0}» følger med Python og trenger ikke installeres. Skriv bare import {0} i programmet.]": "[Practice PC: \"{0}\" comes with Python and doesn't need installing. Just write import {0} in your program.]",
+  "I norsk Word er fet Ctrl+F og kursiv Ctrl+K. (Ctrl+B og Ctrl+I er de engelske snarveiene.)": "In Norwegian Word, bold is Ctrl+F and italic is Ctrl+K. (Ctrl+B and Ctrl+I are the English shortcuts.)"
 });

@@ -30,8 +30,8 @@ const Skriv = (() => {
         <select class="sk-font" title="${T('Skrifttype')}">${FONTS.map(f => `<option value="${f}" style="font-family:'${f}'">${f}</option>`).join('')}</select>
         <select class="sk-size" title="${T('Skriftstørrelse (punkt)')}">${SIZES.map(s => `<option value="${s}">${s}</option>`).join('')}</select>
         <span class="vsep"></span>
-        <button class="sk-b" data-cmd="bold" title="${T('Fet (Ctrl+B)')}"><b>${T('Fet')[0]}</b></button>
-        <button class="sk-b" data-cmd="italic" title="${T('Kursiv (Ctrl+I)')}"><i>${T('Kursiv')[0]}</i></button>
+        <button class="sk-b" data-cmd="bold" title="${T('Fet') + ' (' + fmtKbd('bold') + ')'}"><b>${T('Fet')[0]}</b></button>
+        <button class="sk-b" data-cmd="italic" title="${T('Kursiv') + ' (' + fmtKbd('italic') + ')'}"><i>${T('Kursiv')[0]}</i></button>
         <button class="sk-b" data-cmd="underline" title="${T('Understreket (Ctrl+U)')}"><u>U</u></button>
         <span class="vsep"></span>
         <select class="sk-color" title="${T('Tekstfarge')}">${COLORS.map(c => `<option value="${c[0]}" style="color:${c[0]}">${c[1]}</option>`).join('')}</select>
@@ -164,7 +164,9 @@ const Skriv = (() => {
         if (k === 's') { e.preventDefault(); save('shortcut'); return; }
         if (k === 'p') { e.preventDefault(); print('shortcut'); return; }
         if (k === '0') { e.preventDefault(); st.zoom = 100; ed.style.zoom = 1; updTitle(); Bus.emit('zoom', { app: 'skriv', level: 100 }); return; }
-        if (k === 'b' || k === 'i' || k === 'u') { e.preventDefault(); if (!st.plain) exec(k === 'b' ? 'bold' : k === 'i' ? 'italic' : 'underline', null, 'shortcut'); return; }
+        if (fmtCmd(k)) { e.preventDefault(); if (!st.plain) exec(fmtCmd(k), null, 'shortcut'); return; }
+        /* Engelske snarveier på norsk side: forklar at norsk Word bruker andre taster */
+        if (window.DT_LANG === 'nb' && (k === 'b' || k === 'i')) { e.preventDefault(); Toast.show(T('I norsk Word er fet Ctrl+F og kursiv Ctrl+K. (Ctrl+B og Ctrl+I er de engelske snarveiene.)'), 5000); Bus.emit('shortcut-wrong', { key: k, app: 'skriv' }); return; }
       }
       if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertText', false, '\t'); return; }
       if (e.key === 'Escape') { e.stopPropagation(); return; }
@@ -200,8 +202,8 @@ const Skriv = (() => {
         { label: T('Merk alt'), kbd: 'Ctrl+A', action: () => act('selectall') }
       ];
       if (!st.plain) items.push('-', { label: T('Formatering'), sub: [
-        { label: T('Fet'), kbd: 'Ctrl+B', action: () => exec('bold', null, 'menu') },
-        { label: T('Kursiv'), kbd: 'Ctrl+I', action: () => exec('italic', null, 'menu') },
+        { label: T('Fet'), kbd: fmtKbd('bold'), action: () => exec('bold', null, 'menu') },
+        { label: T('Kursiv'), kbd: fmtKbd('italic'), action: () => exec('italic', null, 'menu') },
         { label: T('Understreket'), kbd: 'Ctrl+U', action: () => exec('underline', null, 'menu') }
       ] });
       Ctx.show(e.clientX, e.clientY, items, 'editor', T('teksten i Skriv'));

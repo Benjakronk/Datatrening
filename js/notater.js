@@ -38,7 +38,7 @@ const Notater = (() => {
         <div class="note-pages"><div class="pages"></div><button class="note-add" data-a="newpage">${T('+ Ny side')}</button></div>
         <div class="note-main">
           <input class="note-title" placeholder="${T('Sidetittel')}">
-          <div class="note-tools"><button data-c="bold" title="${T('Fet (Ctrl+B)')}">${T('<b>F</b>')}</button><button data-c="italic" title="${T('Kursiv (Ctrl+I)')}">${T('<i>K</i>')}</button><button data-c="insertUnorderedList" title="${T('Punktliste')}">${T('• liste')}</button><button data-c="todo" title="${T('Avkryssingsboks')}">${T('☐ huskeliste')}</button></div>
+          <div class="note-tools"><button data-c="bold" title="${T('Fet') + ' (' + fmtKbd('bold') + ')'}">${T('<b>F</b>')}</button><button data-c="italic" title="${T('Kursiv') + ' (' + fmtKbd('italic') + ')'}">${T('<i>K</i>')}</button><button data-c="insertUnorderedList" title="${T('Punktliste')}">${T('• liste')}</button><button data-c="todo" title="${T('Avkryssingsboks')}">${T('☐ huskeliste')}</button></div>
           <div class="note-page" contenteditable="true" spellcheck="false"></div>
           <div class="note-status"></div>
         </div>
@@ -61,7 +61,7 @@ const Notater = (() => {
     });
     pageEl.addEventListener('input', onEdit);
     pageEl.addEventListener('keydown', e => {
-      if (e.ctrlKey && ['b', 'i', 'u'].includes(e.key.toLowerCase())) { e.preventDefault(); document.execCommand(e.key.toLowerCase() === 'b' ? 'bold' : e.key.toLowerCase() === 'i' ? 'italic' : 'underline'); onEdit(); }
+      if (e.ctrlKey && !e.altKey && fmtCmd(e.key)) { e.preventDefault(); document.execCommand(fmtCmd(e.key)); onEdit(); }
       if (e.key === 'Escape') e.stopPropagation();
     });
     pageEl.addEventListener('click', e => { if (e.target.type === 'checkbox') { e.target.toggleAttribute('checked', e.target.checked); onEdit(); Bus.emit('notes-check', { on: e.target.checked }); } });

@@ -327,9 +327,10 @@ const KURS = [
       <h4>Størrelse</h4>
       <p>Skriftstørrelse måles i <b>punkt</b> (pt). Vanlig tekst er <b>11 eller 12 pt</b>. Overskrifter er større, for eksempel 16 til 20 pt. Ikke bruk stor skrift for å fylle sider.</p>
       <table><tr><th>Knapp</th><th>Snarvei</th><th>Brukes til</th></tr>
-      <tr><td><b>Fet</b></td><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>Fremheve viktige ord og overskrifter</td></tr>
-      <tr><td><i>Kursiv</i></td><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Titler på bøker og filmer, fremmedord, sitater</td></tr>
+      <tr><td><b>Fet</b></td><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Fremheve viktige ord og overskrifter</td></tr>
+      <tr><td><i>Kursiv</i></td><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Titler på bøker og filmer, fremmedord, sitater</td></tr>
       <tr><td><u>Understreket</u></td><td><kbd>Ctrl</kbd>+<kbd>U</kbd></td><td>Brukes sjelden i dag, fordi det ligner på lenker</td></tr></table>
+      <p>Snarveiene over gjelder norsk Word. I engelsk Word og i Google Dokumenter er fet <kbd>Ctrl</kbd>+<kbd>B</kbd> (bold) og kursiv <kbd>Ctrl</kbd>+<kbd>I</kbd> (italic).</p>
       <h4>Overskrifter, lister og justering</h4>
       <p><b>Stiler</b> som «Overskrift 1» gir overskriftene riktig størrelse og farge automatisk, så dokumentet blir ryddig og likt hele veien. <b>Punktliste</b> og <b>nummerert liste</b> brukes til oppramsing. <b>Justering</b> bestemmer om teksten står til venstre (vanlig), i midten (titler) eller til høyre.</p>`,
     oppdrag: [
@@ -339,10 +340,10 @@ const KURS = [
         steps: [
           { laer: true, quiz: { q: 'Hva er en skrifttype?', options: ['Hvor stor teksten er, for eksempel 11 eller 12 pt', 'Utseendet på bokstavene, for eksempel Calibri', 'Fargen på teksten, for eksempel blå eller svart'], answer: 1 } },
           { laer: true, quiz: { q: 'Hvilken størrelse passer til vanlig tekst i en skoleoppgave?', options: ['11 eller 12 pt', '24 pt', '6 pt'], answer: 0 } },
-          { laer: true, quiz: { q: 'Du vil gjøre et ord fett. Hva gjør du først?', options: ['Trykker Ctrl+B og skriver ordet på nytt', 'Sletter ordet', 'Markerer ordet'], answer: 2 } },
+          { laer: true, quiz: { q: 'Du vil gjøre et ord fett. Hva gjør du først?', options: ['Trykker Ctrl+F og skriver ordet på nytt', 'Sletter ordet', 'Markerer ordet'], answer: 2 } },
           { text: 'Åpne <b>Skriv</b> og skriv tre korte setninger om favorittboken eller favorittfilmen din. Ta med tittelen.', check: S => S.wins('skriv') > 0 && S.editorText().trim().length >= 30 },
-          { text: 'Marker et viktig ord (dra over det med musen) og gjør det <b>fett</b> med <kbd>Ctrl</kbd>+<kbd>B</kbd> eller <b>F</b>-knappen.', hint: 'Hold venstre museknapp nede i starten av ordet, dra til slutten og slipp. Ordet blir blått. Trykk så Ctrl+B.', check: S => S.skriv().bold },
-          { text: 'Marker tittelen på boken eller filmen og gjør den <i>kursiv</i> (<kbd>Ctrl</kbd>+<kbd>I</kbd>).', check: S => S.skriv().italic },
+          { text: 'Marker et viktig ord (dra over det med musen) og gjør det <b>fett</b> med <kbd>Ctrl</kbd>+<kbd>F</kbd> eller <b>F</b>-knappen.', hint: 'Hold venstre museknapp nede i starten av ordet, dra til slutten og slipp. Ordet blir blått. Trykk så Ctrl+F.', check: S => S.skriv().bold },
+          { text: 'Marker tittelen på boken eller filmen og gjør den <i>kursiv</i> (<kbd>Ctrl</kbd>+<kbd>K</kbd>).', check: S => S.skriv().italic },
           { text: 'Marker noe annet og gjør det <u>understreket</u> (<kbd>Ctrl</kbd>+<kbd>U</kbd>). Se at det ligner en lenke. Fjern understrekingen igjen: marker teksten og trykk <kbd>Ctrl</kbd>+<kbd>U</kbd> en gang til.', hint: 'Samme knapp slår formateringen av og på.', check: S => S.evCount('format', d => d.cmd === 'underline') >= 2 && !S.skriv().underline },
           { text: 'Lagre dokumentet som <b>Formatering</b> i <b>OneDrive › Skole › Norsk</b>.<br><i>Lagret du feil sted eller med feil navn? Klikk <b>Lagre som</b> og lagre på nytt.</i>', check: S => S.fileInNamed('Formatering.docx', 'Norsk') },
           { quiz: { q: 'Hva bruker du kursiv til?', options: ['Viktige ord som skal skille seg ut i teksten', 'Titler på bøker og filmer, fremmedord og sitater', 'Overskrifter og navnet ditt øverst på siden'], answer: 1 } }
@@ -547,7 +548,7 @@ const KURS = [
       <h4>Snarveier du bør kunne</h4>
       <table><tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> kopier</td><td><kbd>Ctrl</kbd>+<kbd>V</kbd> lim inn</td><td><kbd>Ctrl</kbd>+<kbd>X</kbd> klipp ut</td></tr>
       <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> angre</td><td><kbd>Ctrl</kbd>+<kbd>S</kbd> lagre</td><td><kbd>Ctrl</kbd>+<kbd>A</kbd> marker alt</td></tr>
-      <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> søk</td><td><kbd>Alt</kbd>+<kbd>Tab</kbd> bytt program</td><td><kbd>⊞</kbd>+<kbd>E</kbd> Filutforsker</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> søk (i nettleser og Filutforsker; i norsk Word er det fet)</td><td><kbd>Alt</kbd>+<kbd>Tab</kbd> bytt program</td><td><kbd>⊞</kbd>+<kbd>E</kbd> Filutforsker</td></tr>
       <tr><td><kbd>⊞</kbd>+<kbd>D</kbd> vis skrivebordet</td><td><kbd>⊞</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> skjermbilde</td><td><kbd>Ctrl</kbd>+<kbd>P</kbd> skriv ut</td></tr></table>
       <p>Noen snarveier (Alt+Tab, Windows-tasten) styres av den ekte PC-en og kan ikke øves her, men prøv dem gjerne!</p>`,
     oppdrag: [
