@@ -466,7 +466,7 @@ addMaster('kh', {
    ============================================================ */
 const REPETISJON = [
   { id: 'rp1', kurs: 'k1', lukk: ['explorer'], text: 'Open <b>File Explorer</b> and maximise the window.', check: S => S.ev('window-max', d => d.app === 'explorer') },
-  { id: 'rp2', kurs: 'k1', text: 'Right-click the <b>desktop</b> and close the menu again with <kbd>Esc</kbd>.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') && S.ev('ctxmenu-close', d => d.via === 'esc') },
+  { id: 'rp2', kurs: 'k1', text: 'Right-click the <b>desktop</b> and close the menu again by clicking somewhere else on the desktop.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') && S.ev('ctxmenu-close', d => d.via === 'outside' || d.via === 'esc') },
   { id: 'rp3', kurs: 'k2', text: 'Make a folder called <b>Weekly test</b> in Documents.', setup: F => F.silentRemoveAll('Weekly test'), check: S => S.folderIn('Weekly test', P_DOC) },
   { id: 'rp4', kurs: 'k2', text: 'Go to <b>OneDrive › School</b> in File Explorer.', check: S => S.ev('explorer-nav', d => /^school$/i.test(d.name)) },
   { id: 'rp5', kurs: 'k3', text: 'Copy the file <b>week-file.txt</b> from the desktop to Documents.', setup: F => { F.silentRemoveAll('week-file.txt'); F.ensureFileAt(P_DESK, 'week-file.txt', 'Test file'); }, check: S => S.fileIn('week-file.txt', P_DOC) && S.fileIn('week-file.txt', P_DESK) },

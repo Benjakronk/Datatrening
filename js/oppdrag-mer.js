@@ -466,7 +466,7 @@ addMaster('kh', {
    ============================================================ */
 const REPETISJON = [
   { id: 'rp1', kurs: 'k1', lukk: ['explorer'], text: 'Åpne <b>Filutforsker</b> og maksimer vinduet.', check: S => S.ev('window-max', d => d.app === 'explorer') },
-  { id: 'rp2', kurs: 'k1', text: 'Høyreklikk på <b>skrivebordet</b> og lukk menyen igjen med <kbd>Esc</kbd>.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') && S.ev('ctxmenu-close', d => d.via === 'esc') },
+  { id: 'rp2', kurs: 'k1', text: 'Høyreklikk på <b>skrivebordet</b> og lukk menyen igjen ved å klikke et annet sted på skrivebordet.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') && S.ev('ctxmenu-close', d => d.via === 'outside' || d.via === 'esc') },
   { id: 'rp3', kurs: 'k2', text: 'Lag en mappe som heter <b>Uketest</b> i Dokumenter.', setup: F => F.silentRemoveAll('Uketest'), check: S => S.folderIn('Uketest', P_DOC) },
   { id: 'rp4', kurs: 'k2', text: 'Gå til <b>OneDrive › Skole</b> i Filutforsker.', check: S => S.ev('explorer-nav', d => /^skole$/i.test(d.name)) },
   { id: 'rp5', kurs: 'k3', text: 'Kopier filen <b>uke-fil.txt</b> fra skrivebordet til Dokumenter.', setup: F => { F.silentRemoveAll('uke-fil.txt'); F.ensureFileAt(P_DESK, 'uke-fil.txt', 'Testfil'); }, check: S => S.fileIn('uke-fil.txt', P_DOC) && S.fileIn('uke-fil.txt', P_DESK) },

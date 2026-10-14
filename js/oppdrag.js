@@ -32,7 +32,7 @@ const KURS = [
       <tr><td><b>Dra og slipp</b></td><td>Hold venstre knapp nede, flytt, slipp</td></tr></table>
       <h4>Høyreklikk på styreflaten (bærbar PC)</h4>
       <p>Uten mus: <b>trykk lett med to fingre samtidig</b> på styreflaten. Det virker også å trykke nede i høyre hjørne av styreflaten.</p>
-      <p><b>Menyen er forskjellig etter hva du høyreklikker på.</b> En fil, en mappe, skrivebordet og oppgavelinjen har hver sin meny. Derfor: høyreklikk alltid på <i>tingen</i> du vil gjøre noe med. Trykk <kbd>Esc</kbd> for å lukke menyen uten å velge noe.</p>
+      <p><b>Menyen er forskjellig etter hva du høyreklikker på.</b> En fil, en mappe, skrivebordet og oppgavelinjen har hver sin meny. Derfor: høyreklikk alltid på <i>tingen</i> du vil gjøre noe med. Vil du lukke menyen uten å velge noe, klikker du et annet sted. På en vanlig PC kan du også trykke <kbd>Esc</kbd>.</p>
       <h4>Vinduer</h4>
       <p>Hvert program åpnes i et <b>vindu</b>. Øverst til høyre i vinduet finner du tre knapper:
       <b>—</b> minimerer (gjemmer vinduet i oppgavelinjen), <b>☐</b> maksimerer (fyller hele skjermen), <b>✕</b> lukker. Du flytter et vindu ved å dra i <b>tittellinjen</b> øverst.</p>
@@ -82,7 +82,7 @@ const KURS = [
         intro: 'Menyen som kommer opp når du høyreklikker, er forskjellig etter hva du klikker på. På styreflaten: trykk lett med <b>to fingre samtidig</b>. Du får en liten melding hver gang du åpner en meny.',
         steps: [
           { text: 'Høyreklikk på et tomt sted på <b>skrivebordet</b>. Se på menyen: den handler om skrivebordet (Vis, Sorter, Ny …).', hint: 'Styreflate: trykk lett med to fingre samtidig. Mus: høyre knapp.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') },
-          { text: 'Lukk menyen uten å velge noe: trykk <kbd>Esc</kbd>.', hint: 'Esc-tasten ligger øverst til venstre på tastaturet.', check: S => S.ev('ctxmenu-close', d => d.via === 'esc') },
+          { text: 'Lukk menyen uten å velge noe: klikk på et tomt sted på skrivebordet, utenfor menyen. (På en vanlig PC kan du også trykke <kbd>Esc</kbd>. Her inne avslutter Esc fullskjerm i stedet.)', hint: 'Klikk én gang med venstre museknapp et sted der det ikke er noen meny eller ikoner.', check: S => S.ev('ctxmenu-close', d => d.via === 'outside' || d.via === 'esc') },
           { text: 'Høyreklikk på <b>Papirkurv</b>-ikonet. Menyen er annerledes: her finner du «Tøm papirkurv».', check: S => S.ev('ctxmenu', d => d.where === 'bin-icon') },
           { text: 'Høyreklikk på <b>Filutforsker-ikonet</b> i oppgavelinjen. Slike menyer bruker du til å feste eller løsne programmer.', check: S => S.ev('ctxmenu', d => d.where === 'taskbar-app') },
           { text: 'Åpne Filutforsker, gå til <b>Dokumenter</b> og høyreklikk på en <b>fil</b>. Legg merke til «Åpne med» og «Gi nytt navn».', check: S => S.ev('ctxmenu', d => d.where === 'file') },

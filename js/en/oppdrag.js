@@ -32,7 +32,7 @@ const KURS = [
       <tr><td><b>Drag and drop</b></td><td>Hold the left button down, move, let go</td></tr></table>
       <h4>Right-clicking on the touchpad (laptop)</h4>
       <p>Without a mouse: <b>tap lightly with two fingers at the same time</b> on the touchpad. Pressing down in the bottom right corner of the touchpad also works.</p>
-      <p><b>The menu is different depending on what you right-click.</b> A file, a folder, the desktop and the taskbar each have their own menu. So: always right-click the <i>thing</i> you want to do something with. Press <kbd>Esc</kbd> to close the menu without choosing anything.</p>
+      <p><b>The menu is different depending on what you right-click.</b> A file, a folder, the desktop and the taskbar each have their own menu. So: always right-click the <i>thing</i> you want to do something with. To close the menu without choosing anything, click somewhere else. On a normal PC you can also press <kbd>Esc</kbd>.</p>
       <h4>Windows</h4>
       <p>Each app opens in a <b>window</b>. In the top right corner of the window you'll find three buttons:
       <b>—</b> minimises (hides the window in the taskbar), <b>☐</b> maximises (fills the whole screen), <b>✕</b> closes. You move a window by dragging the <b>title bar</b> at the top.</p>
@@ -82,7 +82,7 @@ const KURS = [
         intro: 'The menu that comes up when you right-click is different depending on what you click. On the touchpad: tap lightly with <b>two fingers at the same time</b>. You get a short message every time you open a menu.',
         steps: [
           { text: 'Right-click an empty spot on the <b>desktop</b>. Look at the menu: it is about the desktop (View, Sort by, New …).', hint: 'Touchpad: tap lightly with two fingers at the same time. Mouse: right button.', check: S => S.ev('ctxmenu', d => d.where === 'desktop') },
-          { text: 'Close the menu without choosing anything: press <kbd>Esc</kbd>.', hint: 'The Esc key is in the top left corner of the keyboard.', check: S => S.ev('ctxmenu-close', d => d.via === 'esc') },
+          { text: 'Close the menu without choosing anything: click an empty spot on the desktop, outside the menu. (On a normal PC you can also press <kbd>Esc</kbd>. In here, Esc exits full screen instead.)', hint: 'Click once with the left mouse button somewhere with no menu or icons.', check: S => S.ev('ctxmenu-close', d => d.via === 'outside' || d.via === 'esc') },
           { text: 'Right-click the <b>Recycle Bin</b> icon. The menu is different: here you\'ll find “Empty Recycle Bin”.', check: S => S.ev('ctxmenu', d => d.where === 'bin-icon') },
           { text: 'Right-click the <b>File Explorer icon</b> on the taskbar. You use menus like this to pin or unpin apps.', check: S => S.ev('ctxmenu', d => d.where === 'taskbar-app') },
           { text: 'Open File Explorer, go to <b>Documents</b> and right-click a <b>file</b>. Notice “Open with” and “Rename”.', check: S => S.ev('ctxmenu', d => d.where === 'file') },
