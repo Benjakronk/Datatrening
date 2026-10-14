@@ -47,7 +47,9 @@ const Terminal = (() => {
     'Select-String': 'Select-String (sls) <tekst> <fil>\n  Søker etter tekst i filer. Kan også brukes etter |:\n  ls | Select-String py',
     'Measure-Object': 'Measure-Object (measure)\n  Teller. ls | measure   teller elementer',
     'Get-Date': 'Get-Date\n  Viser dato og klokkeslett.',
-    exit: 'exit\n  Lukker terminalen.'
+    exit: 'exit\n  Lukker terminalen.',
+    git: 'git <kommando>\n  Versjonskontroll (krever at Git er installert fra Firmaportalen).\n  git init             lag et nytt repo i mappen du står i\n  git status           hva er endret?\n  git add <fil>        legg en endring klar til neste versjon\n  git commit -m "..."  lagre en versjon med en melding\n  git log              se historikken\n  git diff             se hva som er endret\n  git restore <fil>    angre endringene i en fil',
+    pip: 'pip <kommando>\n  Installerer Python-pakker.\n  pip install <pakke>             installer en pakke\n  pip list                        vis installerte pakker\n  pip show <pakke>                vis informasjon om en pakke\n  pip uninstall <pakke>           fjern en pakke\n  pip install -r requirements.txt installer alt i listen'
   };
   const COMMANDS = Object.keys(HELP).concat(['whoami', 'hostname', 'notepad', 'Get-Item', 'Get-History', 'history']);
 
@@ -357,6 +359,9 @@ const Terminal = (() => {
         if (FS.ext(n.name) === 'py') { this.print(T('Tips: Python-filer kjøres med:  python {0}\n', n.name), 'dim'); return finish(false); }
         return fail(`${first}: Program '${n.name}' failed to run: The file is not a program or script. ` + T('Åpne den med: code {0}', n.name));
       }
+      /* Tilleggskommandoer (git.js og pip.js) */
+      const extApi = toks => { const pa = parseArgs(toks); return { term: this, args: pa.args, opts: pa.opts, toks: toks.map(t => t.v), out, finish, fail, cwd: this.cwd, cwdPath: this.cwdPath, resolve: p => resolve(this.cwd, p), resolveParent: p => resolveParent(this.cwd, p), pathOf, isDir, isFile, termName }; };
+      if (window.TermExt && TermExt[lower]) return await TermExt[lower](extApi(rest));
       if (!canonical) {
         /* filnavn uten .\ i gjeldende mappe: PowerShell sin klassiske melding */
         const here = childOf(this.cwd, first);
@@ -517,6 +522,11 @@ const Terminal = (() => {
         case 'python': {
           if (!args.length) { out(T('Python 3.12.4 (øvings-PC)\nInteraktiv modus støttes ikke her. Kjør en fil:  python fil.py')); return finish(true); }
           if (args[0] === '--version' || args[0] === '-V') { out('Python 3.12.4'); return finish(true); }
+          if (rest[0] && rest[0].v === '-m') {
+            const mod = rest[1] ? rest[1].v.toLowerCase() : '';
+            if (window.TermExt && TermExt[mod]) return await TermExt[mod](extApi(rest.slice(2)));
+            return fail(`${first}: No module named ${mod}`);
+          }
           const loc = resolve(this.cwd, args[0]);
           if (!loc || loc.virt || !isFile(loc)) return fail(`python: can't open file '${absStr(this.cwd, args[0])}': [Errno 2] No such file or directory`);
           const n = FS.get(loc.id);
@@ -558,6 +568,7 @@ const Terminal = (() => {
           if (rr.error) return { error: rr.error, errorType: 'OSError' };
           return { content: '' };
         },
+        hasPkg: name => !!(window.Pip && Pip.has(name)),
         write: (path, content) => { const loc = resolve(this.cwd, path); if (!loc || loc.virt) return { error: 'cannot write ' + path }; const r = FS.write(loc.id, content); return r && r.error ? { error: r.error } : {}; }
       };
     }

@@ -32,25 +32,33 @@ let failed = 0;
 /* De engelske sidene ligger i en/, så testsiden legges der og henter testskriptet med ../ */
 const SIDER = [['grunnkurset', 'index.html'], ['programmering', 'programmering.html'],
   ['grunnkurset-en', 'en/index.html'], ['programmering-en', 'en/programming.html']];
+/* To slags tester per side: veiledertesten (struktur, teorisperre, mesterprøve, rapport) og
+   gjennomgangen, som spiller gjennom de viderekommende oppdragene med ekte klikk og kommandoer.
+   node tests/kjor.js --uten-gjennomgang hopper over gjennomgangen (den tar et par minutter per side). */
+const JOBBER = [];
 for (const [navn, side] of SIDER) {
+  JOBBER.push([navn, side, ['coachtest.js'], 120000, 180000]);
+  if (!process.argv.includes('--uten-gjennomgang')) JOBBER.push([navn + ' (gjennomgang)', side, ['gjennomgang-felles.js', 'gjennomgang-' + navn + '.js'], 600000, 420000]);
+}
+for (const [navn, side, skript, budsjett, tidsgrense] of JOBBER) {
   const src = fs.readFileSync(path.join(ROOT, side), 'utf8');
   const opp = side.includes('/') ? '../' : '';
-  const harness = side.replace(/[^/]*$/, '_test-' + navn + '.html');
+  const harness = side.replace(/[^/]*$/, '_test-' + navn.replace(/\W+/g, '-') + '.html');
   fs.writeFileSync(path.join(ROOT, harness),
     src.replace('<head>', '<head>' + HEAD)
-       .replace('</body>', '<pre id="testlog"></pre><script src="' + opp + 'tests/coachtest.js"></script></body>'));
+       .replace('</body>', '<pre id="testlog"></pre>' + skript.map(s => '<script src="' + opp + 'tests/' + s + '"></script>').join('') + '</body>'));
   made.push(harness);
 
-  /* Edge blir av og til hengende etter at siden er skrevet ut. Da stoppes den etter tre minutter,
+  /* Edge blir av og til hengende etter at siden er skrevet ut. Da stoppes den etter tidsgrensen,
      og det den rakk å skrive ut, brukes likevel. */
   let dom;
   try {
     dom = execFileSync(EDGE, [
       '--headless=new', '--disable-gpu', '--no-first-run',
-      '--user-data-dir=' + path.join(tmp, navn),
-      '--window-size=1500,900', '--virtual-time-budget=120000',
+      '--user-data-dir=' + path.join(tmp, navn.replace(/\W+/g, '-')),
+      '--window-size=1500,900', '--virtual-time-budget=' + budsjett,
       '--dump-dom', 'file:///' + path.join(ROOT, harness).replace(/\\/g, '/')
-    ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'], timeout: 180000 });
+    ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'], timeout: tidsgrense });
   } catch (e) { dom = String(e.stdout || ''); }
 
   const m = dom.match(/<pre id="testlog">([\s\S]*?)<\/pre>/);

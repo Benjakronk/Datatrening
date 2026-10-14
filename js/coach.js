@@ -480,6 +480,8 @@ const Coach = (() => {
     }
     body.appendChild(el(T('<p class="muted">Velg et kurs. Det er lurt å ta dem i rekkefølge. Klikk på et oppdrag for å starte det.</p>')));
     KL.forEach((k, i) => {
+      /* Kursene kan deles i nivåer (k.del), f.eks. «Viderekommen» og «Ekspert», med en overskrift over hver del */
+      if (k.del && (i === 0 || KL[i - 1].del !== k.del)) body.appendChild(el(`<div class="kurs-del"><b>${esc(k.del)}</b>${k.delDesc ? `<span>${esc(k.delDesc)}</span>` : ''}</div>`));
       const dn = kursDone(k), tot = k.oppdrag.length, complete = dn === tot, mp = masterPassed(k);
       const open = P.openKurs === k.id;
       const card = el(`<div class="kurs-card${open ? ' open' : ''}"><div class="kt"><span>${i + 1}. ${esc(k.title)}</span><small>${dn}/${tot} ${mp ? '🏅' : complete ? '✓' : ''}</small></div><div class="muted">${esc(k.desc || '')}</div><div class="bar"><div style="width:${tot ? (100 * dn / tot) : 0}%"></div></div></div>`);

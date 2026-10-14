@@ -21,6 +21,32 @@ const Epost = (() => {
       date: Date.now() - 3600000 * 2,
       body: T('Hei!\n\nKan du sende meg delen din av gruppeoppgaven? Jeg setter alt sammen i kveld.\n\nJonas'),
       attach: []
+    },
+    /* Meldingene under (extra) leveres først når et oppdrag ber om det (Epost.deliver), så de ikke
+       forvirrer i grunnkurset. phish: falsk melding som eleven skal kjenne igjen og rapportere. */
+    {
+      id: 'm4', extra: true, phish: true, from: 'Microsoft 365', addr: 'no-reply@micros0ft-support.com', to: ME, subject: T('Handling kreves: kontoen din stenges i dag'),
+      date: Date.now() - 3600000 * 1,
+      body: T('Kjære bruker,\n\nVi har oppdaget uvanlig aktivitet på kontoen din. Hvis du ikke bekrefter passordet ditt innen 24 timer, blir kontoen stengt og alle filene dine slettet.\n\nKlikk på knappen under for å bekrefte.\n\nMicrosoft Sikkerhetsteam'),
+      attach: [], links: [{ text: T('Bekreft kontoen nå'), href: 'http://micros0ft-support.com/login.php?konto=elev' }]
+    },
+    {
+      id: 'm5', extra: true, from: T('Kari Hansen (lærer)'), addr: 'kari.hansen@skolen.no', to: '8A', subject: T('Tur til museet på fredag'),
+      date: Date.now() - 3600000 * 3,
+      body: T('Hei alle sammen!\n\nPå fredag drar vi til Teknisk museum. Vi møtes ved skolen klokka 08.15. Ta med matpakke og drikke.\n\nPlanen ligger på Skoleportalen.\n\nHilsen Kari'),
+      attach: [], links: [{ text: T('Se planen på Skoleportalen'), href: 'https://skolen.no/8a/tur-teknisk-museum' }]
+    },
+    {
+      id: 'm6', extra: true, phish: true, from: T('Posten'), addr: 'varsel@posten-sporing.info', to: ME, subject: T('Pakken din venter – betal 29 kr'),
+      date: Date.now() - 3600000 * 4,
+      body: T('Hei!\n\nVi forsøkte å levere en pakke til deg, men det mangler 29 kr i fraktavgift. Pakken sendes tilbake om 12 timer.\n\nBetal med kort her:'),
+      attach: [], links: [{ text: T('Betal 29 kr'), href: 'http://posten-sporing.info/betal?id=88412' }]
+    },
+    {
+      id: 'm7', extra: true, phish: true, from: 'Jonas Berg', addr: 'jonas.berg.skolen2009@gmail.com', to: ME, subject: T('Er dette deg i videoen?? 😂'),
+      date: Date.now() - 3600000 * 0.5,
+      body: T('Haha, så denne videoen nå, er ikke dette deg?? Du må logge inn for å se den.'),
+      attach: [], links: [{ text: T('Se videoen'), href: 'http://vid-share-login.net/v/8812' }]
     }
   ];
   let data = null, win = null;
@@ -30,8 +56,11 @@ const Epost = (() => {
     try { const s = localStorage.getItem(KEY); if (s) { const d = JSON.parse(s); if (d && d.read) { data = d; return data; } } } catch (e) { /* ignorer */ }
     data = { read: {}, sent: [], savedAttach: [] }; save(); return data;
   }
+  /* Ekstra meldinger som er levert, og meldinger eleven har rapportert eller slettet */
+  function fix() { ['delivered', 'reported', 'deleted'].forEach(k => { if (!Array.isArray(data[k])) data[k] = []; }); }
+  function visible(m) { fix(); return (!m.extra || data.delivered.includes(m.id)) && !data.reported.includes(m.id) && !data.deleted.includes(m.id); }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* ignorer */ } }
-  function unread() { load(); return INBOX.filter(m => !data.read[m.id]).length; }
+  function unread() { load(); return INBOX.filter(m => visible(m) && !data.read[m.id]).length; }
 
   function open() {
     if (win) { WM.focus(win, 'open'); return win; }
@@ -52,28 +81,30 @@ const Epost = (() => {
 
     function renderFolders() {
       const box = root.querySelector('.mail-folders'); box.innerHTML = '';
-      [['inn', T('📥 Innboks'), unread()], ['sendt', T('📤 Sendt'), 0]].forEach(([id, label, n]) => {
+      fix();
+      const spam = INBOX.filter(m => data.reported.includes(m.id)).length;
+      [['inn', T('📥 Innboks'), unread()], ['sendt', T('📤 Sendt'), 0]].concat(spam ? [['spam', T('⚠ Søppelpost'), 0]] : []).forEach(([id, label, n]) => {
         const r = el(`<div class="mf${folder === id ? ' active' : ''}"><span>${label}</span>${n ? `<span class="badge">${n}</span>` : ''}</div>`);
         r.addEventListener('click', () => { folder = id; cur = null; render(); Bus.emit('mail-folder', { folder: id }); });
         box.appendChild(r);
       });
     }
-    function list() { return folder === 'inn' ? INBOX.slice().sort((a, b) => b.date - a.date) : data.sent.slice().reverse(); }
+    function list() { fix(); return folder === 'inn' ? INBOX.filter(visible).sort((a, b) => b.date - a.date) : folder === 'spam' ? INBOX.filter(m => data.reported.includes(m.id)) : data.sent.slice().reverse(); }
     function renderList() {
       const box = root.querySelector('.mail-list'); box.innerHTML = '';
       const items = list();
       if (!items.length) { box.appendChild(el(T('<div class="mail-empty">Ingen meldinger her.</div>'))); return; }
       items.forEach(m => {
         const isUnread = folder === 'inn' && !data.read[m.id];
-        const r = el(`<div class="mail-item${cur && cur.id === m.id ? ' active' : ''}${isUnread ? ' unread' : ''}"><div class="mi-top"><span class="who">${esc(folder === 'inn' ? m.from : T('Til: {0}', m.to))}</span><span class="when">${esc(fmtDate(m.date).split(' ')[1] || '')}</span></div><div class="subj">${esc(m.subject || T('(uten emne)'))}</div><div class="prev">${esc((m.body || '').replace(/\n/g, ' ').slice(0, 60))}${(m.attach && m.attach.length) ? ' 📎' : ''}</div></div>`);
-        r.addEventListener('click', () => { cur = m; if (folder === 'inn' && !data.read[m.id]) { data.read[m.id] = true; save(); } Bus.emit('mail-open', { subject: m.subject, from: m.from, attach: (m.attach || []).map(a => a.name) }); render(); });
+        const r = el(`<div class="mail-item${cur && cur.id === m.id ? ' active' : ''}${isUnread ? ' unread' : ''}" data-id="${esc(m.id)}"><div class="mi-top"><span class="who">${esc(folder !== 'sendt' ? m.from : T('Til: {0}', m.to))}</span><span class="when">${esc(fmtDate(m.date).split(' ')[1] || '')}</span></div><div class="subj">${esc(m.subject || T('(uten emne)'))}</div><div class="prev">${esc((m.body || '').replace(/\n/g, ' ').slice(0, 60))}${(m.attach && m.attach.length) ? ' 📎' : ''}</div></div>`);
+        r.addEventListener('click', () => { cur = m; if (folder === 'inn' && !data.read[m.id]) { data.read[m.id] = true; save(); } Bus.emit('mail-open', { id: m.id, subject: m.subject, from: m.from, addr: m.addr, phish: !!m.phish, attach: (m.attach || []).map(a => a.name) }); render(); });
         box.appendChild(r);
       });
     }
     function renderRead() {
       const box = root.querySelector('.mail-read'); box.innerHTML = '';
       if (!cur) { box.appendChild(el(T('<div class="mail-empty">Velg en melding i listen.</div>'))); return; }
-      const head = el(`<div class="mr-head"><h2>${esc(cur.subject || T('(uten emne)'))}</h2><div class="muted">${esc(folder === 'inn' ? cur.from + ' <' + cur.addr + '>' : T('Til: {0}', cur.to))} · ${esc(fmtDate(cur.date))}</div></div>`);
+      const head = el(`<div class="mr-head"><h2>${esc(cur.subject || T('(uten emne)'))}</h2><div class="muted">${folder !== 'sendt' ? `<b>${esc(cur.from)}</b> <span class="mr-addr">&lt;${esc(cur.addr)}&gt;</span>` : esc(T('Til: {0}', cur.to))} · ${esc(fmtDate(cur.date))}</div></div>`);
       box.appendChild(head);
       if (cur.attach && cur.attach.length) {
         const ab = el(T('<div class="mr-attach"><b>📎 Vedlegg</b></div>'));
@@ -90,14 +121,52 @@ const Epost = (() => {
         box.appendChild(ab);
       }
       box.appendChild(el(`<div class="mr-body">${esc(cur.body)}</div>`));
+      /* Lenker: holder du musepekeren over, ser du hvor lenken egentlig går (nederst i vinduet) */
+      if (cur.links && cur.links.length) {
+        const lb = el('<div class="mr-links"></div>');
+        const status = el('<div class="mr-status"></div>');
+        cur.links.forEach(l => {
+          const a = el(`<a class="mr-link" href="#">${esc(l.text)}</a>`);
+          const m = cur;
+          a.addEventListener('mouseenter', () => { status.textContent = l.href; status.classList.add('on'); Bus.emit('mail-link-hover', { id: m.id, href: l.href, phish: !!m.phish }); });
+          a.addEventListener('mouseleave', () => { status.classList.remove('on'); });
+          a.addEventListener('click', e => { e.preventDefault(); clickLink(m, l); });
+          lb.appendChild(a);
+        });
+        box.appendChild(lb); box.appendChild(status);
+      }
+      if (folder === 'spam') {
+        const row = el('<div class="mr-actions"></div>');
+        const m = cur;
+        const b = el(`<button class="btn">${T('Ikke søppelpost')}</button>`);
+        b.addEventListener('click', () => { fix(); data.reported = data.reported.filter(x => x !== m.id); save(); Bus.emit('mail-unreport', { id: m.id, phish: !!m.phish }); Toast.show(T('Meldingen er flyttet tilbake til innboksen.')); folder = 'inn'; cur = null; render(); });
+        row.appendChild(b);
+        row.appendChild(el(`<span class="muted" style="margin-left:8px">${T('Rapporterte du en ekte melding ved en feil? Flytt den tilbake.')}</span>`));
+        box.appendChild(row);
+      }
       if (folder === 'inn') {
         const row = el('<div class="mr-actions"></div>');
         const b1 = el(T('<button class="btn primary">↩ Svar</button>')); b1.addEventListener('click', () => compose({ to: cur.addr, subject: T('SV: {0}', cur.subject), quote: cur, reply: true }));
         const b2 = el(T('<button class="btn">↩↩ Svar alle</button>')); b2.addEventListener('click', () => compose({ to: cur.addr + ', 8a@skolen.no', subject: T('SV: {0}', cur.subject), quote: cur, reply: true, all: true }));
-        row.appendChild(b1); row.appendChild(b2);
+        const b3 = el(`<button class="btn">${T('🗑 Slett')}</button>`); b3.addEventListener('click', () => removeMsg(cur, 'delete'));
+        const b4 = el(`<button class="btn">${T('⚠ Rapporter phishing')}</button>`); b4.addEventListener('click', () => removeMsg(cur, 'report'));
+        row.appendChild(b1); row.appendChild(b2); row.appendChild(b3); row.appendChild(b4);
         row.appendChild(el(T('<span class="muted" style="margin-left:8px">«Svar alle» går til alle som fikk meldingen. Bruk det bare når alle trenger svaret.</span>')));
         box.appendChild(row);
       }
+    }
+    function removeMsg(m, how) {
+      fix();
+      if (how === 'report') { if (!data.reported.includes(m.id)) data.reported.push(m.id); Toast.show(T('Meldingen er rapportert som phishing og flyttet til Søppelpost. Takk, nå blir andre også advart.'), 5000); }
+      else { if (!data.deleted.includes(m.id)) data.deleted.push(m.id); Toast.show(T('Meldingen er slettet.')); }
+      save();
+      Bus.emit(how === 'report' ? 'mail-report' : 'mail-delete', { id: m.id, subject: m.subject, phish: !!m.phish });
+      cur = null; render();
+    }
+    async function clickLink(m, l) {
+      Bus.emit('mail-link-click', { id: m.id, href: l.href, phish: !!m.phish });
+      if (!m.phish) { Toast.show(T('Lenken går til {0}. Den er trygg: den peker til skolens egen nettside.', l.href), 5000); return; }
+      await Dialog.show({ title: T('Du klikket på en falsk lenke'), body: `<p>${esc(T('Lenken gikk til {0}, ikke til en ekte side.', l.href))}</p><p>${esc(T('I virkeligheten kunne den åpnet en falsk innloggingsside som stjeler passordet ditt, eller lastet ned skadelig programvare. Her skjedde ingenting.'))}</p><p>${esc(T('Hold musepekeren over lenker før du klikker, så ser du hvor de egentlig går. Rapporter meldingen som phishing.'))}</p>`, buttons: [{ label: 'OK', value: true, primary: true }], escapeValue: true });
     }
     async function saveAttach(a) {
       const ext = FS.ext(a.name);
@@ -177,12 +246,19 @@ const Epost = (() => {
     load();
     return {
       read: INBOX.filter(m => data.read[m.id]).map(m => m.subject),
+      reported: (data.reported || []).slice(), deleted: (data.deleted || []).slice(), delivered: (data.delivered || []).slice(),
       sent: data.sent.map(m => ({ to: m.to, subject: m.subject, body: m.body, attach: (m.attach || []).map(a => a.name) })),
       savedAttach: data.savedAttach.slice(),
       unread: unread()
     };
   }
   function reset() { data = { read: {}, sent: [], savedAttach: [] }; save(); if (win && win.render) win.render(); }
-  return { open, state, reset, INBOX, ME };
+  /* Leverer ekstra meldinger til innboksen (uleste), f.eks. de falske meldingene i «Trygg på nett» */
+  function deliver(ids) {
+    load(); fix();
+    ids.forEach(id => { if (!data.delivered.includes(id)) data.delivered.push(id); delete data.read[id]; data.reported = data.reported.filter(x => x !== id); data.deleted = data.deleted.filter(x => x !== id); });
+    save(); if (win && win.render) win.render();
+  }
+  return { open, state, reset, deliver, INBOX, ME };
 })();
 window.Epost = Epost;

@@ -71,20 +71,22 @@ skolens webserver) eller del mappen via OneDrive/Teams og be elevene åpne `inde
 
 | Program | Brukes til |
 |---|---|
-| **Filutforsker** | Mapper, filer, dra og slipp, klipp ut/kopier/lim inn, gi nytt navn, slette, papirkurv, søk, sortering, filendelser |
+| **Filutforsker** | Mapper, filer, dra og slipp (Ctrl mens du slipper kopierer), klipp ut/kopier/lim inn, gi nytt navn, slette, papirkurv, søk, sortering, filendelser, flervalg med Ctrl/Shift/Ctrl+A og dra-markering, ZIP-filer (se inni, «Pakk ut alle», «Komprimer til → ZIP-fil») |
 | **Skriv** | Tekstbehandler (Word-lite) med skrifttype, størrelse, fet/kursiv/understreket, farge, overskriftstiler, lister, justering, Lagre / Lagre som, Ctrl+S og «Vil du lagre endringene?»-dialog. Dokumenter (.docx) lagres med formateringen, .txt som ren tekst |
-| **Nettleser** | Simulert skoleportal der elevene laster ned filer som havner i Nedlastinger |
+| **Nettleser** | Simulert skoleportal der elevene laster ned filer som havner i Nedlastinger, med en fagartikkel (med forfatter og dato) og en upålitelig blogg til kildekritikk, tilbake/frem og «Kopier adresse» |
 | **Innleveringer** | Teams-lignende oppgaveliste: «Legg til arbeid» → velg fil fra OneDrive → «Lever inn» |
 | **Notater** | En forenklet OneNote: notatblokk, inndeling og side, med søk, flytting av sider og automatisk lagring |
-| **E-post** | Outlook-lignende innboks med vedlegg, «lagre som», svar og svar alle, og ny melding med vedlegg fra øvings-PC-en |
+| **E-post** | Outlook-lignende innboks med vedlegg, «lagre som», svar og svar alle, og ny melding med vedlegg fra øvings-PC-en. Falske meldinger (phishing) leveres når et oppdrag ber om det: avsenderadressen vises, lenkene viser hvor de egentlig går når musepekeren holdes over, og meldinger kan slettes eller rapporteres (med «Ikke søppelpost» for å angre) |
 | **Skrivetrening** | Skriveøvelser som måler ord per minutt og treffsikkerhet, med hjemmerad-veiledning |
-| **Papirkurv / Innstillinger** | Gjenopprett, tøm, tilbakestill øvings-PC-en |
+| **Papirkurv / Innstillinger** | Gjenopprett, tøm, tilbakestill øvings-PC-en, og «Endre passord» som måler passordstyrke (passordet lagres aldri) |
+| **Kabal / Minesveiper** | Bonusspill i Start-menyen, med en «Om»-boks om hvordan spillene lærte folk å bruke musen |
 
 I tillegg: utskrift til papir eller PDF fra Skriv, deling av filer i OneDrive med lenke (med simulert samskriving),
 autolagring for filer i OneDrive mot manuell lagring lokalt, vindussnapping ved å dra et vindu mot skjermkanten,
 og zoom med Ctrl og rullehjulet.
 
-Veileder-panelet til høyre inneholder 12 kurs med til sammen 36 oppdrag. Hvert kurs starter med
+Veileder-panelet til høyre inneholder 18 kurs med til sammen 49 oppdrag: 12 grunnkurs og 6 kurs under overskriften
+**Viderekommen**. Hvert kurs starter med
 to eller tre teorispørsmål som bare kan besvares ved å lese «Les først»-teksten (merket `laer: true`
 i koden). «Les først»-boksen holdes åpen så lenge et teorispørsmål er aktivt. Svaralternativene vises i
 tilfeldig rekkefølge. Svarer eleven feil på et teorispørsmål, låses spørsmålet: «Les først» åpnes, og eleven
@@ -112,6 +114,15 @@ Hvert steg sjekkes automatisk mot tilstanden på øvings-PC-en, så eleven får 
 10. Rydd og finn (rydde i Dokumenter, søk, sortering, gode filnavn)
 11. Tastaturet (Shift, AltGr for @, snarveier og skrivetrening med måling)
 12. Når noe ikke virker (finne tapte filer, papirkurv, angre, Oppgavebehandling)
+
+**Viderekommen** (`js/oppdrag-videre.js`):
+
+13. Mange filer på en gang (Ctrl+klikk, Shift+klikk, Ctrl+A, dra-markering, flytte og gjenopprette mange samtidig)
+14. To vinduer side om side (vindussnapping, dra filer mellom to Filutforsker-vinduer, kopiere tekst mellom dokumenter)
+15. PDF og ZIP (Microsoft Print to PDF, se inni og pakke ut ZIP-filer riktig, komprimere og sende)
+16. Kilder og kildekritikk (sitat med anførselstegn, kilde med adresse og forfatter, upålitelig nettside)
+17. Trygg på nett (kjenne igjen phishing, passordfraser og totrinnsbekreftelse, dele med riktig tilgang)
+18. Prosjektuka (alt sammen: mappe, pakke ut, skrive med sitat og kilde, PDF, dele med gruppa, levere)
 
 ## Mesterprøver, repetisjon og «gjør det på ekte»
 
@@ -174,6 +185,19 @@ Kursene (8 kurs, 13 oppdrag) ligger i `js/oppdrag-prog.js`: terminalen, filer fr
 installere programmer fra Firmaportalen, Kode-editoren, feilsøking, prosjektstruktur og PowerShell-skript. Fremdriften lagres separat fra grunnkurset,
 og veilederpanelet lenker mellom de to sidene.
 
+I `js/oppdrag-prog-videre.js` ligger 8 kurs til (17 oppdrag) i to deler:
+
+- **Programmering videre**: valg (if/elif/else), løkker (for, range, while), lister, funksjoner (def, return),
+  feilsøking 2 (logiske feil, print-feilsøking, try/except) og data i filer (skrive med "a"/"w", lese og regne).
+  Mange sjekker kjører elevens eget program med bestemte svar (`pyTest`), for eksempel karakterkalkulatoren med
+  seks poengsummer, gjettespillet mot en spiller som prøver 1, 2, 3 … og funksjonene kalt med nye tall.
+  Eleven får altså godkjent fordi programmet virker, ikke fordi det inneholder riktige ord.
+- **Ekspert**: Git (`js/git.js`) og pip (`js/pip.js`) i terminalen. Git må installeres fra Firmaportalen
+  først, og støtter `config`, `init`, `status`, `add`, `commit` (med «Author identity unknown» uten navn),
+  `log`, `diff`, `restore` og `.gitignore`, med utskrifter som ekte Git. pip støtter `install`, `install -r
+  requirements.txt`, `list`, `show`, `freeze` og `uninstall` for pakkene `cowsay` og `pyjokes`, som Python-tolken
+  da kan importere. Feilstavede pakkenavn gir den ekte feilmeldingen og en advarsel om falske pakker.
+
 ## Engelsk utgave (en/)
 
 Begge kurssettene finnes også på engelsk, som et alternativ for elever som trenger det:
@@ -185,8 +209,8 @@ slik en engelsk Windows har, og hjemmemappen i terminalen er `C:\Users\Student`.
 - **Programmene** er skrevet på norsk. All tekst eleven ser går gjennom `T('norsk tekst')` (`js/i18n.js`),
   som på de engelske sidene slår opp i `js/en/strings.js`. Navn på programmer, mapper og filer står i
   `js/en/names.js`. Mangler en oversettelse, vises den norske teksten, så ingenting går i stykker.
-- **Kursinnholdet** har egne engelske filer: `js/en/oppdrag.js`, `js/en/oppdrag-mer.js` og
-  `js/en/oppdrag-prog.js`. De har nøyaktig samme kurs, oppdrag, steg og id-er som de norske, og sjekkene
+- **Kursinnholdet** har egne engelske filer: `js/en/oppdrag.js`, `js/en/oppdrag-mer.js`, `js/en/oppdrag-videre.js`,
+  `js/en/oppdrag-prog.js` og `js/en/oppdrag-prog-videre.js`. De har nøyaktig samme kurs, oppdrag, steg og id-er som de norske, og sjekkene
   leter etter de engelske navnene. Endrer du et oppdrag, gjør den samme endringen i den engelske filen.
 - **Fremdrift og filer** lagres for seg på hvert språk, siden et engelsk filsystem har andre navn.
   Rapportkoden til læreren har samme format, så `laerer.html` leser koder fra begge språk.
@@ -232,6 +256,10 @@ kurs 1, siden de andre kursene bruker navigasjonshendelser som fungerer uansett 
 sjekker som gikk bra. Den dekker teorisperren, låsing ved feil svar, mesterprøvene, rydding av programmer
 mellom oppdrag og rapportkoden, og den rydder opp etter seg. Krever Node og Edge (eller Chrome).
 
+I tillegg kjøres en **gjennomgang** per side (`tests/gjennomgang-*.js`): den spiller gjennom alle de viderekommende
+oppdragene og mesterprøvene med ekte klikk, dra-markering, vindussnapping, menyer, dialoger og terminalkommandoer,
+og feiler hvis et steg ikke blir godkjent. Den tar noen minutter. `node tests/kjor.js --uten-gjennomgang` hopper over den.
+
 Startfilene på øvings-PC-en defineres i `seed()` i `js/fs.js`. Nedlastbare filer i den simulerte
 skoleportalen ligger i `LINKS` i `js/apps.js`, og innleveringsoppgavene i `ASSIGN` samme sted.
 
@@ -258,13 +286,16 @@ js/epost.js       – E-post med vedlegg
 js/skrivetrening.js – skriveøvelser med måling
 js/oppdrag.js     – kurs 1 til 6 og 8, 10 og 11
 js/oppdrag-mer.js – nye kurs, mesterprøver, gjør-det-på-ekte og repetisjonsbanken
+js/oppdrag-videre.js – Viderekommen-kursene (13–18)
+js/zip.js         – ZIP-filer: vise innhold, pakke ut og komprimere
+js/spill.js       – Kabal og Minesveiper
 js/intro.js       – introduksjonen som vises første gang og fra Start-menyen
 js/coach.js       – veileder-panelet, mesterprøver, repetisjon og måling
 js/main.js        – skrivebordet og oppstart
 ```
 
-Programmeringssiden laster i tillegg `js/pyth.js` (Python-tolk), `js/terminal.js`, `js/kode.js` og
-`js/oppdrag-prog.js`.
+Programmeringssiden laster i tillegg `js/pyth.js` (Python-tolk), `js/terminal.js`, `js/git.js`, `js/pip.js`,
+`js/kode.js`, `js/oppdrag-prog.js` og `js/oppdrag-prog-videre.js`.
 
 ## Tips til undervisningen
 

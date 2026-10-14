@@ -507,7 +507,7 @@ body.page-prog .btn.primary:hover { background: #115e59; }
 /* ---------- Terminal (PowerShell) ---------- */
 .term { flex: 1; background: #0c0c0c; color: #cccccc; font: 14px/1.4 Consolas, "Cascadia Mono", "Courier New", monospace; padding: 8px 12px; overflow: auto; user-select: text; cursor: text; }
 .term-l { white-space: pre-wrap; word-break: break-all; min-height: 1.4em; }
-.term-l.err { color: #f87171; } .term-l.warn { color: #fbbf24; } .term-l.dim { color: #8b8b8b; } .term-l.cmdline { color: #e5e5e5; }
+.term-l.err { color: #f87171; } .term-l.warn { color: #fbbf24; } .term-l.dim { color: #8b8b8b; } .term-l.cmdline { color: #e5e5e5; } .term-l.add { color: #4ade80; }
 .term-line { display: flex; align-items: baseline; white-space: pre-wrap; }
 .term-prompt { color: #e5e5e5; white-space: pre; flex-shrink: 0; }
 .term-in { flex: 1; background: transparent; border: 0; outline: none; color: #fff; font: inherit; padding: 0; margin: 0; caret-color: #fff; min-width: 40px; }
@@ -677,3 +677,54 @@ kbd { background: #f3f4f6; border: 1px solid #c4c4c4; border-bottom-width: 2px; 
 .muted { color: #666; font-size: 12px; }
 .welcome { line-height: 1.5; }
 .welcome ul { padding-left: 18px; }
+
+/* ---------- Kursnivåer i veilederen ---------- */
+.kurs-del { margin: 18px 0 8px; padding: 8px 10px; border-radius: 8px; background: linear-gradient(90deg, #eef2ff, #f8fafc); border-left: 4px solid #6366f1; }
+.kurs-del b { display: block; font-size: 14px; color: #312e81; }
+.kurs-del span { display: block; font-size: 12px; color: #555; margin-top: 2px; }
+body.page-prog .kurs-del { background: linear-gradient(90deg, #ecfeff, #f8fafc); border-left-color: #0d9488; }
+body.page-prog .kurs-del b { color: #134e4a; }
+
+/* ---------- Dra-markering i Filutforsker ---------- */
+.ex-band { position: absolute; border: 1px solid #0a64c8; background: rgba(10, 100, 200, .14); pointer-events: none; z-index: 5; }
+
+/* ---------- ZIP-filer ---------- */
+.zipv .zip-bar { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: #fff7e6; border-bottom: 1px solid #f3d9a4; }
+.zip-tag { font-size: 12px; font-weight: 600; color: #8a5a00; }
+.zip-warn { font-size: 12px; padding: 6px 12px; background: #fffbeb; color: #6b4d00; border-bottom: 1px solid #f3e3b5; }
+.zipv .crumbs { padding: 4px 8px; font-size: 13px; }
+.zip-dlg { width: 520px; max-width: 100%; }
+.zip-dlg label { display: block; margin-top: 8px; font-size: 13px; }
+.zip-row { display: flex; gap: 6px; margin-top: 4px; }
+.zip-row .txt { flex: 1; }
+.zip-show { display: flex !important; gap: 6px; align-items: center; margin-top: 12px !important; }
+
+/* ---------- Nettleser: lenker og artikler ---------- */
+.br-links { display: flex; flex-direction: column; gap: 8px; }
+.br-link { display: flex; gap: 10px; align-items: center; padding: 10px 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; color: #1a4e9a; text-decoration: none; }
+.br-link:hover { background: #f1f6fd; }
+.br-link small { display: block; color: #15803d; font-size: 12px; }
+.bl-ico { font-size: 22px; }
+.art { max-width: 720px; margin: 0 auto; padding: 26px 34px 40px; background: #fff; min-height: 100%; user-select: text; -webkit-user-select: text; line-height: 1.65; font-size: 15px; }
+.art h1 { font-size: 28px; margin: 6px 0 6px; }
+.art-site { color: #1a4e9a; font-weight: 600; font-size: 13px; }
+.art-by { color: #555; font-size: 12px; margin-bottom: 18px; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; }
+.art-foot { margin-top: 24px; font-size: 12px; color: #666; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+.art.blog { background: #fffdf5; font-family: 'Comic Sans MS', 'Segoe UI', sans-serif; }
+.art.blog h1 { color: #dc2626; }
+.blog-ad { background: repeating-linear-gradient(45deg, #fde047, #fde047 10px, #facc15 10px, #facc15 20px); color: #7c2d12; font-weight: 700; text-align: center; padding: 10px; margin: 10px 0; border-radius: 4px; }
+
+/* ---------- E-post: lenker og avsender ---------- */
+.mr-addr { color: #555; }
+.mr-links { margin: 6px 0 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.mr-link { display: inline-block; padding: 8px 16px; background: #0a64c8; color: #fff; border-radius: 4px; text-decoration: none; font-weight: 600; }
+.mr-link:hover { background: #0a54a8; }
+.mr-status { position: sticky; bottom: 0; font-size: 12px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 3px 8px; display: inline-block; opacity: 0; transition: opacity .1s; }
+.mr-status.on { opacity: 1; }
+
+/* ---------- Passord ---------- */
+.pwd { width: 440px; max-width: 100%; }
+.pw-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.pw-bar div { height: 100%; width: 0; transition: width .2s, background .2s; }
+.pw-label { font-size: 13px; margin-top: 4px; min-height: 18px; }
+.pw-tips { font-size: 12px; color: #444; padding-left: 18px; margin: 8px 0 0; line-height: 1.55; }

@@ -148,7 +148,7 @@ const Explorer = (() => {
       sub.push({ label: T('{0} (simulert)', Icons.program(n)), icon: Icons.app('viewer', 16), action: () => Viewer.open(n.id) });
       items.push({ label: T('Åpne med'), sub });
       if (['jpg', 'jpeg', 'png'].includes(e)) items.push({ label: T('Angi som skrivebordsbakgrunn'), action: () => Desktop.setBackground(n.name) });
-      if (e === 'zip') items.push({ label: T('Pakk ut alle …'), action: () => Toast.show(T('En ZIP-fil er en pakket mappe. På en ekte PC pakkes filene ut i en ny mappe her.')) });
+      if (e === 'zip') items.push({ label: T('Pakk ut alle …'), action: () => { if (window.Zip) Zip.extractDialog(n.id); else Toast.show(T('En ZIP-fil er en pakket mappe. På en ekte PC pakkes filene ut i en ny mappe her.')); } });
       if (['docx', 'doc', 'pdf', 'txt', 'pptx', 'xlsx'].includes(e)) items.push({ label: T('Skriv ut'), action: () => Toast.show(T('«{0}» ble sendt til skriveren (simulert).', n.name)) });
     }
     items.push('-',
@@ -157,6 +157,7 @@ const Explorer = (() => {
       { label: T('Kopier som bane'), action: () => { if (navigator.clipboard) navigator.clipboard.writeText(FS.pathString(n.id)).catch(() => {}); Toast.show(T('Kopierte banen: {0}', FS.pathString(n.id))); } },
       '-',
       { label: T('Del'), action: () => share(n) },
+      window.Zip ? { label: T('Komprimer til'), sub: [{ label: T('ZIP-fil'), action: () => Zip.compress(ctx.ids, n.parent, ctx.renameFn) }] } : null,
       '-',
       { label: T('Gi nytt navn'), icon: TL.rename, kbd: 'F2', action: () => ctx.renameFn(n.id) },
       { label: T('Slett'), icon: TL.del, kbd: 'Delete', action: () => doDelete(ctx.ids, 'menu') },
@@ -296,7 +297,8 @@ const Explorer = (() => {
         if (e.key === 'Escape') { s.value = ''; this.setQuery(''); this.root.querySelector('.ex-content').focus(); }
       });
       const c = this.root.querySelector('.ex-content');
-      c.addEventListener('click', e => { if (e.target === c || e.target.classList.contains('dt-head')) { this.select([]); } });
+      c.addEventListener('click', e => { if (Date.now() - (this.bandEnd || 0) < 400) return; if (e.target === c || e.target.classList.contains('dt-head') || e.target.classList.contains('empty')) { this.select([]); } });
+      c.addEventListener('pointerdown', e => { if (e.button === 0 && (e.target === c || e.target.classList.contains('empty'))) this.bandStart(e); });
       c.addEventListener('contextmenu', e => {
         e.preventDefault();
         if (e.target.closest('.item, .row')) return;
@@ -433,22 +435,57 @@ const Explorer = (() => {
       s.innerHTML = `<span>${n === 1 ? T('{0} element', n) : T('{0} elementer', n)}</span>${this.sel.size ? `<span>${this.sel.size === 1 ? T('{0} element valgt', this.sel.size) : T('{0} elementer valgt', this.sel.size)}</span>` : ''}${settings.showExt ? '' : '<span class="muted">' + T('Filendelser er skjult (Vis → Vis filendelser)') + '</span>'}`;
     }
     /* Valg */
-    select(ids) {
+    /* how: hvordan eleven valgte (click, ctrl, shift, all, band), så oppdragene kan sjekke metoden */
+    select(ids, how, quiet) {
       this.sel = new Set(ids);
       this.root.querySelectorAll('.item, .row').forEach(x => x.classList.toggle('selected', this.sel.has(+x.dataset.id)));
       this.renderStatus(); this.renderToolbar();
-      if (ids.length) Bus.emit('select', { ids: [...this.sel], names: [...this.sel].map(id => (FS.get(id) || {}).name) });
+      if (ids.length && !quiet) Bus.emit('select', { ids: [...this.sel], names: [...this.sel].map(id => (FS.get(id) || {}).name), how: how || 'other', folderId: this.cwd });
     }
     clickSelect(n, e) {
       const all = this.items().map(x => x.id);
       if (e.shiftKey && this.anchor != null) {
         const a = all.indexOf(this.anchor), b = all.indexOf(n.id);
         const [lo, hi] = a < b ? [a, b] : [b, a];
-        this.select(all.slice(lo, hi + 1));
+        this.select(all.slice(lo, hi + 1), 'shift');
       } else if (e.ctrlKey) {
         const s = new Set(this.sel); if (s.has(n.id)) s.delete(n.id); else s.add(n.id);
-        this.anchor = n.id; this.select([...s]);
-      } else { this.anchor = n.id; this.select([n.id]); }
+        this.anchor = n.id; this.select([...s], 'ctrl');
+        if (!s.size) Bus.emit('select', { ids: [], names: [], how: 'ctrl', folderId: this.cwd });
+      } else { this.anchor = n.id; this.select([n.id], 'click'); }
+    }
+    /* Dra-markering: hold venstre museknapp nede på et tomt sted og dra et rektangel rundt filene */
+    bandStart(e) {
+      const c = this.root.querySelector('.ex-content');
+      const cr = c.getBoundingClientRect();
+      const sx = e.clientX, sy = e.clientY;
+      const base = e.ctrlKey ? new Set(this.sel) : new Set();
+      let band = null, moved = false;
+      const mv = ev => {
+        if (!moved && Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 5) return;
+        moved = true;
+        if (!band) { band = el('<div class="ex-band"></div>'); c.appendChild(band); }
+        const l = Math.max(cr.left, Math.min(sx, ev.clientX)), r = Math.min(cr.right, Math.max(sx, ev.clientX));
+        const t = Math.max(cr.top, Math.min(sy, ev.clientY)), b = Math.min(cr.bottom, Math.max(sy, ev.clientY));
+        band.style.cssText = `left:${l - cr.left + c.scrollLeft}px;top:${t - cr.top + c.scrollTop}px;width:${r - l}px;height:${b - t}px`;
+        const hit = new Set(base);
+        c.querySelectorAll('.item, .row').forEach(x => {
+          const q = x.getBoundingClientRect();
+          if (q.right > l && q.left < r && q.bottom > t && q.top < b) hit.add(+x.dataset.id);
+        });
+        this.select([...hit], 'band', true);
+      };
+      const up = () => {
+        document.removeEventListener('pointermove', mv);
+        document.removeEventListener('pointerup', up);
+        if (band) band.remove();
+        if (moved) {
+          this.bandEnd = Date.now();
+          if (this.sel.size) Bus.emit('select', { ids: [...this.sel], names: [...this.sel].map(id => (FS.get(id) || {}).name), how: 'band', folderId: this.cwd });
+        }
+      };
+      document.addEventListener('pointermove', mv);
+      document.addEventListener('pointerup', up);
     }
     open(n) {
       if (this.inBin) { Toast.show(T('Gjenopprett filen først for å åpne den.')); return; }
@@ -475,7 +512,7 @@ const Explorer = (() => {
         if (k === 'c') doCopy(ids, 'keyboard');
         else if (k === 'x') doCut(ids, 'keyboard');
         else if (k === 'v') { if (!this.inBin && !this.query) this.select(doPaste(this.cwd, 'keyboard')); }
-        else if (k === 'a') this.select(this.items().map(x => x.id));
+        else if (k === 'a') this.select(this.items().map(x => x.id), 'all');
         else if (k === 'z') { if (FS.undo()) Toast.show(T('Angret.')); }
         else if (k === 'f' || k === 'e') this.root.querySelector('.ex-search').focus();
         return;

@@ -118,7 +118,7 @@ const Pyth = (() => {
           case 'def': {
             next(); if (peek().t !== 'NAME') err('invalid syntax'); const name = next().v; expectOp('(');
             const params = [], defaults = [];
-            while (!isOp(')')) { if (peek().t !== 'NAME') err('invalid syntax'); params.push(next().v); if (isOp('=')) { next(); defaults.push(expr()); } else if (defaults.length) err('non-default argument follows default argument'); else defaults.push(undefined); if (isOp(',')) next(); else break; }
+            while (!isOp(')')) { if (peek().t !== 'NAME') err('invalid syntax'); params.push(next().v); if (isOp('=')) { next(); defaults.push(expr()); } else if (defaults.some(d => d !== undefined)) err('non-default argument follows default argument'); else defaults.push(undefined); if (isOp(',')) next(); else break; }
             expectOp(')'); expectOp(':'); const body = block();
             return [{ k: 'def', name, params, defaults, body, line: tok.line }];
           }
@@ -545,6 +545,47 @@ const Pyth = (() => {
     time: new Builtin('time', () => new F(Date.now() / 1000))
   })));
   const MODULES = { math: MATH, random: RANDOM, time: TIME };
+  /* Pakker som kan installeres med pip i terminalen (se pip.js). De finnes bare når de er installert. */
+  function cowsay(text, kind) {
+    const t = String(text);
+    const top = '  ' + '_'.repeat(t.length), bot = '  ' + '='.repeat(t.length);
+    const tail = '     \\\n      \\\n';
+    const art = kind === 'tux'
+      ? String.raw`        .--.
+       |o_o |
+       |:_/ |
+      //   \ \
+     (|     | )
+    /'\_   _/` + '`' + String.raw`\
+    \___)=(___/`
+      : String.raw`        ^__^
+        (oo)\_______
+        (__)\       )\/\
+            ||----w |
+            ||     ||`;
+    return top + '\n| ' + t + ' |\n' + bot + '\n' + tail + art;
+  }
+  const JOKES = [
+    'Why do programmers prefer dark mode? Because light attracts bugs.',
+    'There are 10 types of people: those who understand binary and those who do not.',
+    'A SQL query walks into a bar, walks up to two tables and asks: Can I join you?',
+    'Why did the programmer quit his job? Because he did not get arrays.',
+    'How many programmers does it take to change a light bulb? None, that is a hardware problem.',
+    'Debugging: being the detective in a crime movie where you are also the murderer.'
+  ];
+  const PKG = {
+    cowsay: new Module('cowsay', new Map(Object.entries({
+      cow: new Builtin('cow', function* (a) { yield { type: 'out', text: cowsay(a[0] === undefined ? '' : str(a[0]), 'cow') + '\n' }; return null; }),
+      tux: new Builtin('tux', function* (a) { yield { type: 'out', text: cowsay(a[0] === undefined ? '' : str(a[0]), 'tux') + '\n' }; return null; }),
+      get_output_string: new Builtin('get_output_string', a => cowsay(a[1] === undefined ? '' : str(a[1]), str(a[0]))),
+      char_names: ['cow', 'tux']
+    }))),
+    pyjokes: new Module('pyjokes', new Map(Object.entries({
+      get_joke: new Builtin('get_joke', () => JOKES[Math.floor(Math.random() * JOKES.length)]),
+      get_jokes: new Builtin('get_jokes', () => JOKES.slice())
+    })))
+  };
+  function getModule(name, ctx) { return MODULES[name] || (PKG[name] && ctx.fs && ctx.fs.hasPkg && ctx.fs.hasPkg(name) ? PKG[name] : null); }
 
   function* callMethod(obj, name, args, kw, ctx, line) {
     const bad = () => { throw new PyError('AttributeError', "'" + typeName(obj) + "' object has no attribute '" + name + "'", line); };
@@ -765,8 +806,8 @@ const Pyth = (() => {
       case 'del': { if (s.target.k === 'name') { if (!env.vars.has(s.target.name)) throw new PyError('NameError', "name '" + s.target.name + "' is not defined", s.line); env.vars.delete(s.target.name); return; } if (s.target.k === 'index') { const obj = yield* evalExpr(s.target.value, env, ctx); const i = yield* evalExpr(s.target.index, env, ctx); if (obj instanceof Dict) { if (!obj.map.delete(dictKey(i, s.line))) throw new PyError('KeyError', repr(i), s.line); return; } if (Array.isArray(obj)) { let idx = num(i); if (idx < 0) idx += obj.length; if (idx < 0 || idx >= obj.length) throw new PyError('IndexError', 'list assignment index out of range', s.line); obj.splice(idx, 1); return; } } throw new PyError('SyntaxError', 'cannot delete expression', s.line); }
       case 'raise': { const v = yield* evalExpr(s.value, env, ctx); if (v instanceof Builtin) throw new PyError(v.name, '', s.line); if (v && v.pyexc) throw new PyError(v.pyexc, v.msg, s.line); throw new PyError('Exception', str(v), s.line); }
       case 'assert': { if (!truthy(yield* evalExpr(s.test, env, ctx))) throw new PyError('AssertionError', s.msg ? str(yield* evalExpr(s.msg, env, ctx)) : '', s.line); return; }
-      case 'import': { for (const n of s.names) { const m = MODULES[n.name]; if (!m) throw new PyError('ModuleNotFoundError', "No module named '" + n.name + "'", s.line); env.set(n.alias, m); } return; }
-      case 'from': { const m = MODULES[s.mod]; if (!m) throw new PyError('ModuleNotFoundError', "No module named '" + s.mod + "'", s.line); if (s.star) { m.attrs.forEach((v, k) => env.set(k, v)); return; } for (const n of s.names) { if (!m.attrs.has(n.name)) throw new PyError('ImportError', "cannot import name '" + n.name + "' from '" + s.mod + "'", s.line); env.set(n.alias, m.attrs.get(n.name)); } return; }
+      case 'import': { for (const n of s.names) { const m = getModule(n.name, ctx); if (!m) throw new PyError('ModuleNotFoundError', "No module named '" + n.name + "'", s.line); env.set(n.alias, m); } return; }
+      case 'from': { const m = getModule(s.mod, ctx); if (!m) throw new PyError('ModuleNotFoundError', "No module named '" + s.mod + "'", s.line); if (s.star) { m.attrs.forEach((v, k) => env.set(k, v)); return; } for (const n of s.names) { if (!m.attrs.has(n.name)) throw new PyError('ImportError', "cannot import name '" + n.name + "' from '" + s.mod + "'", s.line); env.set(n.alias, m.attrs.get(n.name)); } return; }
       case 'try': {
         try { yield* execBlock(s.body, env, ctx); }
         catch (e) {
@@ -834,5 +875,5 @@ const Pyth = (() => {
   }
   function interrupt() { return new PyError('KeyboardInterrupt', '', 0); }
 
-  return { run, parse, tokenize, PyError, interrupt, str, repr };
+  return { run, parse, tokenize, PyError, interrupt, str, repr, PACKAGES: Object.keys(PKG) };
 })();

@@ -114,7 +114,7 @@ const DnD = {
       if (folderId !== 'bin' && DnD.ids.some(id => id === folderId || FS.isDesc(folderId, id))) return;
       e.preventDefault();
       e.stopPropagation();
-      e.dataTransfer.dropEffect = 'move';
+      e.dataTransfer.dropEffect = e.ctrlKey && folderId !== 'bin' ? 'copy' : 'move';
       elm.classList.add('drop-hover');
     });
     elm.addEventListener('dragleave', () => elm.classList.remove('drop-hover'));
@@ -128,12 +128,15 @@ const DnD = {
       DnD.ids = [];
       if (!ids.length) return;
       const names = ids.map(id => (FS.get(id) || {}).name);
+      const copy = e.ctrlKey && folderId !== 'bin';
       ids.forEach(id => {
         if (!FS.get(id)) return;
         if (folderId === 'bin') { const r = FS.remove(id, { via: 'drag' }); if (r && r.error) Toast.show(r.error); }
+        /* Ctrl mens du slipper: kopier i stedet for å flytte, som i Windows */
+        else if (copy) { const r = FS.copy(id, folderId, { via: 'drag' }); if (r && r.error) Toast.show(r.error); }
         else { const r = FS.move(id, folderId, { via: 'drag' }); if (r && r.error) Toast.show(r.error); }
       });
-      Bus.emit('drop', { ids, names, target: folderId });
+      Bus.emit('drop', { ids, names, target: folderId, copy });
       if (after) after();
     });
   }

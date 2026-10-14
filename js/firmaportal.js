@@ -10,6 +10,7 @@ const Firmaportal = (() => {
     { id: 'onenote', name: 'Microsoft OneNote', pub: 'Microsoft', size: '110 MB', cat: T('Skole'), icon: 'notater', desc: T('Digital notatblokk med inndelinger og sider.'), preinstalled: true },
     { id: 'office', name: 'Microsoft 365 (Word, Excel, PowerPoint)', pub: 'Microsoft', size: T('3,2 GB'), cat: T('Skole'), icon: 'skriv', desc: T('Skriveprogram, regneark og presentasjoner.'), preinstalled: true },
     { id: 'geogebra', name: T('GeoGebra Klassisk'), pub: 'GeoGebra GmbH', size: '68 MB', cat: T('Skole'), icon: 'viewer', desc: T('Geometri, algebra og grafer. Brukes i matte.'), failFirst: true },
+    { id: 'git', name: 'Git', pub: 'The Git Development Community', size: '64 MB', cat: T('Programmering'), icon: 'terminal', desc: T('Versjonskontroll: ta vare på alle versjonene av koden din. Gir kommandoen git i terminalen.') },
     { id: 'notepadpp', name: 'Notepad++', pub: 'Don Ho', size: '4 MB', cat: T('Programmering'), icon: 'skriv', desc: T('Enkel teksteditor med fargekoding.') },
     { id: 'acrobat', name: 'Adobe Acrobat Reader', pub: 'Adobe', size: '210 MB', cat: T('Skole'), icon: 'viewer', desc: T('Leser PDF-filer.') }
   ];
@@ -163,6 +164,8 @@ const Firmaportal = (() => {
     if (win) win.render();
     WM.renderTaskbar();
   }
-  return { open, isInstalled, statusOf, install, reset, resetApp, CATALOG, installedCount };
+  /* Brukes av oppdrag som forutsetter et program (f.eks. Git), hvis eleven hopper rett dit */
+  function markInstalled(id) { load(); if (!app(id)) return; clearTimeout(timers[id]); state.st[id] = 'installed'; save(); }
+  return { open, isInstalled, statusOf, install, reset, resetApp, markInstalled, CATALOG, installedCount };
 })();
 window.Firmaportal = Firmaportal;
