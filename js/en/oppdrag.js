@@ -252,7 +252,7 @@ const KURS = [
       <p>The first time you save a document, you have to choose <b>where</b> it goes and <b>what</b> it is called. That is called <b>Save As</b>. After that, <kbd>Ctrl</kbd>+<kbd>S</kbd> saves into the same file without asking.</p>
       <p>Always save schoolwork in <b>OneDrive › School › the right subject</b>. An asterisk <b>*</b> in the title bar means you have changes that haven't been saved. Files in OneDrive are saved automatically (like in Word), so there the asterisk disappears by itself after a moment.</p>
       <h4>File types</h4>
-      <p>The extension after the full stop tells you what kind of file it is and which app opens it. Windows hides the extensions by default. Turn on <b>File name extensions</b> in the View menu to see them.</p>
+      <p>The extension after the full stop tells you what kind of file it is and which app opens it. Windows hides the extensions by default. Turn on <b>View → Show → File name extensions</b> to see them.</p>
       <table><tr><th>Extension</th><th>Type</th><th>App</th></tr>
       <tr><td>.docx</td><td>Text document</td><td>Word</td></tr>
       <tr><td>.pptx</td><td>Presentation</td><td>PowerPoint</td></tr>
@@ -292,7 +292,7 @@ const KURS = [
         id: 'k4o3', title: 'File types and file extensions',
         setup: F => { F.silentRemoveAll('Reminders.txt'); },
         steps: [
-          { text: 'Open File Explorer, click the <b>View</b> menu and turn on <b>File name extensions</b>. Now you see .docx, .pdf and so on after the file names.', hint: 'The View button is on the far right of the toolbar at the top of File Explorer.', check: S => S.ev('show-ext', d => d.on) || Explorer.settings.showExt },
+          { text: 'Open File Explorer, click the <b>View</b> menu, point to <b>Show</b> and turn on <b>File name extensions</b>. Now you see .docx, .pdf and so on after the file names.', hint: 'The View button is on the far right of the toolbar at the top of File Explorer.', check: S => S.ev('show-ext', d => d.on) || Explorer.settings.showExt },
           { text: 'Go to <b>Documents</b> and look at the file extensions of the files there.', check: S => (S.ev('explorer-nav', d => d.name === 'Documents') || exAt('Documents')) },
           { quiz: { q: 'A file is called “Report.docx”. Which app opens it?', options: ['Word', 'PowerPoint', 'Excel'], answer: 0 } },
           { quiz: { q: '“Talk.pptx” is ...', options: ['a spreadsheet (Excel)', 'a presentation (PowerPoint)', 'a picture (Photos)'], answer: 1 } },

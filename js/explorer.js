@@ -229,7 +229,8 @@ const Explorer = (() => {
       { label: T('Store ikoner'), checked: ctx.view === 'icons', action: () => ctx.setView('icons') },
       { label: T('Detaljer'), checked: ctx.view === 'details', action: () => ctx.setView('details') },
       '-',
-      { label: T('Vis filendelser'), checked: settings.showExt, action: () => setShowExt(!settings.showExt, 'menu') }
+      /* Som i Windows 11: Vis → Vis → Filnavnutvidelser */
+      { label: window.DT_LANG === 'nb' ? 'Vis' : 'Show', sub: [{ label: T('Filnavnutvidelser'), checked: settings.showExt, action: () => setShowExt(!settings.showExt, 'menu') }] }
     ];
   }
   function sortMenu(ctx) {
@@ -432,7 +433,7 @@ const Explorer = (() => {
     renderStatus() {
       const s = this.root.querySelector('.ex-status');
       const n = this.items().length;
-      s.innerHTML = `<span>${n === 1 ? T('{0} element', n) : T('{0} elementer', n)}</span>${this.sel.size ? `<span>${this.sel.size === 1 ? T('{0} element valgt', this.sel.size) : T('{0} elementer valgt', this.sel.size)}</span>` : ''}${settings.showExt ? '' : '<span class="muted">' + T('Filendelser er skjult (Vis → Vis filendelser)') + '</span>'}`;
+      s.innerHTML = `<span>${n === 1 ? T('{0} element', n) : T('{0} elementer', n)}</span>${this.sel.size ? `<span>${this.sel.size === 1 ? T('{0} element valgt', this.sel.size) : T('{0} elementer valgt', this.sel.size)}</span>` : ''}${settings.showExt ? '' : '<span class="muted">' + T('Filnavnutvidelser er skjult (Vis → Vis → Filnavnutvidelser)') + '</span>'}`;
     }
     /* Valg */
     /* how: hvordan eleven valgte (click, ctrl, shift, all, band), så oppdragene kan sjekke metoden */

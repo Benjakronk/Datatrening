@@ -252,7 +252,7 @@ const KURS = [
       <p>Første gang du lagrer et dokument, må du velge <b>hvor</b> det skal ligge og <b>hva</b> det skal hete. Det heter <b>Lagre som</b>. Etterpå lagrer <kbd>Ctrl</kbd>+<kbd>S</kbd> i den samme filen uten å spørre.</p>
       <p>Lagre alltid skolearbeid i <b>OneDrive › Skole › riktig fag</b>. En stjerne <b>*</b> i tittellinjen betyr at du har endringer som ikke er lagret. Filer som ligger i OneDrive, lagres automatisk (som i Word), så der forsvinner stjernen av seg selv etter litt.</p>
       <h4>Filtyper</h4>
-      <p>Endelsen etter punktum forteller hva slags fil det er og hvilket program som åpner den. Windows skjuler endelsene som standard. Slå på <b>Vis filendelser</b> i Vis-menyen for å se dem.</p>
+      <p>Endelsen etter punktum forteller hva slags fil det er og hvilket program som åpner den. Windows skjuler endelsene som standard. Slå på <b>Vis → Vis → Filnavnutvidelser</b> for å se dem. (Windows kaller filendelser for <i>filnavnutvidelser</i>.)</p>
       <table><tr><th>Endelse</th><th>Type</th><th>Program</th></tr>
       <tr><td>.docx</td><td>Tekstdokument</td><td>Word</td></tr>
       <tr><td>.pptx</td><td>Presentasjon</td><td>PowerPoint</td></tr>
@@ -292,7 +292,7 @@ const KURS = [
         id: 'k4o3', title: 'Filtyper og filendelser',
         setup: F => { F.silentRemoveAll('Huskeliste.txt'); },
         steps: [
-          { text: 'Åpne Filutforsker, klikk på <b>Vis</b>-menyen og slå på <b>Vis filendelser</b>. Nå ser du .docx, .pdf osv. bak filnavnene.', hint: 'Vis-knappen ligger helt til høyre i verktøylinjen øverst i Filutforsker.', check: S => S.ev('show-ext', d => d.on) || Explorer.settings.showExt },
+          { text: 'Åpne Filutforsker, klikk på <b>Vis</b>-menyen, pek på <b>Vis</b> og slå på <b>Filnavnutvidelser</b>. Nå ser du .docx, .pdf osv. bak filnavnene.', hint: 'Vis-knappen ligger helt til høyre i verktøylinjen øverst i Filutforsker.', check: S => S.ev('show-ext', d => d.on) || Explorer.settings.showExt },
           { text: 'Gå til <b>Dokumenter</b> og se på filendelsene til filene der.', check: S => (S.ev('explorer-nav', d => d.name === 'Dokumenter') || exAt('Dokumenter')) },
           { quiz: { q: 'En fil heter «Rapport.docx». Hvilket program åpner den?', options: ['Word', 'PowerPoint', 'Excel'], answer: 0 } },
           { quiz: { q: '«Fremføring.pptx» er ...', options: ['et regneark (Excel)', 'en presentasjon (PowerPoint)', 'et bilde (Bilder)'], answer: 1 } },

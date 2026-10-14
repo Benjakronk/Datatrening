@@ -344,7 +344,7 @@ const Innstillinger = (() => {
     if (WM.full()) return null;
     const root = el(`<div class="settings">
       <h3>${T('Innstillinger')}</h3>
-      <div class="opt"><input type="checkbox" id="set-ext"${Explorer.settings.showExt ? ' checked' : ''}><div class="desc"><label for="set-ext">${T('Vis filendelser i Filutforsker')}</label><small>${T('Viser .docx, .pdf osv. bak filnavnet.')}</small></div></div>
+      <div class="opt"><input type="checkbox" id="set-ext"${Explorer.settings.showExt ? ' checked' : ''}><div class="desc"><label for="set-ext">${T('Vis filnavnutvidelser i Filutforsker')}</label><small>${T('Viser .docx, .pdf osv. bak filnavnet.')}</small></div></div>
       <div class="opt"><div class="desc">${T('Konto: endre passord')}<small>${T('Øv på å lage et sterkt passord. Passordet lagres ikke, og du skal ikke skrive ditt ekte passord her.')}</small></div><button class="btn small pw">${T('Endre passord …')}</button></div>
       <div class="opt"><div class="desc">${T('Tilbakestill øvings-PC-en')}<small>${T('Sletter alle filer og mapper du har laget, og legger tilbake de opprinnelige filene. Fremdriften din beholdes.')}</small></div><button class="btn small reset-fs">${T('Tilbakestill')}</button></div>
       <div class="opt"><div class="desc">${T('Nullstill fremdrift')}<small>${T('Fjerner alle fullførte oppdrag og starter fra begynnelsen.')}</small></div><button class="btn small reset-p">${T('Nullstill')}</button></div>
