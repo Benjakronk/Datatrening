@@ -44,8 +44,16 @@
     cache.set(key, res);
     return res;
   }
-  const num = (out, n) => new RegExp('(^|[^\\d.,])' + String(n).replace('.', '[.,]') + '(?![\\d])').test(out);
+  /* Tallet n står i utskriften (også med nuller bak, som 4.50 eller 3.0, men ikke som starten på 3.75) */
+  const num = (out, n) => new RegExp('(^|[^\\d.,])' + String(n).replace('.', '[.,]') + (String(n).includes('.') ? '0*' : '(?:[.,]0+)?') + '(?![.,]?\\d)').test(out);
+  /* Et tall i utskriften er value, avrundet til så mange desimaler som eleven skrev ut (4.38 og 4.375 for 4.375) */
+  const approx = (out, value) => ((out || '').match(/-?\d+(?:[.,]\d+)?/g) || []).some(s => {
+    const d = (s.split(/[.,]/)[1] || '').length;
+    return Math.abs(parseFloat(s.replace(',', '.')) - value) <= (d ? Math.max(1e-9, 0.51 * Math.pow(10, -d)) : 1e-9);
+  });
   const has = (src, re) => re.test(src || '');
+  /* Svar på input() når vi bare tester en funksjon nederst, så programmer som spør om noe, ikke stopper */
+  const DUMMY = Array(10).fill('0');
   const lines = s => (s || '').split('\n').filter(l => l.trim());
   /* Kjørte eleven programmet fra Kode-mappen (eller undermappen) uten feil? */
   const ranOk = (S, file, pred) => ran(S, file, d => d.ok && (!pred || pred(d)));
@@ -56,7 +64,7 @@
 
   const HILSEN_ROT = 'print("*************")\nprint("Hei, Ada!")\nprint("Velkommen til kodeklubben.")\nprint("*************")\nprint("*************")\nprint("Hei, Linus!")\nprint("Velkommen til kodeklubben.")\nprint("*************")\nprint("*************")\nprint("Hei, Grace!")\nprint("Velkommen til kodeklubben.")\nprint("*************")\n';
   const hilsenOut = () => pyTest(HILSEN_ROT).out;
-  const SNITT = 'tall = [4, 8, 6, 2]\nsum = 0\nfor t in tall:\n    sum = sum + t\nsnitt = sum / 2\nprint("Snittet er", snitt)\n';
+  const SNITT = 'tall = [4, 8, 6, 2]\ntotal = 0\nfor t in tall:\n    total = total + t\nsnitt = total / 2\nprint("Snittet er", snitt)\n';
   const ALDER2 = 'alder = int(input("Hvor gammel er du? "))\nprint("Om ti år er du", alder + 10)\n';
   const STAT = 'karakterer = [5, 3, 6, 4, 4, 5]\n\n# Skriv ut summen, antallet, snittet, den høyeste og den laveste karakteren\n';
   const POENG = 'Ada;12\nLinus;7\nGrace;15\nAlan;9\n';
@@ -95,26 +103,26 @@ else:
         id: 'p8o1', title: 'Riktig eller feil?', lukk: ['kode'],
         setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('quiz.py'); },
         steps: [
-          { laer: true, quiz: { q: 'Hva er forskjellen på = og == i Python?', options: ['= lagrer en verdi i en variabel, == sammenligner', 'Ingen forskjell', '== lagrer, = sammenligner'], answer: 0 } },
-          { laer: true, quiz: { q: 'Hvorfor må linjene under if ha innrykk?', options: ['Det viser hvilke linjer som hører til if-en', 'Det ser penere ut', 'Det trengs ikke'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva er forskjellen på = og == i Python?', options: ['= lagrer en verdi, == sammenligner to verdier', 'Ingen forskjell, de kan brukes om hverandre', '== lagrer en verdi, = sammenligner to verdier'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hvorfor må linjene under if ha innrykk?', options: ['Det viser hvilke linjer som hører til if-en', 'Det er bare for at koden skal se penere ut', 'Det gjør at Python kjører linjene raskere'], answer: 0 } },
           { laer: true, quiz: { q: 'poeng er 80. Hva skriver eksempelet med if/elif/else ut?', options: ['Karakter 6', 'Karakter 5', 'Både Karakter 6 og Karakter 5'], answer: 1 } },
           { text: 'Lag filen <code>quiz.py</code> i Kode-mappen og åpne den i Kode.', check: S => S.fileIn('quiz.py', P_KODE) },
           { text: 'Skriv et program som spør <b>«Hva er hovedstaden i Norge?»</b>. Er svaret <b>Oslo</b>, skriver det ut <b>Riktig!</b>, ellers <b>Feil</b>. Lagre.', hint: 'svar = input("Hva er hovedstaden i Norge? ")\nif svar == "Oslo":\n    print("Riktig!")\nelse:\n    print("Feil")', check: S => { const c = kode('quiz.py'); return has(c, /input\s*\(/) && has(c, /^\s*if\b.*:/m) && has(c, /^\s*else\s*:/m); } },
           { text: 'Kjør programmet og svar <b>Oslo</b>.', check: S => ranOk(S, 'quiz.py', d => d.usedInput && /riktig/i.test(d.output)) },
           { text: 'Kjør det igjen og svar noe annet, for eksempel Bergen.', check: S => ranOk(S, 'quiz.py', d => d.usedInput && /feil/i.test(d.output)) },
-          { text: 'Svar <b>oslo</b> med liten forbokstav. Programmet sier Feil! Fiks det med <code>.lower()</code>, så både Oslo, oslo og OSLO blir riktig. Lagre.', hint: 'if svar.lower() == "oslo":', check: S => { const c = kode('quiz.py'); return ['oslo', 'OSLO', 'Oslo'].every(a => /riktig/i.test(pyTest(c, [a]).out)) && /feil/i.test(pyTest(c, ['Bergen']).out); } },
-          { quiz: { q: 'Hva betyr elif?', options: ['«Ellers, hvis»: en ny betingelse som sjekkes hvis den forrige ikke stemte', 'Slutten på programmet', 'Det samme som else'], answer: 0 } }
+          { text: 'Svar <b>oslo</b> med liten forbokstav. Programmet sier Feil! Fiks det med <code>.lower()</code>, så både Oslo, oslo og OSLO blir riktig. Lagre.', hint: 'if svar.lower() == "oslo":', check: S => { const c = kode('quiz.py'); const o = a => pyTest(c, [a]).out; return /riktig/i.test(o('Oslo')) && o('oslo') === o('Oslo') && o('OSLO') === o('Oslo') && o('Bergen') !== o('Oslo'); } },
+          { quiz: { q: 'Hva betyr elif?', options: ['«Ellers, hvis»: en ny betingelse', 'Det samme som else, bare skrevet kortere', '«Slutt hvis»: avslutter if-blokken'], answer: 0 } }
         ]
       },
       {
         id: 'p8o2', title: 'Karakterkalkulatoren', lukk: ['kode'],
         setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('karakter.py'); },
         steps: [
-          { text: 'Lag <code>karakter.py</code>. Programmet spør om <b>poeng</b> (0–100) og skriver ut karakteren: <b>90+</b> gir 6, <b>75+</b> gir 5, <b>60+</b> gir 4, <b>45+</b> gir 3, <b>30+</b> gir 2, ellers 1. Skriv for eksempel <code>Karakter 5</code>.', hint: 'poeng = int(input("Poeng: "))\nif poeng >= 90:\n    print("Karakter 6")\nelif poeng >= 75:\n    print("Karakter 5")\n… og så videre, med else til slutt.', check: S => { const c = kode('karakter.py'); return has(c, /\belif\b/) && (c.match(/\belif\b/g) || []).length >= 2 && has(c, /int\s*\(\s*input/); } },
+          { text: 'Lag <code>karakter.py</code>. Programmet spør om <b>poeng</b> (0–100) og skriver ut karakteren: <b>90+</b> gir 6, <b>75+</b> gir 5, <b>60+</b> gir 4, <b>45+</b> gir 3, <b>30+</b> gir 2, ellers 1. Skriv for eksempel <code>Karakter 5</code>.', hint: 'poeng = int(input("Poeng: "))\nif poeng >= 90:\n    print("Karakter 6")\nelif poeng >= 75:\n    print("Karakter 5")\n… og så videre, med else til slutt.', check: S => { const c = kode('karakter.py'); return (c.match(/\belif\b/g) || []).length >= 2; } },
           { text: 'Kjør programmet og prøv med noen poengsummer.', check: S => ranOk(S, 'karakter.py', d => d.usedInput) },
           { text: 'Veilederen tester nå programmet ditt med <b>95, 80, 62, 50, 35</b> og <b>10</b> poeng. Rett til alle gir riktig karakter (6, 5, 4, 3, 2, 1), og lagre.', hint: 'Står de største grensene øverst? Python kjører bare den første som stemmer, så >= 90 må komme før >= 75.', check: S => { const c = kode('karakter.py'); return [[95, 6], [80, 5], [62, 4], [50, 3], [35, 2], [10, 1]].every(([p, k]) => { const r = pyTest(c, [String(p)]); return r.ok && num(r.out, k) && [1, 2, 3, 4, 5, 6].filter(x => x !== k).every(x => !num(r.out, x)); }); } },
           { quiz: { q: 'En elev har nøyaktig 90 poeng. Hvilken karakter får hun med «if poeng >= 90»?', options: ['5', '6', 'Ingen'], answer: 1 } },
-          { quiz: { q: 'Hva skjer hvis du skriver «if poeng >= 30» øverst, før de andre?', options: ['Alle med 30 poeng eller mer får 2, fordi den stemmer først', 'Ingenting endres', 'Programmet krasjer'], answer: 0 } }
+          { quiz: { q: 'Hva skjer hvis du skriver «if poeng >= 30» øverst, før de andre?', options: ['Alle med 30 eller mer får 2', 'Ingenting, Python finner den beste grensen selv', 'Programmet krasjer fordi grensene står i feil rekkefølge'], answer: 0 } }
         ]
       }
     ]
@@ -142,11 +150,11 @@ while svar != "ja":
         setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('gangetabell.py'); },
         steps: [
           { laer: true, quiz: { q: 'Hvilke tall gir range(1, 5)?', options: ['1, 2, 3, 4', '1, 2, 3, 4, 5', '0, 1, 2, 3, 4'], answer: 0 } },
-          { laer: true, quiz: { q: 'Når passer while bedre enn for?', options: ['Når du ikke vet på forhånd hvor mange ganger det skal gjentas', 'Når du skal skrive ut 10 linjer', 'Aldri'], answer: 0 } },
-          { laer: true, quiz: { q: 'En while-løkke stopper aldri. Hva gjør du?', options: ['Ctrl+C i terminalen', 'Venter', 'Slår av PC-en'], answer: 0 } },
+          { laer: true, quiz: { q: 'Når passer while bedre enn for?', options: ['Når du ikke vet hvor mange ganger', 'Når du vet nøyaktig hvor mange ganger det skal gjentas', 'Når du skal gå gjennom alle elementene i en liste'], answer: 0 } },
+          { laer: true, quiz: { q: 'En while-løkke stopper aldri. Hva gjør du?', options: ['Ctrl+C i terminalen', 'Venter til løkka går tom av seg selv', 'Lagrer filen på nytt, så stopper den'], answer: 0 } },
           { text: 'Lag <code>gangetabell.py</code> som spør hvilken gangetabell brukeren vil se, og skriver ut de ti første linjene med en <code>for</code>-løkke, for eksempel <code>3 x 7 = 21</code>.', hint: 'tall = int(input("Hvilken gangetabell? "))\nfor i in range(1, 11):\n    print(i, "x", tall, "=", i * tall)', check: S => { const c = kode('gangetabell.py'); return has(c, /\bfor\b.+\bin\b/) && has(c, /range\s*\(/); } },
           { text: 'Kjør programmet og velg 7-gangen.', check: S => ranOk(S, 'gangetabell.py', d => d.usedInput && lines(d.output).length >= 10) },
-          { text: 'Veilederen tester med 7 og 12. Begge må gi ti linjer som slutter på 70 og 120. Rett og lagre.', hint: 'Står det range(1, 10)? Da får du bare ni linjer: range stopper før det siste tallet.', check: S => { const c = kode('gangetabell.py'); return [7, 12].every(t => { const r = pyTest(c, [String(t)]); const L = lines(r.out); return r.ok && L.length === 10 && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((i, k) => num(L[k], i * t)); }); } }
+          { text: 'Veilederen tester med 7 og 12. Begge må gi ti linjer som slutter på 70 og 120. Rett og lagre.', hint: 'Står det range(1, 10)? Da får du bare ni linjer: range stopper før det siste tallet.', check: S => { const c = kode('gangetabell.py'); return [7, 12].every(t => { const r = pyTest(c, [String(t)]); const L = lines(r.out); const S10 = L.slice(-10); return r.ok && L.length >= 10 && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((i, k) => num(S10[k], i * t)); }); } }
         ]
       },
       {
@@ -156,8 +164,8 @@ while svar != "ja":
           { text: 'Lag <code>gjett.py</code>: programmet tenker på et tilfeldig tall fra 1 til 100 (<code>random.randint</code>). Brukeren gjetter med en <code>while</code>-løkke til det er riktig. Si <b>For lavt</b> eller <b>For høyt</b> underveis, og <b>Riktig!</b> til slutt.', hint: 'import random\nhemmelig = random.randint(1, 100)\ngjett = 0\nwhile gjett != hemmelig:\n    gjett = int(input("Gjett: "))\n    if gjett < hemmelig:\n        print("For lavt")\n    elif gjett > hemmelig:\n        print("For høyt")\nprint("Riktig!")', check: S => { const c = kode('gjett.py'); return has(c, /\bwhile\b/) && has(c, /randint/) && has(c, /input\s*\(/); } },
           { text: 'Spill til du har gjettet riktig.', hint: 'Gjett 50 først. Er det for lavt, gjett 75, osv. Da finner du det på maks sju forsøk.', check: S => ranOk(S, 'gjett.py', d => d.usedInput && /riktig|gratulerer/i.test(d.output)) },
           { text: 'Veilederen spiller nå mot programmet ditt og gjetter 1, 2, 3 … til det er riktig. Programmet skal svare For lavt underveis og stoppe når det er riktig.', check: S => { const r = pyTest(kode('gjett.py'), Array.from({ length: 100 }, (_, i) => String(i + 1))); return r.ok && /riktig|gratulerer/i.test(r.out) && (/lav|høy/i.test(r.out) || r.used === 1); } },
-          { text: 'Utvid spillet: tell antall forsøk, og skriv ut <b>«Du brukte N forsøk»</b> til slutt.', hint: 'forsok = 0 før løkka, og forsok = forsok + 1 inni løkka. Til slutt: print("Du brukte", forsok, "forsøk")', check: S => { const c = kode('gjett.py'); const r = pyTest(c, Array.from({ length: 100 }, (_, i) => String(i + 1))); if (!r.ok) return false; const m = /(\d+)\s*fors[øo]k/i.exec(r.out); return !!m && +m[1] === r.used; } },
-          { quiz: { q: 'Hvorfor passer while til et gjettespill?', options: ['Vi vet ikke hvor mange forsøk som trengs', 'while er raskere enn for', 'for kan ikke bruke input()'], answer: 0 } }
+          { text: 'Utvid spillet: tell antall forsøk, og skriv ut <b>«Du brukte N forsøk»</b> til slutt.', hint: 'forsok = 0 før løkka, og forsok = forsok + 1 inni løkka. Til slutt: print("Du brukte", forsok, "forsøk")', check: S => { const c = kode('gjett.py'); const r = pyTest(c, Array.from({ length: 100 }, (_, i) => String(i + 1))); if (!r.ok) return false; const all = [...r.out.matchAll(/(\d+)\s*fors[øo]k|fors[øo]k\D{0,15}?(\d+)/gi)]; const m = all[all.length - 1]; return !!m && +(m[1] || m[2]) === r.used; } },
+          { quiz: { q: 'Hvorfor passer while til et gjettespill?', options: ['Vi vet ikke hvor mange forsøk som trengs', 'while er alltid raskere enn en for-løkke', 'for-løkker kan ikke bruke input() inni seg'], answer: 0 } }
         ]
       }
     ]
@@ -189,8 +197,8 @@ for f in frukt:
         setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('handleliste.py'); },
         steps: [
           { laer: true, quiz: { q: 'frukt = ["eple", "banan", "pære"]. Hva er frukt[1]?', options: ['eple', 'banan', 'pære'], answer: 1 } },
-          { laer: true, quiz: { q: 'Hvordan legger du "kiwi" til på slutten av lista?', options: ['frukt.append("kiwi")', 'frukt + kiwi', 'append(frukt)'], answer: 0 } },
-          { laer: true, quiz: { q: 'Lista har 3 elementer. Hva skjer med frukt[3]?', options: ['Du får det tredje', 'IndexError, for nummereringen starter på 0', 'Du får None'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hvordan legger du "kiwi" til på slutten av lista?', options: ['frukt.append("kiwi")', 'frukt.add("kiwi")', 'append(frukt, "kiwi")'], answer: 0 } },
+          { laer: true, quiz: { q: 'Lista har 3 elementer. Hva skjer med frukt[3]?', options: ['Du får det tredje elementet, «pære»', 'IndexError, for siste er frukt[2]', 'Du får None, fordi plassen er tom'], answer: 1 } },
           { text: 'Lag <code>handleliste.py</code>: programmet spør om varer én og én og legger dem i en liste med <code>append</code>. Når brukeren trykker Enter uten å skrive noe, stopper det, skriver ut <b>hvor mange</b> varer det er, og så hver vare på en egen linje.', hint: 'liste = []\nwhile True:\n    vare = input("Vare (tom for å avslutte): ")\n    if vare == "":\n        break\n    liste.append(vare)\nprint("Du skal kjøpe", len(liste), "ting:")\nfor v in liste:\n    print("-", v)', check: S => { const c = kode('handleliste.py'); return has(c, /\.append\s*\(/) && has(c, /\bfor\b/); } },
           { text: 'Kjør programmet og skriv inn noen varer.', check: S => ranOk(S, 'handleliste.py', d => d.usedInput) },
           { text: 'Veilederen tester med <b>melk, brød, ost</b> og en tom linje. Utskriften skal ha alle tre og antallet 3.', check: S => { const r = pyTest(kode('handleliste.py'), ['melk', 'brød', 'ost', '']); return r.ok && /melk/.test(r.out) && /brød/.test(r.out) && /ost/.test(r.out) && num(r.out, 3); } }
@@ -201,10 +209,10 @@ for f in frukt:
         setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('statistikk.py'); F.ensureFile(P_KODE, 'statistikk.py', STAT); },
         steps: [
           { text: 'Åpne <code>statistikk.py</code> i Kode. Den har en liste med karakterer.', check: S => S.ev('kode-open') || /karakterer/.test(S.kodeText()) },
-          { text: 'Skriv ut <b>summen</b>, <b>antallet</b> og <b>snittet</b> (summen delt på antallet). Bruk <code>sum()</code> og <code>len()</code>.', hint: 'print("Sum:", sum(karakterer))\nprint("Antall:", len(karakterer))\nprint("Snitt:", sum(karakterer) / len(karakterer))', check: S => { const r = pyTest(kode('statistikk.py')); return r.ok && num(r.out, 27) && num(r.out, 6) && num(r.out, 4.5); } },
+          { text: 'Skriv ut <b>summen</b>, <b>antallet</b> og <b>snittet</b> (summen delt på antallet). Bruk <code>sum()</code> og <code>len()</code>.', hint: 'print("Sum:", sum(karakterer))\nprint("Antall:", len(karakterer))\nprint("Snitt:", sum(karakterer) / len(karakterer))', check: S => { const r = pyTest(kode('statistikk.py')); return r.ok && num(r.out, 27) && num(r.out, 6) && approx(r.out, 4.5); } },
           { text: 'Skriv også ut den <b>høyeste</b> og den <b>laveste</b> karakteren med <code>max()</code> og <code>min()</code>. Kjør programmet.', check: S => ranOk(S, 'statistikk.py', d => /max\s*\(/.test(d.source) && /min\s*\(/.test(d.source) && num(d.output, 6) && num(d.output, 3)) },
-          { text: 'Legg til to karakterer til i lista, for eksempel 2 og 6. Programmet skal fortsatt regne riktig uten at du endrer noe annet. Lagre og kjør.', check: S => { const c = kode('statistikk.py'); const m = /karakterer\s*=\s*\[([^\]]*)\]/.exec(c); if (!m) return false; const xs = m[1].split(',').map(x => parseFloat(x)).filter(x => !isNaN(x)); if (xs.length < 8) return false; const r = pyTest(c); const snitt = xs.reduce((a, b) => a + b, 0) / xs.length; return r.ok && (num(r.out, snitt) || new RegExp(String(Math.round(snitt * 100) / 100).replace('.', '[.,]')).test(r.out) || r.out.includes(String(snitt).slice(0, 5))); } },
-          { quiz: { q: 'Hvorfor er sum(karakterer) / len(karakterer) bedre enn å skrive 27 / 6?', options: ['Det regner riktig selv om lista endres', 'Det er kortere', 'Det er ikke bedre'], answer: 0 } }
+          { text: 'Legg til to karakterer til i lista, for eksempel 2 og 6. Programmet skal fortsatt regne riktig uten at du endrer noe annet. Lagre og kjør.', check: S => { const c = kode('statistikk.py'); const m = /karakterer\s*=\s*\[([^\]]*)\]/.exec(c); if (!m) return false; const xs = m[1].split(',').map(x => parseFloat(x)).filter(x => !isNaN(x)); if (xs.length < 8) return false; const r = pyTest(c); const snitt = xs.reduce((a, b) => a + b, 0) / xs.length; return r.ok && approx(r.out, snitt); } },
+          { quiz: { q: 'Hvorfor er sum(karakterer) / len(karakterer) bedre enn å skrive 27 / 6?', options: ['Det regner riktig selv om lista endres', 'Python regner raskere med sum() enn med tall', 'Det er ikke bedre, bare en annen skrivemåte'], answer: 0 } }
         ]
       }
     ]
@@ -232,12 +240,12 @@ print(areal(3, 7))   # 21</pre>
         setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('areal.py'); },
         steps: [
           { laer: true, quiz: { q: 'Hva gjør def?', options: ['Lager en funksjon', 'Kjører en funksjon', 'Sletter en variabel'], answer: 0 } },
-          { laer: true, quiz: { q: 'Hva er forskjellen på return og print?', options: ['return gir verdien tilbake til koden, print viser den bare på skjermen', 'Ingen', 'print er raskere'], answer: 0 } },
-          { laer: true, quiz: { q: 'Du har skrevet en funksjon med def, men ingenting skjer når du kjører. Hvorfor?', options: ['Funksjonen er ikke kalt', 'Python er ødelagt', 'Du mangler import'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva er forskjellen på return og print?', options: ['return gir verdien tilbake, print viser den bare', 'Ingen, begge viser verdien på skjermen', 'print gir verdien tilbake, return viser den'], answer: 0 } },
+          { laer: true, quiz: { q: 'Du har skrevet en funksjon med def, men ingenting skjer når du kjører. Hvorfor?', options: ['Funksjonen er ikke kalt', 'def-linjen må stå nederst i filen', 'Du må importere funksjonen først'], answer: 0 } },
           { text: 'Lag <code>areal.py</code> med funksjonen <code>areal(lengde, bredde)</code> som <b>returnerer</b> arealet av et rektangel. Skriv ut arealet av et 4 × 5-rektangel og et 3 × 7-rektangel.', check: S => { const c = kode('areal.py'); return has(c, /def\s+areal\s*\(/) && has(c, /\breturn\b/); } },
           { text: 'Kjør programmet. Du skal få 20 og 21.', check: S => ranOk(S, 'areal.py', d => num(d.output, 20) && num(d.output, 21)) },
-          { text: 'Veilederen kaller nå funksjonen din med 6 og 2. Den skal gi 12 tilbake med <code>return</code> (ikke bare skrive ut).', hint: 'Står det print i stedet for return inni funksjonen? Da får koden som kaller den, bare None tilbake.', check: S => { const r = pyTest(kode('areal.py') + '\n__svar = areal(6, 2)\nprint("TEST", __svar)\n'); return r.ok && /TEST 12\b/.test(r.out); } },
-          { text: 'Lag en funksjon til: <code>omkrets(lengde, bredde)</code>, som returnerer omkretsen (2 × lengde + 2 × bredde). Skriv ut omkretsen av 4 × 5.', check: S => { const r = pyTest(kode('areal.py') + '\nprint("TEST", omkrets(6, 2))\n'); return r.ok && /TEST 16\b/.test(r.out); } }
+          { text: 'Veilederen kaller nå funksjonen din med 6 og 2. Den skal gi 12 tilbake med <code>return</code> (ikke bare skrive ut).', hint: 'Står det print i stedet for return inni funksjonen? Da får koden som kaller den, bare None tilbake.', check: S => { const r = pyTest(kode('areal.py') + '\n__svar = areal(6, 2)\nprint("TEST", __svar)\n', DUMMY); return /TEST 12\b/.test(r.out); } },
+          { text: 'Lag en funksjon til: <code>omkrets(lengde, bredde)</code>, som returnerer omkretsen (2 × lengde + 2 × bredde). Skriv ut omkretsen av 4 × 5.', check: S => { const r = pyTest(kode('areal.py') + '\nprint("TEST", omkrets(6, 2))\n', DUMMY); return /TEST 16\b/.test(r.out); } }
         ]
       },
       {
@@ -248,7 +256,7 @@ print(areal(3, 7))   # 21</pre>
           { text: 'Lag en funksjon <code>hils(navn)</code> som skriver ut de fire linjene for ett navn. Bytt ut de tolv linjene med tre kall: <code>hils("Ada")</code>, <code>hils("Linus")</code>, <code>hils("Grace")</code>.', hint: 'def hils(navn):\n    print("*************")\n    print("Hei, " + navn + "!")\n    print("Velkommen til kodeklubben.")\n    print("*************")', check: S => { const c = kode('velkommen.py'); return has(c, /def\s+hils\s*\(/) && (c.match(/^\s*hils\s*\(/gm) || []).length >= 3; } },
           { text: 'Kjør programmet. Utskriften skal være <b>nøyaktig lik</b> som før, men koden er mye kortere.', check: S => { const c = kode('velkommen.py'); const r = pyTest(c); return r.ok && r.out.replace(/\s+/g, ' ').trim() === hilsenOut().replace(/\s+/g, ' ').trim() && (c.match(/print\s*\(/g) || []).length <= 5 && ranOk(S, 'velkommen.py'); } },
           { text: 'Nå skal teksten endres til «Velkommen til <b>koding</b>.». Endre det på ett sted, i funksjonen, og kjør.', check: S => { const c = kode('velkommen.py'); const r = pyTest(c); return r.ok && (r.out.match(/velkommen til koding/gi) || []).length >= 3 && (c.match(/velkommen til koding/gi) || []).length === 1; } },
-          { quiz: { q: 'Hva var den største fordelen med funksjonen?', options: ['Du endrer teksten på ett sted i stedet for tre', 'Programmet kjører raskere', 'Det trengs ikke print lenger'], answer: 0 } }
+          { quiz: { q: 'Hva var den største fordelen med funksjonen?', options: ['Du endrer teksten på ett sted', 'Programmet kjører mye raskere med funksjoner', 'Funksjonen skriver ut tekst uten print'], answer: 0 } }
         ]
       }
     ]
@@ -280,12 +288,12 @@ except ValueError:
         setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('snitt.py'); F.ensureFile(P_KODE, 'snitt.py', SNITT); },
         steps: [
           { laer: true, quiz: { q: 'Programmet kjører uten feilmelding, men svaret er feil. Hva slags feil er det?', options: ['Syntaksfeil', 'Logisk feil', 'Ingen feil'], answer: 1 } },
-          { laer: true, quiz: { q: 'Hva er en god måte å finne en logisk feil på?', options: ['Legge inn print() og se hva variablene inneholder', 'Slette programmet', 'Kjøre det mange ganger til det blir riktig'], answer: 0 } },
-          { laer: true, quiz: { q: 'Hvorfor skriver vi except ValueError og ikke bare except?', options: ['Så vi bare fanger den feilen vi venter, og ikke skjuler andre feil', 'Det er kortere', 'except alene virker ikke'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva er en god måte å finne en logisk feil på?', options: ['Legge inn print() og se på variablene', 'Skrive hele programmet på nytt fra bunnen av', 'Kjøre det mange ganger til svaret blir riktig'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hvorfor skriver vi except ValueError og ikke bare except?', options: ['Så vi ikke skjuler andre feil', 'Fordi except alene gir SyntaxError i Python', 'Så programmet skriver ut navnet på feilen'], answer: 0 } },
           { text: 'Kjør <code>snitt.py</code>. Den regner ut snittet av 4, 8, 6 og 2.', check: S => ran(S, 'snitt.py') },
           { quiz: { q: 'Snittet av 4, 8, 6 og 2 er 20 / 4. Hva skulle programmet ha svart?', options: ['10.0', '5.0', '20'], answer: 1 } },
-          { text: 'Programmet sier 10.0. Legg inn en linje rett over <code>snitt = …</code> som skriver ut <code>sum</code> og <code>len(tall)</code>, og kjør igjen. Hva ser du?', check: S => ranOk(S, 'snitt.py', d => (d.source.match(/print\s*\(/g) || []).length >= 2 && num(d.output, 20)) },
-          { text: 'Feilen er at programmet deler på 2 i stedet for antallet tall. Rett det med <code>len(tall)</code>, fjern feilsøkingslinjen, og kjør.', check: S => { const c = kode('snitt.py'); const r = pyTest(c); const r2 = pyTest(c.replace(/tall\s*=\s*\[[^\]]*\]/, 'tall = [1, 2, 3, 6]')); return r.ok && num(r.out, 5) && r2.ok && num(r2.out, 3) && ranOk(S, 'snitt.py', d => num(d.output, 5)); } }
+          { text: 'Programmet sier 10.0. Legg inn en linje rett over <code>snitt = …</code> som skriver ut <code>total</code> og <code>len(tall)</code>, og kjør igjen. Hva ser du?', check: S => ranOk(S, 'snitt.py', d => (d.source.match(/print\s*\(/g) || []).length >= 2 && num(d.output, 20)) },
+          { text: 'Feilen er at programmet deler på 2 i stedet for antallet tall. Rett det med <code>len(tall)</code>, fjern feilsøkingslinjen, og kjør.', check: S => { const c = kode('snitt.py'); const r = pyTest(c); const r2 = pyTest(c.replace(/tall\s*=\s*\[[^\]]*\]/, 'tall = [1, 2, 3, 4, 5]')); return r.ok && num(r.out, 5) && r2.ok && num(r2.out, 3) && ranOk(S, 'snitt.py', d => num(d.output, 5)); } }
         ]
       },
       {
@@ -328,13 +336,13 @@ with open("poeng.txt") as f:
         id: 'p13o1', title: 'Dagboka', lukk: ['kode'],
         setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('dagbok.py'); FS.silentRemoveAll('dagbok.txt'); },
         steps: [
-          { laer: true, quiz: { q: 'Du åpner en fil med "w" og skriver én linje. Hva skjer med det som sto der fra før?', options: ['Det blir borte', 'Det blir stående, og linjen legges til nederst', 'Ingenting skrives'], answer: 0 } },
-          { laer: true, quiz: { q: 'Hva gjør "\\n" i f.write("Hei\\n")?', options: ['Lager et linjeskift', 'Sletter linjen', 'Ingenting'], answer: 0 } },
-          { laer: true, quiz: { q: 'Du leser "15\\n" fra en fil. Hva må du gjøre før du kan regne med det?', options: ['int(tekst.strip())', 'Ingenting', 'tekst + 1'], answer: 0 } },
+          { laer: true, quiz: { q: 'Du åpner en fil med "w" og skriver én linje. Hva skjer med det som sto der fra før?', options: ['Det blir borte', 'Det blir stående, og linjen legges til nederst', 'Linjen legges til øverst i filen'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva gjør "\\n" i f.write("Hei\\n")?', options: ['Lager et linjeskift', 'Skriver bokstaven n i filen', 'Lagrer og lukker filen'], answer: 0 } },
+          { laer: true, quiz: { q: 'Du leser "15\\n" fra en fil. Hva må du gjøre før du kan regne med det?', options: ['int(tekst.strip())', 'Ingenting, det er et tall', 'str(tekst) + 1'], answer: 0 } },
           { text: 'Lag <code>dagbok.py</code> som spør <b>«Hva gjorde du i dag?»</b> og legger svaret til nederst i filen <code>dagbok.txt</code> (bruk <code>"a"</code>). Skriv ut <b>Lagret!</b> etterpå.', hint: 'tekst = input("Hva gjorde du i dag? ")\nwith open("dagbok.txt", "a") as f:\n    f.write(tekst + "\\n")\nprint("Lagret!")', check: S => { const c = kode('dagbok.py'); return has(c, /open\s*\(/) && has(c, /["']a["']/) && has(c, /\.write\s*\(/); } },
-          { text: 'Kjør programmet to ganger med forskjellige svar.', check: S => S.evCount('py-run', d => same(d.file, 'dagbok.py') && d.ok && d.usedInput) >= 2 && lines(kode('dagbok.txt')).length >= 2 },
+          { text: 'Kjør programmet to ganger med forskjellige svar.', hint: 'Havner begge svarene på samme linje i dagbok.txt? write lager ikke linjeskift selv. Skriv f.write(tekst + "\\n").', check: S => S.evCount('py-run', d => same(d.file, 'dagbok.py') && d.ok && d.usedInput) >= 2 && lines(kode('dagbok.txt')).length >= 2 },
           { text: 'Se innholdet i dagboka fra terminalen: <code>cat dagbok.txt</code>. Begge linjene skal være der.', check: S => S.ev('term-cat', d => same(d.name, 'dagbok.txt')) },
-          { quiz: { q: 'Hva ville skjedd hvis du hadde brukt "w" i stedet for "a"?', options: ['Bare det siste svaret ville vært igjen', 'Begge svarene ville vært der', 'Programmet ville krasjet'], answer: 0 } }
+          { quiz: { q: 'Hva ville skjedd hvis du hadde brukt "w" i stedet for "a"?', options: ['Bare det siste svaret ville vært igjen', 'Begge svarene ville vært der, nyeste øverst', 'Programmet ville krasjet fordi filen finnes'], answer: 0 } }
         ]
       },
       {
@@ -343,8 +351,8 @@ with open("poeng.txt") as f:
         steps: [
           { text: 'Se på <code>poeng.txt</code> med <code>cat poeng.txt</code>. Hver linje har et navn og en poengsum, skilt med semikolon.', check: S => S.ev('term-cat', d => same(d.name, 'poeng.txt')) },
           { text: 'Lag <code>poeng.py</code> som leser filen, skriver ut hver person med poengsummen, og til slutt <b>summen av alle poengene</b>.', hint: 'total = 0\nwith open("poeng.txt") as f:\n    for linje in f:\n        navn, p = linje.strip().split(";")\n        total = total + int(p)\n        print(navn, p)\nprint("Totalt:", total)', check: S => { const r = pyTest(kode('poeng.py')); return r.ok && num(r.out, 43) && /ada/i.test(r.out) && /grace/i.test(r.out); } },
-          { text: 'Finn også <b>vinneren</b>: skriv ut navnet på den med flest poeng. Kjør programmet fra Kode-mappen.', hint: 'Husk den beste så langt: beste_navn = "" og beste = -1 før løkka. Inni løkka: if int(p) > beste: beste = int(p); beste_navn = navn', check: S => ranOk(S, 'poeng.py', d => d.output.split('\n').some(l => /grace/i.test(l) && /vinn|vant|best|flest|høy|mest|leder/i.test(l))) },
-          { quiz: { q: 'Programmet gir FileNotFoundError, men poeng.txt finnes. Hva er mest sannsynlig?', options: ['Du kjører programmet fra en annen mappe enn der filen ligger', 'Filen er for stor', 'Python kan ikke lese .txt'], answer: 0 } }
+          { text: 'Finn også <b>vinneren</b>: skriv ut navnet på den med flest poeng. Kjør programmet fra Kode-mappen.', hint: 'Husk den beste så langt: beste_navn = "" og beste = -1 før løkka. Inni løkka: if int(p) > beste: beste = int(p); beste_navn = navn', check: S => ranOk(S, 'poeng.py', d => { const L = lines(d.output), kw = /vinn|vant|best|flest|høy|mest|leder|nummer 1|først/i; return L.some((l, i) => /grace/i.test(l) && (kw.test(l) || (i > 0 && kw.test(L[i - 1])))); }) },
+          { quiz: { q: 'Programmet gir FileNotFoundError, men poeng.txt finnes. Hva er mest sannsynlig?', options: ['Du kjører programmet fra en annen mappe', 'Filen er for stor til at Python klarer å åpne den', 'Python kan bare lese .py-filer, ikke .txt'], answer: 0 } }
         ]
       }
     ]
@@ -372,8 +380,8 @@ with open("poeng.txt") as f:
       <tr><td><code>git add fil.py</code> / <code>git add .</code></td><td>Legger én fil / alt klart til commit</td></tr>
       <tr><td><code>git commit -m "Legg til poeng"</code></td><td>Lagrer en versjon. Skriv kort hva du gjorde.</td></tr>
       <tr><td><code>git log</code> / <code>git log --oneline</code></td><td>Viser historikken</td></tr>
-      <tr><td><code>git diff</code></td><td>Viser endringer siden sist: <code>+</code> er lagt til, <code>-</code> er fjernet</td></tr>
-      <tr><td><code>git restore fil.py</code></td><td>Angrer endringene i filen og henter siste lagrede versjon</td></tr></table>
+      <tr><td><code>git diff</code></td><td>Viser endringer du ikke har lagt til med <code>git add</code> ennå: <code>+</code> er lagt til, <code>-</code> er fjernet. (<code>git diff --staged</code> viser det som er lagt til.)</td></tr>
+      <tr><td><code>git restore fil.py</code></td><td>Angrer endringene i filen og henter versjonen fra siste commit (eller fra <code>git add</code>, hvis du har lagt den til etterpå)</td></tr></table>
       <h4>.gitignore og GitHub</h4>
       <p>Filen <b>.gitignore</b> lister filer Git skal overse, for eksempel loggfiler og filer med passord. <b>GitHub</b> er en nettside der repoer lagres i skyen, så du kan dele og samarbeide (<code>git push</code>, <code>git pull</code>, <code>git clone</code>). Det krever internett og en konto, så det øver vi ikke på her.</p>`,
     oppdrag: [
@@ -381,8 +389,8 @@ with open("poeng.txt") as f:
         id: 'p14o1', title: 'Installer Git og lag et repo', lukk: ['firmaportal', 'kode'],
         setup: F => { F.ensureFolder(P_KODE); purge(P_SPILL); },
         steps: [
-          { laer: true, quiz: { q: 'Hva er en commit?', options: ['En lagret versjon av prosjektet, med en melding', 'En feilmelding', 'En mappe'], answer: 0 } },
-          { laer: true, quiz: { q: 'Hva gjør git add?', options: ['Legger endringer klare til neste commit', 'Lager en ny fil', 'Sletter historikken'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva er en commit?', options: ['En lagret versjon, med en melding', 'En melding Git gir når noe har gått galt', 'En kopi av repoet som ligger på GitHub'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva gjør git add?', options: ['Gjør endringer klare til commit', 'Lager en ny fil i repoet', 'Lagrer en ny versjon med en melding'], answer: 0 } },
           { laer: true, quiz: { q: 'Hvilken kommando bør du bruke hele tiden for å se hvordan det står til?', options: ['git status', 'git init', 'git config'], answer: 0 } },
           { text: 'Skriv <code>git --version</code> i terminalen. Virker det ikke, er Git ikke installert.', check: S => S.ev('term-cmd', d => /^git$/i.test(d.alias)) },
           { text: 'Installer <b>Git</b> fra <b>Firmaportalen</b>. (Er det allerede installert, går du videre.)', check: S => S.installed('git') },
@@ -410,12 +418,12 @@ with open("poeng.txt") as f:
           { text: 'Åpne <code>spill.py</code> i Kode og legg til en linje: <code>print("Du har 3 liv.")</code>. Lagre.', check: S => /liv/.test(innhold(P_SPILL, 'spill.py')) },
           { text: 'Stå i spill-mappen i terminalen og skriv <code>git status</code>. Filen står som <b>modified</b>.', hint: 'cd ~\\Documents\\Kode\\spill', check: S => gitEv(S, 'status', d => d.modified >= 1) },
           { text: 'Skriv <code>git diff</code>. Den viser nøyaktig hva som er endret: <code>+</code> foran nye linjer, <code>-</code> foran fjernede.', check: S => gitEv(S, 'diff', d => d.changed >= 1) },
-          { text: 'Lagre en ny versjon: <code>git add spill.py</code> og <code>git commit -m "Legg til liv"</code>.', check: S => gitEv(S, 'commit', d => d.ok) },
+          { text: 'Lagre en ny versjon: <code>git add spill.py</code> og <code>git commit -m "Legg til liv"</code>.', hint: 'Får du «Author identity unknown»? Da må du fortelle Git hvem du er: git config --global user.name "Fornavn Etternavn" og git config --global user.email "navn@skolen.no".', check: S => gitEv(S, 'commit', d => d.ok) },
           { text: 'Nå ødelegger vi noe med vilje: slett alt i <code>spill.py</code> (eller skriv tull) og lagre.', check: S => { const c = innhold(P_SPILL, 'spill.py'); return !/velkommen/i.test(c); } },
-          { text: 'Hent tilbake siste lagrede versjon: <code>git restore spill.py</code>. Se i editoren at koden er tilbake.', hint: 'Kode-editoren viser den nye versjonen når du klikker på filen igjen.', check: S => gitEv(S, 'restore', d => d.ok) && /liv/.test(innhold(P_SPILL, 'spill.py')) },
+          { text: 'Hent tilbake versjonen fra siste commit: <code>git restore spill.py</code>. Se i editoren at koden er tilbake.', hint: 'Kode-editoren viser den nye versjonen når du klikker på filen igjen.', check: S => gitEv(S, 'restore', d => d.ok) && /liv/.test(innhold(P_SPILL, 'spill.py')) },
           { text: 'Skriv <code>git log --oneline</code>. Du ser begge versjonene, nyeste øverst.', check: S => gitEv(S, 'log', d => d.oneline && d.count >= 2) },
-          { quiz: { q: 'Hva er en god commit-melding?', options: ['«Legg til liv i spillet»', '«fikset ting»', '«asdf»'], answer: 0 } },
-          { quiz: { q: 'Du har ødelagt en fil og ikke laget en commit av ødeleggelsen. Hvordan får du den tilbake?', options: ['git restore fil.py', 'git init', 'Det går ikke'], answer: 0 } }
+          { quiz: { q: 'Hva er en god commit-melding?', options: ['«Legg til liv i spillet»', '«fikset noen ting her og der»', '«endringer»'], answer: 0 } },
+          { quiz: { q: 'Du har ødelagt en fil og ikke laget en commit av ødeleggelsen. Hvordan får du den tilbake?', options: ['git restore fil.py', 'git init fil.py', 'git commit -m "angre"'], answer: 0 } }
         ]
       },
       {
@@ -424,17 +432,20 @@ with open("poeng.txt") as f:
           if (window.Firmaportal) Firmaportal.markInstalled('git');
           const f = F.ensureFolder(P_SPILL);
           if (!FS.resolve([...P_SPILL, 'spill.py'])) F.ensureFileAt(P_SPILL, 'spill.py', 'print("Velkommen til spillet!")\n');
-          if (!Git.isRepo(f.id)) Git.seed(f.id, 'Første versjon av spillet');
           FS.silentRemoveAll('logg.txt'); FS.silentRemoveAll('.gitignore');
+          /* Tar eleven oppdraget på nytt, er .gitignore allerede lagret i repoet. Da lages repoet på nytt med filene som er der nå. */
+          const r = Git.isRepo(f.id) ? Git.repoAt(f.id) : null, last = r && r.commits.length ? r.commits[r.commits.length - 1].files : {};
+          if (r && ('.gitignore' in last || '.gitignore' in r.index || 'logg.txt' in last)) Git.removeRepo(f.id);
+          if (!Git.isRepo(f.id)) Git.seed(f.id, 'Første versjon av spillet');
         },
         steps: [
           { text: 'Lag en loggfil i spill-mappen: <code>Set-Content logg.txt "test"</code>. Slike filer lager programmet selv, og de skal ikke være med i repoet.', check: S => S.fileIn('logg.txt', P_SPILL) },
           { text: 'Skriv <code>git status</code>. <b>logg.txt</b> står som untracked.', check: S => gitEv(S, 'status', d => d.untracked >= 1) },
           { text: 'Lag filen <code>.gitignore</code> med linjen <code>logg.txt</code>: <code>Set-Content .gitignore "logg.txt"</code>', check: S => /logg\.txt/i.test(innhold(P_SPILL, '.gitignore')) },
-          { text: 'Skriv <code>git status</code> igjen. Nå er logg.txt borte fra listen, men <b>.gitignore</b> står der. Den skal være med.', check: S => { const r = repo(P_SPILL); return gitEv(S, 'status') && !!r && r.status.untracked >= 1 && /logg\.txt/i.test(innhold(P_SPILL, '.gitignore')); } },
+          { text: 'Skriv <code>git status</code> igjen. Nå er logg.txt borte fra listen, men <b>.gitignore</b> står der. Den skal være med.', check: S => gitEv(S, 'status', d => !d.notRepo) && /logg\.txt/i.test(innhold(P_SPILL, '.gitignore')) },
           { text: 'Lagre: <code>git add .gitignore</code> og <code>git commit -m "Overse loggfiler"</code>.', check: S => { const r = repo(P_SPILL); return gitEv(S, 'commit', d => d.ok) && !!r && r.commits.length && '.gitignore' in r.commits[r.commits.length - 1].files && !('logg.txt' in r.commits[r.commits.length - 1].files); } },
-          { quiz: { q: 'Hvorfor skal en fil med passord stå i .gitignore?', options: ['Så den aldri blir lagret i repoet og delt med andre, for eksempel på GitHub', 'Så den blir slettet', 'Så den blir kryptert'], answer: 0 } },
-          { quiz: { q: 'Hva er GitHub?', options: ['En nettside der repoer lagres i skyen, så du kan dele og samarbeide', 'Et annet navn på Git', 'Et programmeringsspråk'], answer: 0 } }
+          { quiz: { q: 'Hvorfor skal en fil med passord stå i .gitignore?', options: ['Så den ikke blir lagret i repoet og delt', 'Så Git krypterer filen før den lagres', 'Så filen blir slettet ved neste commit'], answer: 0 } },
+          { quiz: { q: 'Hva er GitHub?', options: ['En nettside der repoer lagres i skyen', 'Et annet navn på Git-programmet på PC-en', 'Et programmeringsspråk laget for versjonskontroll'], answer: 0 } }
         ]
       }
     ]
@@ -467,16 +478,16 @@ with open("poeng.txt") as f:
         id: 'p15o1', title: 'Installer en pakke', lukk: ['kode'],
         setup: F => { if (window.Pip) Pip.reset(); F.ensureFolder(P_KODE); FS.silentRemoveAll('ku.py'); },
         steps: [
-          { laer: true, quiz: { q: 'Hva er en Python-pakke?', options: ['Kode andre har skrevet, som du kan importere i programmet ditt', 'En ZIP-fil med bilder', 'Et nytt programmeringsspråk'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva er en Python-pakke?', options: ['Kode andre har skrevet, som du kan importere', 'En ZIP-fil med bilder og lyder til programmet', 'Et nytt programmeringsspråk som bygger på Python'], answer: 0 } },
           { laer: true, quiz: { q: 'Hvilken feil får du hvis du importerer en pakke som ikke er installert?', options: ['ModuleNotFoundError', 'SyntaxError', 'ValueError'], answer: 0 } },
-          { laer: true, quiz: { q: 'Hvorfor må du stave pakkenavnet nøyaktig?', options: ['Det finnes falske pakker med nesten like navn', 'pip er treg', 'Det spiller ingen rolle'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hvorfor må du stave pakkenavnet nøyaktig?', options: ['Det finnes falske pakker med like navn', 'pip blir tregere av skrivefeil', 'Ellers blir pakken installert to ganger'], answer: 0 } },
           { text: 'Lag <code>ku.py</code> i Kode-mappen:<br><code>import cowsay</code><br><code>cowsay.cow("Hei fra Python!")</code><br>Kjør den. Du får <b>ModuleNotFoundError</b>, for pakken er ikke installert.', check: S => ran(S, 'ku.py', d => d.error === 'ModuleNotFoundError') },
           { text: 'Installer pakken: <code>pip install cowsay</code>', check: S => pipEv(S, 'install', d => d.name === 'cowsay' && d.ok) || (window.Pip && Pip.has('cowsay')) },
           { text: 'Kjør <code>ku.py</code> igjen.', check: S => ranOk(S, 'ku.py', d => /\^__\^/.test(d.output)) },
           { text: 'Se hva som er installert: <code>pip list</code>', check: S => pipEv(S, 'list') },
           { text: 'Se hvem som har laget pakken: <code>pip show cowsay</code>', check: S => pipEv(S, 'show', d => d.ok) },
           { text: 'Skrivefeil er farlige med pip. Prøv <code>pip install cowsey</code> (med feil stavemåte) og les hva som skjer.', check: S => pipEv(S, 'install', d => !d.ok && !d.real) },
-          { quiz: { q: 'Her fant ikke pip noen «cowsey». Hva kunne skjedd på en ekte PC?', options: ['Du kunne installert en falsk pakke med skadelig kode', 'Ingenting, pip retter alltid skrivefeil', 'PC-en ville blitt raskere'], answer: 0 } }
+          { quiz: { q: 'Her fant ikke pip noen «cowsey». Hva kunne skjedd på en ekte PC?', options: ['Du kunne fått en falsk pakke med skadelig kode', 'Ingenting, pip retter alltid skrivefeil', 'pip ville installert cowsay i stedet, helt automatisk'], answer: 0 } }
         ]
       },
       {
@@ -493,7 +504,7 @@ with open("poeng.txt") as f:
           { text: 'Kjør <code>vits.py</code> igjen.', check: S => ranOk(S, 'vits.py') },
           { text: 'Skriv <code>pip freeze</code>. Den viser versjonene i et format du kan lime rett inn i requirements.txt.', check: S => pipEv(S, 'freeze') },
           { text: 'Fjern en pakke: <code>pip uninstall pyjokes</code>, og svar <b>Y</b>.', check: S => pipEv(S, 'uninstall', d => d.name === 'pyjokes' && d.ok) },
-          { quiz: { q: 'Hvorfor har prosjekter en requirements.txt?', options: ['Så alle kan installere det programmet trenger med én kommando', 'Den gjør programmet raskere', 'pip krever det'], answer: 0 } }
+          { quiz: { q: 'Hvorfor har prosjekter en requirements.txt?', options: ['Så alle kan installere alt med én kommando', 'Den gjør at programmet starter raskere', 'pip virker ikke uten en slik fil i mappen'], answer: 0 } }
         ]
       }
     ]
@@ -510,7 +521,7 @@ with open("poeng.txt") as f:
     goals: [
       { text: 'Lag <b>aldersgrense.py</b> med <b>if</b> og <b>else</b>', check: S => { const c = kode('aldersgrense.py'); return has(c, /^\s*if\b/m) && has(c, /^\s*else\s*:/m); } },
       { text: 'Programmet gir <b>forskjellig</b> svar for 10 og 15 år', check: S => { const c = kode('aldersgrense.py'); const a = pyTest(c, ['10']), b = pyTest(c, ['15']); return a.ok && b.ok && a.out.trim() && b.out.trim() && a.out !== b.out; } },
-      { text: 'Grensen er riktig: 12 er for ung, 13 er velkommen', check: S => { const c = kode('aldersgrense.py'); return pyTest(c, ['12']).out === pyTest(c, ['10']).out && pyTest(c, ['13']).out === pyTest(c, ['15']).out && pyTest(c, ['12']).out !== pyTest(c, ['13']).out; } },
+      { text: 'Grensen er riktig: 12 er for ung, 13 er velkommen', check: S => { const c = kode('aldersgrense.py'); const o = a => pyTest(c, [a]).out.replace(/\d+/g, ''); return o('12') === o('10') && o('13') === o('15') && o('12') !== o('13'); } },
       { text: 'Kjør det og svar på spørsmålet', check: S => ranOk(S, 'aldersgrense.py', d => d.usedInput) }
     ]
   }, ['Lag et lite program med if/elif/else om noe du liker, for eksempel en quiz om favorittlaget ditt.']);
@@ -522,8 +533,8 @@ with open("poeng.txt") as f:
     setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('nedtelling.py'); },
     goals: [
       { text: 'Lag <b>nedtelling.py</b> med en <b>løkke</b> (for eller while)', check: S => has(kode('nedtelling.py'), /\b(for|while)\b/) },
-      { text: 'Utskriften teller <b>10, 9, 8 … 1</b> i riktig rekkefølge', check: S => { const r = pyTest(kode('nedtelling.py')); const n = lines(r.out).map(l => (l.match(/-?\d+/) || [null])[0]).filter(x => x !== null).map(Number); return r.ok && n.slice(0, 10).join(',') === '10,9,8,7,6,5,4,3,2,1'; } },
-      { text: 'Og skriver <b>Takeoff!</b> til slutt', check: S => { const L = lines(pyTest(kode('nedtelling.py')).out); return L.length >= 11 && /takeoff/i.test(L[L.length - 1]); } },
+      { text: 'Utskriften teller <b>10, 9, 8 … 1</b> i riktig rekkefølge', check: S => { const r = pyTest(kode('nedtelling.py')); let want = 10; (r.out.match(/-?\d+/g) || []).forEach(x => { if (want > 0 && +x === want) want--; }); return r.ok && want === 0; } },
+      { text: 'Og skriver <b>Takeoff!</b> til slutt', check: S => { const L = lines(pyTest(kode('nedtelling.py')).out); return L.length > 0 && /takeoff/i.test(L[L.length - 1]); } },
       { text: 'Kjør det', check: S => ranOk(S, 'nedtelling.py') }
     ]
   }, ['Skriv ut 5-gangen med en for-løkke i Python på din egen PC.']);
@@ -547,7 +558,7 @@ with open("poeng.txt") as f:
     setup: F => { F.ensureFolder(P_KODE); FS.silentRemoveAll('konverter.py'); },
     goals: [
       { text: 'Lag <b>konverter.py</b> med funksjonen <b>celsius_til_fahrenheit(c)</b> og <b>return</b>', check: S => { const c = kode('konverter.py'); return has(c, /def\s+celsius_til_fahrenheit\s*\(/) && has(c, /\breturn\b/); } },
-      { text: 'Funksjonen gir 212 for 100 og 32 for 0', check: S => { const r = pyTest(kode('konverter.py') + '\nprint("T1", celsius_til_fahrenheit(100))\nprint("T2", celsius_til_fahrenheit(0))\n'); return r.ok && /T1 212(\.0)?\b/.test(r.out) && /T2 32(\.0)?\b/.test(r.out); } },
+      { text: 'Funksjonen gir 212 for 100 og 32 for 0', check: S => { const r = pyTest(kode('konverter.py') + '\nprint("T1", celsius_til_fahrenheit(100))\nprint("T2", celsius_til_fahrenheit(0))\n', DUMMY); return /T1 212(\.0)?\b/.test(r.out) && /T2 32(\.0)?\b/.test(r.out); } },
       { text: 'Kjør programmet uten feil', check: S => ranOk(S, 'konverter.py') }
     ]
   }, ['Finn kode du har skrevet før som gjentar seg, og lag en funksjon av den.']);
@@ -572,14 +583,14 @@ with open("poeng.txt") as f:
     goals: [
       { text: 'Lag <b>temperatur.py</b> som leser <b>temperaturer.txt</b> med open()', check: S => has(kode('temperatur.py'), /open\s*\(\s*["']temperaturer\.txt/) },
       { text: 'Kjør programmet fra Kode-mappen uten feil', check: S => ranOk(S, 'temperatur.py') },
-      { text: '<b>rapport.txt</b> inneholder snittet (3.0)', check: S => /(^|[^\d])3([.,]0+)?(?!\d)/.test(kode('rapport.txt')) }
+      { text: '<b>rapport.txt</b> inneholder snittet (3.0)', check: S => (kode('rapport.txt').match(/-?\d+(?:[.,]\d+)?/g) || []).some(x => Math.abs(parseFloat(x.replace(',', '.')) - 3) < 1e-9) }
     ]
   }, ['Lag et program som lagrer noe i en fil og leser det igjen neste gang det kjøres.']);
 
   addMasterProg('p14', {
     lukk: ['kode'],
     title: 'Ditt eget repo',
-    intro: 'Lag et repo fra bunnen i mappen mesterrepo, med minst to commits og en ren arbeidsmappe.',
+    intro: 'Lag et repo fra bunnen i mappen mesterrepo, med minst to commits og en ren arbeidsmappe. (Sier Git «Author identity unknown», må du fortelle hvem du er med git config, slik du lærte i kurset.)',
     setup: F => {
       if (window.Firmaportal) Firmaportal.markInstalled('git');
       F.ensureFolder(P_KODE); purge([...P_KODE, 'mesterrepo']);
@@ -595,7 +606,7 @@ with open("poeng.txt") as f:
     lukk: ['kode'],
     title: 'Klart for en ny PC',
     intro: 'Programmet i mappen mesterpakker trenger en pakke. Gjør prosjektet klart, slik at hvem som helst kan installere det som trengs.',
-    setup: F => { if (window.Pip) Pip.reset(); const P = [...P_KODE, 'mesterpakker']; purge(P); F.ensureFolder(P); F.ensureFile(P, 'hilsen.py', 'import cowsay\n\ncowsay.tux("Klar for en ny PC!")\n'); },
+    setup: F => { if (window.Pip) Pip.reset(); const P = [...P_KODE, 'mesterpakker']; purge(P); const folder = F.ensureFolder(P); FS.createFile(folder.id, 'hilsen.py', 'import cowsay\n\ncowsay.tux("Klar for en ny PC!")\n'); },
     goals: [
       { text: 'Lag <b>requirements.txt</b> i mappen mesterpakker med pakken programmet trenger', check: S => /\bcowsay\b/i.test(innhold([...P_KODE, 'mesterpakker'], 'requirements.txt')) },
       { text: 'Installer med <b>pip install -r requirements.txt</b>', check: S => pipEv(S, 'requirements', d => d.names.includes('cowsay')) && window.Pip && Pip.has('cowsay') },
@@ -611,7 +622,7 @@ with open("poeng.txt") as f:
     { id: 'pr13', kurs: 'p11', text: 'Lag og kjør et program med en egen funksjon (<code>def</code> og <code>return</code>).', check: S => S.ev('py-run', d => d.ok && /\bdef\s+\w+\s*\(/.test(d.source) && /\breturn\b/.test(d.source)) },
     { id: 'pr14', kurs: 'p12', text: 'Lag og kjør et program med <code>try</code> og <code>except ValueError</code>.', check: S => S.ev('py-run', d => d.ok && /\btry\s*:/.test(d.source) && /except\s+ValueError/.test(d.source)) },
     { id: 'pr15', kurs: 'p13', text: 'Lag og kjør et program som skriver til en fil med <code>open(…, "w")</code> eller <code>"a"</code>.', check: S => S.ev('py-run', d => d.ok && /open\s*\([^)]*["'][wa]["']/.test(d.source)) },
-    { id: 'pr16', kurs: 'p14', text: 'Skriv <code>git status</code> i et repo, og <code>git log --oneline</code>.', check: S => S.ev('git', d => d.cmd === 'status') && S.ev('git', d => d.cmd === 'log' && d.oneline) },
+    { id: 'pr16', kurs: 'p14', text: 'Skriv <code>git status</code> i et repo, og <code>git log --oneline</code>.', check: S => S.ev('git', d => d.cmd === 'status' && !d.notRepo) && S.ev('git', d => d.cmd === 'log' && d.oneline) },
     { id: 'pr17', kurs: 'p15', text: 'Vis hvilke pakker som er installert med <code>pip list</code>.', check: S => S.ev('pip', d => d.cmd === 'list') }
   );
 })();

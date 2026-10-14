@@ -260,6 +260,9 @@ I tillegg kjøres en **gjennomgang** per side (`tests/gjennomgang-*.js`): den sp
 oppdragene og mesterprøvene med ekte klikk, dra-markering, vindussnapping, menyer, dialoger og terminalkommandoer,
 og feiler hvis et steg ikke blir godkjent. Den tar noen minutter. `node tests/kjor.js --uten-gjennomgang` hopper over den.
 
+`tests/kontroll.js` sjekker alle kurs automatisk: at ingen mesterprøve eller oppgave i ukens øving blir godkjent
+før eleven har gjort noe, at quizene er gyldige, og at riktig svar ikke avslører seg ved å være mye lengre enn de andre.
+
 Startfilene på øvings-PC-en defineres i `seed()` i `js/fs.js`. Nedlastbare filer i den simulerte
 skoleportalen ligger i `LINKS` i `js/apps.js`, og innleveringsoppgavene i `ASSIGN` samme sted.
 

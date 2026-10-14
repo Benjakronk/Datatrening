@@ -183,7 +183,7 @@ const Skriv = (() => {
         ed.focus();
         Bus.emit('editor-menu', { action: cmd });
         if (cmd === 'paste') {
-          if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(t => { restore(); document.execCommand('insertText', false, t); }).catch(() => Toast.show(T('Nettleseren tillater ikke liming fra menyen her. Bruk Ctrl+V.')));
+          if (navigator.clipboard && navigator.clipboard.readText) navigator.clipboard.readText().then(t => { restore(); document.execCommand('insertText', false, t); Bus.emit('editor-paste', { via: 'menu' }); }).catch(() => Toast.show(T('Nettleseren tillater ikke liming fra menyen her. Bruk Ctrl+V.')));
           else Toast.show(T('Bruk Ctrl+V for å lime inn.'));
         }
         else if (cmd === 'selectall') { restore(); document.execCommand('selectAll'); }
@@ -249,7 +249,7 @@ const Skriv = (() => {
           <select class="txt pd-target"><option value="skriver">${T('Skolens skriver (Kopirom 2. etasje)')}</option><option value="pdf">${T('Microsoft Print to PDF (lag PDF-fil)')}</option></select>
           <label>${T('Eksemplarer:')}</label><input class="txt pd-copies" type="number" value="1" min="1" max="5">
           <div class="muted">${pages === 1 ? T('Dokumentet er på 1 side.') : T('Dokumentet er på {0} sider.', pages)}</div>
-          <div class="muted">${T('Velger du «Print to PDF», lages det en PDF-fil på PC-en i stedet for papir. PDF ser lik ut overalt og kan ikke redigeres.')}</div>
+          <div class="muted">${T('Velger du «Print to PDF», lages det en PDF-fil på PC-en i stedet for papir. PDF ser lik ut overalt og endres ikke ved et uhell.')}</div>
         </div>
         <div class="pd-prev"><div class="pd-paper">${st.plain ? esc(text()).replace(/\n/g, '<br>') : getValue()}</div></div>
       </div>`);

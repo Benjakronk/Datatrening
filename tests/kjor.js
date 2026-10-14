@@ -38,6 +38,8 @@ const SIDER = [['grunnkurset', 'index.html'], ['programmering', 'programmering.h
 const JOBBER = [];
 for (const [navn, side] of SIDER) {
   JOBBER.push([navn, side, ['coachtest.js'], 120000, 180000]);
+  /* Kontroll av alle kurs: mesterprøver og ukens øving godkjennes ikke av seg selv, gyldige quizer */
+  JOBBER.push([navn + ' (kontroll)', side, ['kontroll.js'], 300000, 300000]);
   if (!process.argv.includes('--uten-gjennomgang')) JOBBER.push([navn + ' (gjennomgang)', side, ['gjennomgang-felles.js', 'gjennomgang-' + navn + '.js'], 600000, 420000]);
 }
 for (const [navn, side, skript, budsjett, tidsgrense] of JOBBER) {

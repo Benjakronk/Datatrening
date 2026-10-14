@@ -87,7 +87,7 @@ const Notater = (() => {
             { label: T('Ny side i denne inndelingen'), action: () => { data.curSec = s.id; newPage(); } },
             '-',
             { label: T('Gi nytt navn …'), action: async () => { const v = await Dialog.prompt(T('Gi nytt navn'), T('Nytt navn på inndelingen:'), s.name, x => x.trim() ? null : T('Skriv et navn.')); if (v) { const old = s.name; s.name = v; save(); render(); Bus.emit('notes-rename-section', { old, name: v }); } } },
-            { label: T('Endre farge'), sub: COLORS.map((c, i) => ({ label: T('Farge {0}', i + 1), icon: `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${c}"></span>`, action: () => { s.color = c; save(); render(); } })) },
+            { label: T('Endre farge'), sub: COLORS.map((c, i) => ({ label: T('Farge {0}', i + 1), icon: `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${c}"></span>`, action: () => { s.color = c; save(); render(); Bus.emit('notes-color', { name: s.name, color: c }); } })) },
             '-',
             { label: T('Slett inndelingen'), action: async () => { if (data.sections.length < 2) { Toast.show(T('Notatblokken må ha minst én inndeling.')); return; } if (await Dialog.confirm(T('Slett inndeling'), T('Slette «{0}» med {1} side(r)? Dette kan ikke angres.', s.name, s.pages.length))) { data.sections = data.sections.filter(x => x !== s); data.curSec = data.sections[0].id; data.curPage = data.sections[0].pages[0] ? data.sections[0].pages[0].id : 0; save(); render(); Bus.emit('notes-delete-section', { name: s.name }); } } }
           ], 'notater-sec', T('inndelingen «{0}»', s.name));

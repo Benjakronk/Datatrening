@@ -42,7 +42,8 @@ const Terminal = (() => {
     python: 'python <fil.py>\n  Kjører et Python-program.\n  python --version   viser versjonen',
     code: 'code <mappe eller fil>\n  Åpner Kode-editoren.\n  code .        åpner mappen du står i\n  code hei.py   åpner en fil',
     explorer: 'explorer <mappe>\n  Åpner Filutforsker.\n  explorer .    mappen du står i',
-    tree: 'tree\n  Tegner mappestrukturen som et tre.',
+    tree: 'tree [sti] [/F]\n  Tegner mappestrukturen som et tre.\n  tree      bare mappene\n  tree /F   mappene og filene i dem',
+    'Read-Host': 'Read-Host "spørsmål"\n  Spør brukeren og venter på svar.\n  $navn = Read-Host "Hva heter du"   lagrer svaret i $navn',
     'Test-Path': 'Test-Path <sti>\n  Svarer True hvis stien finnes, ellers False.',
     'Select-String': 'Select-String (sls) <tekst> <fil>\n  Søker etter tekst i filer. Kan også brukes etter |:\n  ls | Select-String py',
     'Measure-Object': 'Measure-Object (measure)\n  Teller. ls | measure   teller elementer',
@@ -140,7 +141,7 @@ const Terminal = (() => {
         cur += c === '"' ? expand(s) : s; inTok = true; quoted = true; i = j + 1; continue;
       }
       if (c === ' ' || c === '\t') { if (inTok) { toks.push({ v: cur, q: quoted }); cur = ''; inTok = false; quoted = false; } i++; continue; }
-      if (c === '|' || c === ';' || (c === '>' && !quoted)) {
+      if (c === '|' || c === ';' || c === '>') {
         if (inTok) { toks.push({ v: cur, q: quoted }); cur = ''; inTok = false; quoted = false; }
         if (c === '>' && line[i + 1] === '>') { toks.push({ op: '>>' }); i += 2; continue; }
         if (c === '&' ) { i++; continue; }
@@ -278,6 +279,11 @@ const Terminal = (() => {
       this.root.scrollTop = this.root.scrollHeight;
     }
     async execLine(line, fromScript) {
+      /* Variabler og Read-Host rett i terminalen, slik som i et skript */
+      if (!fromScript) {
+        const v = await this.varLine(line.trim(), true);
+        if (v !== null) { Bus.emit('term-cmd', { name: /read-host/i.test(line) ? 'Read-Host' : '$var', alias: line.trim().split(/\s/)[0], args: [], opts: {}, raw: line, cwd: this.cwdPath, ok: v }); return v; }
+      }
       const t = tokenizeLine(line, this.vars);
       if (t.error) { this.print('ParserError: ' + t.error + '\n', 'err'); Bus.emit('term-cmd', { name: '?', raw: line, ok: false, error: t.error }); return false; }
       /* del opp i kommandoer (;) og rør (|) */
@@ -306,7 +312,11 @@ const Terminal = (() => {
             const text = (piped || []).map(l => l.text).join('\n') + ((piped || []).length ? '\n' : '');
             const rr = this.writeFile(c.redirect.target, text, c.redirect.op === '>>');
             if (rr.error) { this.print(rr.error + '\n', 'err'); ok = false; }
-            else Bus.emit('term-redirect', { file: rr.name, append: c.redirect.op === '>>', text });
+            else {
+              const last = c.segs[c.segs.length - 1][0], lw = last ? String(last.v).toLowerCase() : '';
+              const cmdName = COMMANDS.find(x => x.toLowerCase() === lw) || ALIASES[lw] || (last ? last.v : '');
+              Bus.emit('term-redirect', { file: rr.name, append: c.redirect.op === '>>', text, cmd: cmdName });
+            }
           }
         }
         lastOk = ok;
@@ -327,6 +337,8 @@ const Terminal = (() => {
 
     async runCommand(seg, piped, capture, fromScript) {
       /* PowerShell har egne funksjoner for cd.. og cd\ (uten mellomrom), og mange er vant til dem fra cmd */
+      /* Kalleoperatoren & foran et skript: & .\skript.ps1 */
+      if (seg[0] && !seg[0].q && seg[0].v === '&' && seg.length > 1) seg = seg.slice(1);
       if (seg[0] && !seg[0].q && /^cd(\.\.|\\)$/i.test(seg[0].v)) seg = [{ v: 'cd', q: false }, { v: seg[0].v.slice(2), q: false }].concat(seg.slice(1));
       const first = seg[0].v;
       const rest = seg.slice(1);
@@ -351,7 +363,9 @@ const Terminal = (() => {
 
       /* Skript og programmer i gjeldende mappe */
       if (/^\.[\\/]/.test(first) || /^[a-zA-Z]:\\|^\\/.test(first) || /^~[\\/]/.test(first)) {
-        const loc = resolve(this.cwd, first);
+        let loc = resolve(this.cwd, first);
+        /* .\hei kjører hei.ps1, som i PowerShell */
+        if (!loc && !/\.\w+$/.test(first)) { const l2 = resolve(this.cwd, first + '.ps1'); if (l2 && !l2.virt) loc = l2; }
         if (!loc || loc.virt) return fail(`${first}: The term '${first}' is not recognized as a name of a cmdlet, function, script file, or executable program.\nCheck the spelling of the name, or if a path was included, verify that the path is correct and try again.`);
         const n = FS.get(loc.id);
         if (n.type === 'folder') return fail(`${first}: The term '${first}' is not recognized as a name of a cmdlet, function, script file, or executable program.`);
@@ -402,7 +416,20 @@ const Terminal = (() => {
           const isDirItem = canonical === 'mkdir' || (opts.itemtype && /^d/i.test(opts.itemtype)) || opts.type === 'd';
           const p = opts.name ? (opts.path ? clean(opts.path).replace(/\\$/, '') + '\\' + opts.name : opts.name) : (args[0] || opts.path);
           if (!p) return fail(`${canonical}: Cannot process command because of one or more missing mandatory parameters: Path.`);
-          const { parent, name } = resolveParent(this.cwd, p);
+          let { parent, name } = resolveParent(this.cwd, p);
+          /* mkdir a\b lager også a, slik PowerShell gjør for mapper */
+          if (!parent && isDirItem) {
+            const parts = clean(p).replace(/\\$/, '').split('\\');
+            for (let k = 1; k < parts.length; k++) {
+              const sub = parts.slice(0, k).join('\\');
+              if (resolve(this.cwd, sub)) continue;
+              const rp = resolveParent(this.cwd, sub);
+              if (!rp.parent || rp.parent.virt) break;
+              const made = FS.createFolder(rp.parent.id, rp.name, { via: 'terminal' });
+              if (made.error) return fail(`${canonical}: ${made.error}`);
+            }
+            ({ parent, name } = resolveParent(this.cwd, p));
+          }
           if (!parent || parent.virt) return fail(`${canonical}: Could not find a part of the path '${absStr(this.cwd, p)}'.`);
           if (childOf(parent, name)) return fail(`${canonical}: An item with the specified name ${absStr(this.cwd, p)} already exists.`);
           const rr = isDirItem ? FS.createFolder(parent.id, name, { via: 'terminal' }) : FS.createFile(parent.id, name, opts.value || '', { via: 'terminal' });
@@ -475,7 +502,7 @@ const Terminal = (() => {
           if (!p) return fail(`${canonical}: Cannot process command because of one or more missing mandatory parameters: Path.`);
           const rr = this.writeFile(p, val + '\n', canonical === 'Add-Content');
           if (rr.error) return fail(rr.error.replace('out-file', canonical));
-          Bus.emit('term-redirect', { file: rr.name, append: canonical === 'Add-Content', text: val + '\n' });
+          Bus.emit('term-redirect', { file: rr.name, append: canonical === 'Add-Content', text: val + '\n', cmd: canonical });
           return finish(true);
         }
         case 'Write-Output': case 'Write-Host': out(args.join(' ')); return finish(true);
@@ -502,10 +529,24 @@ const Terminal = (() => {
         case 'Test-Path': { const loc = resolve(this.cwd, args[0] || opts.path || ''); out(loc ? 'True' : 'False'); return finish(true); }
         case 'Get-Item': { const loc = resolve(this.cwd, args[0] || opts.path || '.'); if (!loc) return pathErr('Get-Item', args[0]); const n = loc.virt ? null : FS.get(loc.id); out(table([{ name: n ? termName(n) : loc.virt, type: isDir(loc) ? 'folder' : 'file', modified: n ? n.modified : Date.now(), size: n ? n.size : 0 }], pathOf(parentOf(loc)))); return finish(true); }
         case 'tree': {
-          const loc = resolve(this.cwd, args[0] || '.'); if (!loc || !isDir(loc)) return pathErr('tree', args[0] || '.');
-          out(pathOf(loc));
-          const walk = (l, prefix, depth) => { const items = listing(l).filter(x => opts.f || opts.files || x.type === 'folder' || true); items.forEach((x, i) => { const last = i === items.length - 1; out(prefix + (last ? '└── ' : '├── ') + x.name); if (x.type === 'folder' && x.node && depth < 8) walk({ id: x.node.id }, prefix + (last ? '    ' : '│   '), depth + 1); }); };
-          walk(loc, '', 0); Bus.emit('term-tree', {}); return finish(true);
+          /* Som tree.com: bare mapper, med /F også filene. /A gir enkle tegn. */
+          const sw = args.filter(a => /^\/[a-z]$/i.test(a)).map(a => a[1].toLowerCase());
+          const files = sw.includes('f'), ascii = sw.includes('a');
+          const pth = args.find(a => !/^\/[a-z]$/i.test(a)) || '.';
+          const loc = resolve(this.cwd, pth); if (!loc || !isDir(loc)) return pathErr('tree', pth);
+          out('Folder PATH listing'); out(pathOf(loc));
+          const G = ascii ? { t: '+---', l: '\\---', v: '|   ' } : { t: '├───', l: '└───', v: '│   ' };
+          let anyDir = false;
+          const walk = (l, prefix, depth) => {
+            const all = listing(l), dirs = all.filter(x => x.type === 'folder'), fl = all.filter(x => x.type !== 'folder');
+            if (files) fl.forEach(x => out(prefix + (dirs.length ? G.v : '    ') + x.name));
+            if (files && fl.length && dirs.length) out(prefix + G.v);
+            dirs.forEach((x, i) => { anyDir = true; const last = i === dirs.length - 1; out(prefix + (last ? G.l : G.t) + x.name); if (x.node && depth < 8) walk({ id: x.node.id }, prefix + (last ? '    ' : G.v), depth + 1); });
+          };
+          walk(loc, '', 0);
+          if (!anyDir) out('No subfolders exist');
+          out('');
+          Bus.emit('term-tree', { files }); return finish(true);
         }
         case 'Select-String': {
           const pat = opts.pattern || args[0]; if (!pat) return fail('Select-String: Cannot process command because of one or more missing mandatory parameters: Pattern.');
@@ -612,27 +653,46 @@ const Terminal = (() => {
     }
 
     /* ---------------- PowerShell-skript (.ps1) ---------------- */
+    /* $x = verdi, $x = Read-Host "…", Read-Host "…" og $x alene. Brukes både i skript og rett i terminalen.
+       Gir null hvis linjen ikke er noe av dette, ellers true/false (gikk bra eller ikke). */
+    async varLine(line, echo) {
+      const m = /^\$([A-Za-z_]\w*)\s*=\s*(.+)$/.exec(line);
+      if (m) {
+        const rhs = m[2].trim();
+        const rh = /^Read-Host(?:\s+(?:-Prompt\s+)?(.+))?$/i.exec(rhs);
+        if (rh) { const p = rh[1] ? unquote(rh[1], this.vars) : ''; try { this.vars[m[1]] = await this.readLine(p ? p + ': ' : ''); } catch (e) { return false; } return true; }
+        const t = tokenizeLine(rhs, this.vars);
+        if (t.error) { this.print('ParserError: ' + t.error + '\n', 'err'); return false; }
+        const v = t.toks.filter(x => x.v !== undefined).map(x => x.v).join(' ');
+        this.vars[m[1]] = /^-?\d+(\.\d+)?$/.test(v) && !t.toks[0].q ? Number(v) : v;
+        return true;
+      }
+      const rh = /^Read-Host(?:\s+(?:-Prompt\s+)?(.+))?$/i.exec(line);
+      if (rh) { let v; try { v = await this.readLine(rh[1] ? unquote(rh[1], this.vars) + ': ' : ''); } catch (e) { return false; } if (echo) this.print(v + '\n'); return true; }
+      const one = /^\$([A-Za-z_]\w*)$/.exec(line);
+      if (one && echo) { const v = this.vars[one[1]]; if (v !== undefined) this.print(String(v) + '\n'); return true; }
+      return null;
+    }
     async runPs1(node, argv) {
       const lines = (node.content || '').split('\n');
-      let ok = true;
+      let ok = true, skipDepth = 0, awaitBrace = false;
+      const braces = l => (l.match(/\{/g) || []).length - (l.match(/\}/g) || []).length;
       for (let i = 0; i < lines.length; i++) {
         if (this.running && this.running.abort) { this.print('^C\n'); ok = false; break; }
         let line = lines[i].trim();
         if (!line || line.startsWith('#')) continue;
-        const m = /^\$([A-Za-z_]\w*)\s*=\s*(.+)$/.exec(line);
-        if (m) {
-          const rhs = m[2].trim();
-          const rh = /^Read-Host(?:\s+(?:-Prompt\s+)?(.+))?$/i.exec(rhs);
-          if (rh) { const p = rh[1] ? unquote(rh[1], this.vars) : ''; try { this.vars[m[1]] = await this.readLine(p ? p + ': ' : ''); } catch (e) { ok = false; break; } continue; }
-          const t = tokenizeLine(rhs, this.vars);
-          if (t.error) { this.print('ParserError: ' + t.error + '\n', 'err'); ok = false; break; }
-          const v = t.toks.filter(x => x.v !== undefined).map(x => x.v).join(' ');
-          this.vars[m[1]] = /^-?\d+(\.\d+)?$/.test(v) && !t.toks[0].q ? Number(v) : v;
+        /* Blokker (if, foreach …) støttes ikke: hele blokken hoppes over, ikke bare første linje */
+        if (awaitBrace) { awaitBrace = false; if (line.startsWith('{')) { skipDepth = Math.max(0, braces(line)); continue; } }
+        if (skipDepth) { skipDepth += (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length; if (skipDepth < 0) skipDepth = 0; continue; }
+        if (/^(if|elseif|else|while|foreach|for|function|switch|try|catch|do)\b/i.test(line) || /^[{}]/.test(line)) {
+          this.print(T('{0}: linje {1}: «{2}» støttes ikke i øvings-terminalen. Bruk Write-Host, Read-Host, variabler og vanlige kommandoer.\n', node.name, i + 1, line.split(' ')[0]), 'warn');
+          skipDepth = Math.max(0, braces(line));
+          if (!line.includes('{')) awaitBrace = true;
           continue;
         }
-        const rh = /^Read-Host(?:\s+(?:-Prompt\s+)?(.+))?$/i.exec(line);
-        if (rh) { try { await this.readLine(rh[1] ? unquote(rh[1], this.vars) + ': ' : ''); } catch (e) { ok = false; break; } continue; }
-        if (/^(if|while|foreach|for|function|switch|try)\b/i.test(line) || /^[{}]/.test(line)) { this.print(T('{0}: linje {1}: «{2}» støttes ikke i øvings-terminalen. Bruk Write-Host, Read-Host, variabler og vanlige kommandoer.\n', node.name, i + 1, line.split(' ')[0]), 'warn'); continue; }
+        const v = await this.varLine(line, false);
+        if (v === false) { ok = false; break; }
+        if (v === true) continue;
         const r = await this.execLine(line, true);
         if (!r) { ok = false; break; }
       }

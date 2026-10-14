@@ -357,17 +357,25 @@ const Innstillinger = (() => {
   }
   /* Passordstyrke: lengde teller mest. En passordfrase av flere vanlige ord er både sterk og lett å huske.
      Selve passordet lagres aldri og sendes ikke med i hendelsene, bare målene på det. */
-  const COMMON = ['passord', 'password', '123456', '12345678', 'qwerty', 'abc123', 'hemmelig', 'fotball', 'iloveyou', 'admin', 'letmein', 'sommer', 'vinter', 'skole'];
+  const COMMON = ['passord', 'password', 'hemmelig', 'secret', 'fotball', 'football', 'iloveyou', 'admin', 'letmein', 'welcome', 'velkommen',
+    'sommer', 'summer', 'vinter', 'winter', 'skole', 'school', 'qwerty', 'qwertz', 'asdf', 'abc', 'monkey', 'dragon', 'sunshine', 'princess', 'master', 'hello', 'hei', 'test', 'norge', 'norway'];
+  /* Passordstyrke: lengde teller mest. Vanlige ord med tall eller tegn bak (Fotball#2024), navn med årstall
+     (Benjamin2010!) og gjentakelser (passord passord …) er like svake som de ser sterke ut. */
   function strength(pw) {
     const len = pw.length;
-    const words = pw.split(/[\s\-_.]+/).filter(w => w.length >= 3).length;
+    const parts = pw.toLowerCase().split(/[\s\-_.,]+/).filter(w => w.length >= 2);
+    const words = new Set(parts).size;
     const classes = [/[a-zæøå]/, /[A-ZÆØÅ]/, /\d/, /[^\wæøåÆØÅ\s]/].filter(r => r.test(pw)).length;
-    const common = COMMON.some(c => pw.toLowerCase().replace(/[\d!.\s]+$/, '') === c) || /^(.)\1+$/.test(pw) || /^(0123|1234|abcd)/i.test(pw);
+    const core = pw.toLowerCase().replace(/[^a-zæøå]/g, '');
+    const common = !core || COMMON.includes(core) || COMMON.some(c => c.length >= 4 && core.length <= c.length + 3 && core.includes(c)) || /^(0123|1234|abcd)/i.test(pw);
+    const repeated = /^(.)\1+$/.test(pw.replace(/\s/g, '')) || (parts.length >= 2 && words < parts.length) || /(.{2,})\1\1/.test(core);
+    const nameYear = /^[A-ZÆØÅ][a-zæøå]{2,}\W*(19|20)\d\d\W*$/.test(pw) || /^[a-zæøå]{3,}\W*(19|20)\d\d\W*$/i.test(pw);
     let score = len >= 20 ? 4 : len >= 15 ? 3 : len >= 12 ? 2 : len >= 8 ? 1 : 0;
     if (words >= 4 && len >= 16) score = 4;
-    if (classes >= 3 && score < 4 && len >= 10) score++;
+    if (classes >= 3 && score < 4 && len >= 10 && !nameYear) score++;
+    if (nameYear || repeated) score = Math.min(score, 1);
     if (common) score = 0;
-    return { score, len, words, classes, common };
+    return { score, len, words, classes, common, nameYear, repeated };
   }
   async function passwordDialog() {
     const LABEL = [T('Veldig svakt'), T('Svakt'), T('Middels'), T('Sterkt'), T('Veldig sterkt')];
@@ -383,7 +391,7 @@ const Innstillinger = (() => {
       const bar = body.querySelector('.pw-bar div');
       bar.style.width = (inp.value ? 10 + s.score * 22.5 : 0) + '%';
       bar.style.background = ['#dc2626', '#f97316', '#eab308', '#22c55e', '#15803d'][s.score];
-      body.querySelector('.pw-label').textContent = inp.value ? T('Styrke: {0}', LABEL[s.score]) + (s.common ? ' · ' + T('Dette passordet er blant de vanligste, og blir gjettet med en gang.') : '') : '';
+      body.querySelector('.pw-label').textContent = inp.value ? T('Styrke: {0}', LABEL[s.score]) + (s.common ? ' · ' + T('Dette passordet er blant de vanligste, og blir gjettet med en gang.') : s.nameYear ? ' · ' + T('Et navn eller ord med årstall er noe av det første som blir prøvd.') : s.repeated ? ' · ' + T('Gjentakelser gjør passordet lettere å gjette.') : '') : '';
     };
     inp.addEventListener('input', upd);
     inp.addEventListener('keydown', e => e.stopPropagation());
@@ -407,7 +415,7 @@ const TaskMgr = (() => {
       const r = root.querySelector('.tk-rows'); r.innerHTML = '';
       WM.list().filter(w => w !== win).forEach(w => {
         const row = el(`<div class="tkr"><span class="ico">${Icons.app(w.app, 20)}</span><span class="t">${esc(w.title || WM.appName(w.app))}</span><span class="muted">${esc(WM.appName(w.app))}</span><button class="btn small">${T('Avslutt oppgave')}</button></div>`);
-        row.querySelector('button').addEventListener('click', () => { Bus.emit('end-task', { app: w.app }); WM.close(w, 'taskmgr'); });
+        row.querySelector('button').addEventListener('click', () => { Bus.emit('end-task', { app: w.app }); WM.forceClose(w, 'taskmgr'); });
         r.appendChild(row);
       });
       if (!r.children.length) r.appendChild(el('<div class="muted" style="padding:12px">' + T('Ingen andre programmer kjører.') + '</div>'));

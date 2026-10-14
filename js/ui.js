@@ -2,10 +2,13 @@
 
 const Bus = {
   log: [],
+  /* Hvor mange hendelser som er fjernet fra starten av loggen. Posisjoner i loggen regnes som
+     base + indeks, så de stemmer også etter at loggen er kortet ned. */
+  base: 0,
   handlers: [],
   emit(type, data = {}) {
     this.log.push({ type, data, t: Date.now() });
-    if (this.log.length > 5000) this.log.splice(0, 1000);
+    if (this.log.length > 5000) { this.log.splice(0, 1000); this.base += 1000; }
     this.handlers.forEach(h => { try { h(type, data); } catch (e) { console.error(e); } });
   },
   on(h) { this.handlers.push(h); }

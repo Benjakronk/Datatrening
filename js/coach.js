@@ -22,12 +22,12 @@ const Coach = (() => {
   /* Hjelpeobjekt som oppdragene bruker i check(S) */
   const S = {
     ev(type, pred) {
-      for (let i = Bus.log.length - 1; i >= stepStart; i--) { const e = Bus.log[i]; if (e.type === type && (!pred || pred(e.data))) return true; }
+      for (let i = Bus.log.length - 1; i >= Math.max(0, stepStart - Bus.base); i--) { const e = Bus.log[i]; if (e.type === type && (!pred || pred(e.data))) return true; }
       return false;
     },
     evCount(type, pred) {
       let n = 0;
-      for (let i = stepStart; i < Bus.log.length; i++) { const e = Bus.log[i]; if (e.type === type && (!pred || pred(e.data))) n++; }
+      for (let i = Math.max(0, stepStart - Bus.base); i < Bus.log.length; i++) { const e = Bus.log[i]; if (e.type === type && (!pred || pred(e.data))) n++; }
       return n;
     },
     folder(path) { const n = FS.resolve(path); return n && n.type === 'folder' ? n : null; },
@@ -125,7 +125,7 @@ const Coach = (() => {
       const closed = WM.closeApps(o.lukk === 'alle' ? null : o.lukk, 'oppdrag');
       if (closed.length) Toast.show(T('Lukket fra forrige oppdrag: {0}. Du starter med blanke ark.', closed.map(a => WM.appName(a)).join(', ')), 4500);
     }
-    stepStart = Bus.log.length; stepTime = now();
+    stepStart = Bus.base + Bus.log.length; stepTime = now();
     hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
     if (o && o.setup) { try { o.setup(FS); } catch (e) { console.error('setup', e); } FS.notify(); }
   }
@@ -167,7 +167,7 @@ const Coach = (() => {
   function advance() {
     const a = P.active; const o = oppOf(a);
     recordStep(a.opp, a.step);
-    a.step++; stepStart = Bus.log.length; hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
+    a.step++; stepStart = Bus.base + Bus.log.length; hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
     markTheory(a, o);
     if (a.step >= o.steps.length) {
       P.done[a.opp] = true;
@@ -269,7 +269,7 @@ const Coach = (() => {
   function jumpTo(i) {
     const a = P.active; const o = oppOf(a);
     if (!o || !canJump() || i < 0 || i >= o.steps.length || i === a.step) return;
-    a.step = i; stepStart = Bus.log.length; stepTime = now();
+    a.step = i; stepStart = Bus.base + Bus.log.length; stepTime = now();
     hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
     save(); render();
     Bus.emit('oppdrag-hopp', { id: a.opp, step: i });

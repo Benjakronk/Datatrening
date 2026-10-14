@@ -8,7 +8,8 @@ const Pip = (() => {
     cowsay: { v: '6.1', size: '25 kB', summary: 'The famous cowsay for GNU/Linux is now available for python', author: 'Ashwini Chaudhary', home: 'https://github.com/VaasuDevanS/cowsay-python' },
     pyjokes: { v: '0.8.3', size: '47 kB', summary: 'One line jokes for programmers (jokes as a service)', author: 'Ben Nuttall', home: 'https://pyjok.es/' }
   };
-  const REAL = ['numpy', 'pandas', 'pygame', 'requests', 'matplotlib', 'flask', 'django', 'scipy', 'pillow', 'opencv-python', 'tensorflow', 'torch', 'beautifulsoup4', 'colorama', 'rich', 'turtle', 'discord.py', 'selenium', 'pytest'];
+  const REAL = ['numpy', 'pandas', 'pygame', 'requests', 'matplotlib', 'flask', 'django', 'scipy', 'pillow', 'opencv-python', 'tensorflow', 'torch', 'beautifulsoup4', 'colorama', 'rich', 'discord.py', 'selenium', 'pytest'];
+  const STDLIB = ['turtle', 'random', 'math', 'time', 'os', 'sys', 'json', 'csv', 'datetime', 'tkinter', 'statistics'];
   let st = null;
   function load() { if (st) return st; try { st = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { st = {}; } if (!st.installed) st.installed = {}; return st; }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* ignorer */ } }
@@ -29,7 +30,8 @@ const Pip = (() => {
       if (!c) {
         p(`ERROR: Could not find a version that satisfies the requirement ${raw} (from versions: none)`);
         p(`ERROR: No matching distribution found for ${raw}`);
-        if (REAL.includes(name)) api.term.print(T('[Øvings-PC: «{0}» er en ekte pakke, men den kan ikke lastes ned her. Prøv cowsay eller pyjokes.]', name) + '\n', 'warn');
+        if (STDLIB.includes(name)) api.term.print(T('[Øvings-PC: «{0}» følger med Python og trenger ikke installeres. Skriv bare import {0} i programmet.]', name) + '\n', 'warn');
+        else if (REAL.includes(name)) api.term.print(T('[Øvings-PC: «{0}» er en ekte pakke, men den kan ikke lastes ned her. Prøv cowsay eller pyjokes.]', name) + '\n', 'warn');
         else api.term.print(T('[Øvings-PC: fant ingen pakke som heter «{0}». Sjekk stavemåten. På ekte finnes det falske pakker med nesten like navn, så skriv navnet nøyaktig.]', raw) + '\n', 'warn');
         emit('install', { name, ok: false, real: REAL.includes(name) });
         ok = false; continue;

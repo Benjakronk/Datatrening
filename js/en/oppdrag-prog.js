@@ -19,6 +19,8 @@ const noenFil = (name, test) => FS.findAll(c => c.type === 'file' && same(c.name
 /* Write-Host uses a $variable (not inside single quotation marks, where $name is printed as text) */
 const brukerVar = src => (src || '').split('\n').some(l => /^\s*write-host\b/i.test(l) && /\$\w/.test(l.replace(/'[^']*'/g, '')));
 const FP = id => window.Firmaportal ? Firmaportal.statusOf(id) : 'installed';
+/* Courses after the Company Portal use code. If the student jumps straight there, the editor counts as installed. */
+const harKode = () => { if (window.Firmaportal && Firmaportal.markInstalled) Firmaportal.markInstalled('vscode'); };
 const MESTERFEIL = 'numbers = [1, 2, 3]\nsum = 0\nfor n in numbers:\n    sum = sum + n\nprint("The sum is" sum)\n';
 
 const KURS_PROG = [
@@ -45,7 +47,7 @@ const KURS_PROG = [
         id: 'p1o1', title: 'First commands', lukk: 'alle',
         steps: [
           { laer: true, quiz: { q: 'What does the prompt PS C:\\Users\\Student> show?', options: ['The name of the PC', 'The folder you are in', 'The time'], answer: 1 } },
-          { laer: true, quiz: { q: 'What is the Documents folder called in the terminal?', options: ['My Documents', 'Docs', 'Documents'], answer: 2 } },
+          { laer: true, quiz: { q: 'What is the full path of your home folder?', options: ['C:\\Home\\Student', 'C:\\Documents\\Student', 'C:\\Users\\Student'], answer: 2 } },
           { laer: true, quiz: { q: 'Which command lists the files where you are?', options: ['ls', 'pwd', 'cd'], answer: 0 } },
           { text: 'Open <b>Terminal</b> from the taskbar (the dark icon with <code>&gt;_</code>).', check: S => S.ev('window-open', d => d.app === 'terminal') || S.wins('terminal') > 0 },
           { text: 'Type <code>pwd</code> and press <kbd>Enter</kbd>. The answer is <code>C:\\Users\\Student</code>: your home folder.', hint: 'Click in the terminal window first, so the keyboard types there.', check: S => cmd(S, d => d.name === 'Get-Location') },
@@ -53,9 +55,9 @@ const KURS_PROG = [
           { text: 'Go into Documents: <code>cd Documents</code>. Watch the prompt change.', hint: 'cd, space, Documents.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents')) },
           { text: 'Type <code>ls</code> again. Now you can see what is in Documents.', check: S => cmd(S, d => d.name === 'Get-ChildItem' && ends(d.cwd, 'Documents')) },
           { text: 'Go up one level: <code>cd ..</code> (two dots mean “the folder above”).', check: S => S.ev('term-cd', d => /^\.\.[\\/]?$/.test(d.arg)) },
-          { text: 'Go into Pictures with <code>cd Pictures</code>, and then home again with <code>cd ~</code>.', hint: 'The sign ~ (tilde) means the home folder. On a Norwegian keyboard: AltGr + ¨ (the key next to Å), then space.', check: S => S.ev('term-cd', d => ends(d.path, 'Pictures')) && S.ev('term-cd', d => homeArg(d.arg) && HOME_RX.test(d.path)) },
-          { quiz: { q: 'What does the command cd .. do?', options: ['Goes up one level, to the folder above', 'Lists the files', 'Deletes the folder'], answer: 0 } },
-          { quiz: { q: 'The prompt shows PS C:\\Users\\Student\\Documents>. Where are you?', options: ['In the home folder', 'In the Documents folder', 'On the desktop'], answer: 1 } }
+          { text: 'Go into Pictures with <code>cd Pictures</code>, and then home again with <code>cd ~</code>.', hint: 'The sign ~ (tilde) means the home folder. On a US keyboard: Shift + the key left of 1. On a UK keyboard: Shift + the # key (next to Enter). On a Norwegian keyboard: AltGr + ¨ (the key next to Å), then space.', check: S => S.ev('term-cd', d => ends(d.path, 'Pictures')) && S.ev('term-cd', d => homeArg(d.arg) && HOME_RX.test(d.path)) },
+          { quiz: { q: 'What does the command cd .. do?', options: ['Goes up one level', 'Lists the files in the folder', 'Deletes the folder you are in'], answer: 0 } },
+          { quiz: { q: 'The prompt shows PS C:\\Users\\Student\\Documents>. Where are you?', options: ['In the home folder (Student)', 'In the Documents folder', 'On the desktop (Desktop)'], answer: 1 } }
         ]
       },
       {
@@ -88,17 +90,18 @@ const KURS_PROG = [
       <tr><td><code>mv from to</code></td><td>Moves (<code>Move-Item</code>)</td></tr>
       <tr><td><code>ren old new</code></td><td>Renames (<code>Rename-Item</code>)</td></tr>
       <tr><td><code>rm file</code></td><td>Deletes (<code>Remove-Item</code>). <b>Does not go to the Recycle Bin!</b></td></tr>
-      <tr><td><code>tree</code></td><td>Draws the folder structure</td></tr>
+      <tr><td><code>tree /F</code></td><td>Draws the folder structure with the files (without <code>/F</code> it only shows the folders)</td></tr>
       <tr><td><code>explorer .</code></td><td>Opens the folder you are in, in File Explorer</td></tr></table>
       <p>The dot <code>.</code> means “the folder I am in”. Text with spaces or special characters goes inside quotation marks: <code>'print("Hello")'</code>.</p>`,
     oppdrag: [
       {
         id: 'p2o1', title: 'Create a project',
-        setup: F => { F.ensureFolder(['This PC', 'Documents']); },
+        /* A hello.py from an earlier round would make the New-Item step pass straight away */
+        setup: F => { F.ensureFolder(['This PC', 'Documents']); const h = F.resolve([...P_KODE, 'hello.py']); if (h) F.purge(h.id); },
         steps: [
           { laer: true, quiz: { q: 'Which command creates a new folder?', options: ['cat', 'mkdir', 'rm'], answer: 1 } },
-          { laer: true, quiz: { q: 'What does > do in  echo \'hello\' > file.txt ?', options: ['Sends the output to the file instead of the screen', 'Compares two numbers', 'Opens the file in Code'], answer: 0 } },
-          { laer: true, quiz: { q: 'What is the difference between rm in the terminal and Delete in File Explorer?', options: ['No difference', 'rm moves the file to Downloads', 'rm deletes for good, with no Recycle Bin'], answer: 2 } },
+          { laer: true, quiz: { q: 'What does > do in  echo \'hello\' > file.txt ?', options: ['Sends the output to the file', 'Compares two numbers with each other', 'Opens the file in the Code editor'], answer: 0 } },
+          { laer: true, quiz: { q: 'What is the difference between rm in the terminal and Delete in File Explorer?', options: ['No difference, both use the Recycle Bin', 'rm moves the file to Downloads', 'rm deletes for good, with no Recycle Bin'], answer: 2 } },
           { text: 'Go to Documents in the terminal: <code>cd ~\\Documents</code>.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents')) },
           { text: 'Create a folder for your code: <code>mkdir Code</code>.', check: S => S.folderIn('Code', ['This PC', 'Documents']) },
           { text: 'Go into it: <code>cd Code</code>.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents\\Code')) },
@@ -120,7 +123,7 @@ const KURS_PROG = [
           { text: 'Rename the copy: <code>ren copy.py test.py</code>.', check: S => S.fileIn('test.py', P_KODE) && !S.fileIn('copy.py', P_KODE) },
           { text: 'Create the folder <code>old</code>: <code>mkdir old</code>.', check: S => S.folderIn('old', P_KODE) },
           { text: 'Move the file into the folder: <code>mv test.py old</code>.', hint: 'Has test.py disappeared? If you spelt the folder name wrong, the file got that name instead. Type ls, and give it its name back with ren, for example <code>ren odl test.py</code>.', check: S => S.fileIn('test.py', [...P_KODE, 'old']) },
-          { text: 'See the structure: <code>tree</code>.', check: S => S.ev('term-tree') },
+          { text: 'See the structure with the files: <code>tree /F</code>. (Without <code>/F</code>, tree only shows the folders.)', check: S => S.ev('term-tree') },
           /* Also accepted: the student deleted the whole folder with rm -Recurse old (then the file is gone, and the next step passes by itself) */
           { text: 'Delete the file: <code>rm old\\test.py</code>. (A forward slash works too: <code>rm old/test.py</code>.)', hint: 'Is the file already gone? Move on and delete the folder: <code>rm old</code>.', check: S => !S.fileIn('test.py', [...P_KODE, 'old']) && S.ev('term-rm') },
           { text: 'Delete the empty folder: <code>rm old</code>.', check: S => !S.folderIn('old', P_KODE) },
@@ -158,7 +161,7 @@ const KURS_PROG = [
           { text: 'The folder “My projects” is next to Code and has a space in its name. Go there: <code>cd "..\\My projects"</code> (or type <code>cd ..\\My</code> and press Tab).', check: S => S.ev('term-cd', d => ends(d.path, 'My projects')) },
           { text: 'List what is in another folder without going there: <code>ls ~\\Documents</code>', check: S => cmd(S, d => d.name === 'Get-ChildItem' && /documents/i.test((d.args[0] || '') + (d.opts.path || ''))) },
           { text: 'Go to Code with a relative path from where you are: <code>cd ..\\Code</code>, and check with <code>pwd</code>.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents\\Code')) && cmd(S, d => d.name === 'Get-Location') },
-          { quiz: { q: 'Which of these is an absolute path?', options: ['..\\Code', 'Documents\\Code', 'C:\\Users\\Student\\Documents\\Code'], answer: 2 } },
+          { quiz: { q: 'Which of these is an absolute path?', options: ['..\\Users\\Student\\Documents\\Code', 'Student\\Documents\\Code', 'C:\\Users\\Student\\Documents\\Code'], answer: 2 } },
           { quiz: { q: 'What does ~ mean in the terminal?', options: ['The folder above', 'Your home folder', 'The Recycle Bin'], answer: 1 } }
         ]
       }
@@ -177,11 +180,11 @@ const KURS_PROG = [
     oppdrag: [
       {
         id: 'p4o1', title: 'First program in Code', lukk: ['kode'],
-        setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('greeting.py'); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('greeting.py'); },
         steps: [
-          { laer: true, quiz: { q: 'What does  code .  do in the terminal?', options: ['Runs the program', 'Opens the folder you are in, in the Code editor', 'Deletes the file'], answer: 1 } },
+          { laer: true, quiz: { q: 'What does  code .  do in the terminal?', options: ['Runs all the programs in the folder', 'Opens the folder in the Code editor', 'Creates a new empty code file here'], answer: 1 } },
           { laer: true, quiz: { q: 'Which version of the program does  python file.py  run?', options: ['The one saved on the disk', 'The one you see in the editor, even if unsaved', 'Both'], answer: 0 } },
-          { laer: true, quiz: { q: 'What does Python use indents (4 spaces) for?', options: ['Decoration', 'Making comments', 'Showing which lines belong to an if, a loop or a function'], answer: 2 } },
+          { laer: true, quiz: { q: 'What does Python use indents (4 spaces) for?', options: ['Just to make the code look tidier', 'Turning the lines into comments that are not run', 'Showing what belongs to an if or a loop'], answer: 2 } },
           { text: 'In the terminal: go to the Code folder (<code>cd ~\\Documents\\Code</code>) and open it in the editor: <code>code .</code>', check: S => S.ev('kode-open', d => d.name === 'Code') },
           { text: 'Create a new file in Code: click <b>New File</b> and call it <code>greeting.py</code>.', check: S => S.fileIn('greeting.py', P_KODE) },
           { text: 'Write a program with a variable and a print, for example:<br><code>name = "Ola"</code><br><code>print("Hello,", name)</code>', check: S => /=/.test(S.kodeText()) && /print\s*\(/.test(S.kodeText()) },
@@ -193,13 +196,13 @@ const KURS_PROG = [
       },
       {
         id: 'p4o2', title: 'Program with input',
-        setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('age.py'); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('age.py'); },
         steps: [
           { text: 'Create the file <code>age.py</code> in the Code folder (in Code or with <code>New-Item</code>).', check: S => S.fileIn('age.py', P_KODE) },
           { text: 'Write a program that asks for your age with <code>input()</code>, turns the answer into a number with <code>int()</code>, and prints how old you will be next year. Save.', hint: 'age = int(input("How old are you? "))\nprint("Next year you will be", age + 1)', check: S => /input\s*\(/.test(innhold(P_KODE, 'age.py')) && /int\s*\(/.test(innhold(P_KODE, 'age.py')) },
           { text: 'Run the program in the terminal and answer the question.', check: S => ran(S, 'age.py', d => d.ok && d.usedInput) },
           { text: 'Run it again, but type a word instead of a number. Read the error message: <b>ValueError</b>.', check: S => ran(S, 'age.py', d => d.error === 'ValueError') },
-          { quiz: { q: 'Why do you need int() around input()?', options: ['input() always gives text, int() turns it into a number', 'int() prints the answer', 'You don\'t need it'], answer: 0 } }
+          { quiz: { q: 'Why do you need int() around input()?', options: ['input() gives text, int() makes it a number', 'int() prints the answer on the screen again', 'It isn\'t needed, input() always gives a number'], answer: 0 } }
         ]
       }
     ]
@@ -228,15 +231,15 @@ NameError: name 'nme' is not defined</pre>
       {
         id: 'p5o1', title: 'Read the error message',
         setup: F => {
-          F.ensureFolder(P_KODE);
+          harKode(); F.ensureFolder(P_KODE);
           F.silentRemoveAll('error1.py'); F.silentRemoveAll('error2.py');
           F.ensureFile(P_KODE, 'error1.py', 'name = "Ola"\nprint("Hello", nme)\n');
           F.ensureFile(P_KODE, 'error2.py', 'number = 7\nif number > 5\n    print("big number")\n');
         },
         steps: [
           { laer: true, quiz: { q: 'Where in a traceback do you find the type of error and the explanation?', options: ['In the bottom line', 'In the top line', 'In the file name'], answer: 0 } },
-          { laer: true, quiz: { q: 'The program gives a SyntaxError. What does that usually mean?', options: ['The PC has run out of memory', 'The grammar of the code is wrong, for example a missing ) or :', 'The file doesn\'t exist'], answer: 1 } },
-          { laer: true, quiz: { q: 'What does  NameError: name \'nme\' is not defined  mean?', options: ['nme is too short a name', 'The file is missing', 'Python can\'t find anything called nme: a typo, or the variable hasn\'t been made yet'], answer: 2 } },
+          { laer: true, quiz: { q: 'The program gives a SyntaxError. What does that usually mean?', options: ['The PC ran out of memory while running', 'The grammar is wrong, e.g. a missing :', 'The file you are trying to run doesn\'t exist'], answer: 1 } },
+          { laer: true, quiz: { q: 'What does  NameError: name \'nme\' is not defined  mean?', options: ['The name nme is too short, it needs four letters', 'The file error1.py is missing from the Code folder', 'Python can\'t find a variable called nme'], answer: 2 } },
           /* If the student fixes the bug before the first run, the error message can't come again. Then a run without errors is accepted,
              and the fix is checked on the file (not just on the save event). Creating the variable nme is a correct fix too. */
           { text: 'In the Code folder there is <code>error1.py</code>. Run it: <code>python error1.py</code>. Read the bottom line of the error message.', check: S => ran(S, 'error1.py', d => d.error === 'NameError' || d.ok) },
@@ -244,16 +247,16 @@ NameError: name 'nme' is not defined</pre>
           { text: 'Run it again. Now it should work.', check: S => ran(S, 'error1.py', d => d.ok) },
           { text: 'Run <code>error2.py</code>. This time it is a <b>SyntaxError</b>: Python shows the line and where it got lost.', check: S => ran(S, 'error2.py', d => d.error === 'SyntaxError' || d.ok) },
           { text: 'Fix the error in the editor (what is missing at the end of the if line?), save and run again.', hint: 'An if statement must end with a colon :', check: S => ran(S, 'error2.py', d => d.ok) },
-          { quiz: { q: 'Where in the error message is the line number?', options: ['In the bottom line', 'In the line that starts with File "…", line …', 'It isn\'t there'], answer: 1 } }
+          { quiz: { q: 'Where in the error message is the line number?', options: ['In the bottom line, after the name of the error', 'In the line that starts with File', 'It isn\'t there, you have to count'], answer: 1 } }
         ]
       },
       {
         id: 'p5o2', title: 'Infinite loop',
-        setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('forever.py'); F.ensureFile(P_KODE, 'forever.py', 'counter = 1\nwhile counter > 0:\n    print("Round", counter)\n    counter = counter + 1\n'); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('forever.py'); F.ensureFile(P_KODE, 'forever.py', 'counter = 1\nwhile counter > 0:\n    print("Round", counter)\n    counter = counter + 1\n'); },
         steps: [
           { text: 'Run <code>python forever.py</code>. The program never stops. Stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal.', hint: 'Hold Ctrl down and press C while the program is running. Didn\'t you manage it before the practice PC stopped the program by itself? Run it again and press Ctrl+C straight away.', check: S => S.ev('term-ctrlc', d => d.running) && ran(S, 'forever.py', d => d.error === 'KeyboardInterrupt') },
           { text: 'Open <code>forever.py</code> in the editor and change the loop so it stops after 10 rounds. Save and run.', hint: 'Change the condition: while counter <= 10:', check: S => ran(S, 'forever.py', d => d.ok && /Round\D*10(?!\d)/.test(d.output) && !/Round\D*11(?!\d)/.test(d.output)) },
-          { quiz: { q: 'Your program hangs. What do you do?', options: ['Shut down the PC', 'Press Ctrl+C in the terminal', 'Wait until it finishes'], answer: 1 } }
+          { quiz: { q: 'Your program hangs. What do you do?', options: ['Turn off the PC with the power button', 'Press Ctrl+C in the terminal', 'Wait until it finishes'], answer: 1 } }
         ]
       }
     ]
@@ -274,24 +277,25 @@ NameError: name 'nme' is not defined</pre>
       <pre style="background:#fff;border:1px solid #e5e7eb;padding:8px;font-size:12px">with open("data/name.txt") as f:
     lines = f.readlines()
 print("Number of names:", len(lines))</pre>
+      <p>On a real PC the ▶ button in VS Code runs the program from the folder you opened in the editor. So stand in the project folder when you type <code>code .</code>.</p>
       <h4>Output to a file</h4>
       <p><code>python main.py &gt; result.txt</code> sends everything the program prints to the file instead of the screen.</p>`,
     oppdrag: [
       {
         id: 'p6o1', title: 'A small project',
-        setup: F => { F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'project']); if (p) F.purge(p.id); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'project']); if (p) F.purge(p.id); },
         steps: [
-          { laer: true, quiz: { q: 'What is a project folder?', options: ['A folder with the code and subfolders for data and other things that belong to the program', 'A folder for all subjects', 'The Recycle Bin'], answer: 0 } },
-          { laer: true, quiz: { q: 'open("data/name.txt") gives FileNotFoundError, but the file exists. What is most likely?', options: ['Python isn\'t installed', 'You are running the program from the wrong folder: the path is relative to where you are', 'The file is too big'], answer: 1 } },
+          { laer: true, quiz: { q: 'What is a project folder?', options: ['A folder with the code and data for one program', 'A folder where you collect all your schoolwork', 'A folder that is made by itself when Python is installed'], answer: 0 } },
+          { laer: true, quiz: { q: 'open("data/name.txt") gives FileNotFoundError, but the file exists. What is most likely?', options: ['Python isn\'t installed on this PC at all', 'You are running it from the wrong folder', 'The file is too big for Python to open'], answer: 1 } },
           { text: 'Stand in the Code folder in the terminal and create the project folder: <code>mkdir project</code>', check: S => S.folderIn('project', P_KODE) },
           { text: 'Create a subfolder for data: <code>mkdir project\\data</code>', check: S => S.folderIn('data', [...P_KODE, 'project']) },
           { text: 'Create <code>project\\data\\name.txt</code> with at least three names, one on each line. Use Code, or <code>Add-Content project\\data\\name.txt Ola</code> three times with different names.', check: S => lines(innhold([...P_KODE, 'project', 'data'], 'name.txt')) >= 3 },
           { text: 'Create <code>project\\main.py</code> that opens <code>data/name.txt</code>, counts the lines and prints the number. See “Read first” for the code.', check: S => { const c = innhold([...P_KODE, 'project'], 'main.py'); return /open\s*\(/.test(c) && /print\s*\(/.test(c); } },
           { text: 'Go into the project folder (<code>cd project</code>) and run: <code>python main.py</code>', hint: 'Getting FileNotFoundError? Then you are in the wrong folder: the path data/name.txt is relative to where you run from.', check: S => ran(S, 'main.py', d => d.ok && ends(d.path, 'project\\main.py') && d.output.trim().length > 0) },
-          { text: 'Send the output to a file: <code>python main.py &gt; result.txt</code>. Nothing shows on the screen, it went into the file.', check: S => S.ev('term-redirect', d => same(d.file, 'result.txt')) },
+          { text: 'Send the output to a file: <code>python main.py &gt; result.txt</code>. Nothing shows on the screen, it went into the file.', check: S => S.ev('term-redirect', d => same(d.file, 'result.txt') && d.cmd === 'python') },
           { text: 'See the result: <code>cat result.txt</code>', check: S => S.ev('term-cat', d => same(d.name, 'result.txt')) },
-          { text: 'Go up to the Code folder (<code>cd ..</code>) and draw the structure with <code>tree</code>.', check: S => S.ev('term-tree') && cmd(S, d => d.name === 'tree' && ends(d.cwd, 'Code')) },
-          { quiz: { q: 'main.py opens "data/name.txt". Which folder must you run the program from?', options: ['From the folder main.py is in (the project folder)', 'From the data folder', 'From the home folder'], answer: 0 } }
+          { text: 'Go up to the Code folder (<code>cd ..</code>) and draw the structure with the files: <code>tree /F</code>.', check: S => S.ev('term-tree') && cmd(S, d => d.name === 'tree' && ends(d.cwd, 'Code')) },
+          { quiz: { q: 'main.py opens "data/name.txt". Which folder must you run the program from?', options: ['From the folder main.py is in', 'From the data folder, where name.txt is', 'From the home folder, where everything starts'], answer: 0 } }
         ]
       }
     ]
@@ -313,17 +317,17 @@ print("Number of names:", len(lines))</pre>
     oppdrag: [
       {
         id: 'p7o1', title: 'Your first script',
-        setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('hello.ps1'); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('hello.ps1'); },
         steps: [
-          { laer: true, quiz: { q: 'What is a PowerShell script?', options: ['A Python program', 'A .ps1 file with commands that are run all at once', 'A shortcut on the desktop'], answer: 1 } },
+          { laer: true, quiz: { q: 'What is a PowerShell script?', options: ['A Python program that runs in the terminal', 'A .ps1 file with commands', 'A shortcut to PowerShell on the desktop'], answer: 1 } },
           { laer: true, quiz: { q: '$name is Kari. What does  Write-Host "Hello $name"  print?', options: ['Hello $name', 'Hello Kari', 'An error message'], answer: 1 } },
           { text: 'Create <code>hello.ps1</code> in the Code folder with the line <code>Write-Host "Hello from the script"</code>. Save.', check: S => /Write-Host/i.test(innhold(P_KODE, 'hello.ps1')) },
           { text: 'Try to run it by typing just <code>hello.ps1</code> in the terminal. Read the error message and the suggestion at the bottom.', check: S => S.ev('term-cmd', d => !d.ok && /^hello\.ps1$/i.test(d.alias)) },
           { text: 'Run it the right way: <code>.\\hello.ps1</code>', check: S => S.ev('ps1-run', d => same(d.file, 'hello.ps1') && d.ok) },
           { text: 'Add two lines to the script:<br><code>$name = Read-Host "What is your name"</code><br><code>Write-Host "Hello $name!"</code><br>Save, run, and answer the question.', check: S => S.ev('ps1-run', d => same(d.file, 'hello.ps1') && d.ok && /\$\w+\s*=\s*Read-Host/i.test(d.source) && brukerVar(d.source)) },
           { text: 'Scripts are made of normal commands. Check another short name: <code>Get-Alias cd</code>', check: S => cmd(S, d => d.name === 'Get-Alias') },
-          { quiz: { q: 'Why do you have to type .\\hello.ps1 and not just hello.ps1?', options: ['Because the file is in the Recycle Bin', 'PowerShell won\'t run scripts from the folder you are in unless you say so clearly', 'Because the name is too short'], answer: 1 } },
-          { quiz: { q: 'What does Read-Host do?', options: ['Writes text to the screen', 'Reads a file', 'Asks the user something and gives back the answer'], answer: 2 } }
+          { quiz: { q: 'Why do you have to type .\\hello.ps1 and not just hello.ps1?', options: ['Because .\\ makes the script run faster', 'For safety: .\\ means “in this folder”', 'Because otherwise the file opens in Notepad'], answer: 1 } },
+          { quiz: { q: 'What does Read-Host do?', options: ['Writes text out on the screen', 'Reads what is in a file', 'Asks the user and gives the answer'], answer: 2 } }
         ]
       }
     ]
@@ -358,8 +362,8 @@ const KURS_INSTALL = {
       id: 'pio1', title: 'Install the code editor', lukk: ['firmaportal','kode'],
       intro: 'The Code editor isn\'t installed on this PC yet. You are going to fix that yourself, just as you have to on a real school PC.',
       steps: [
-        { laer: true, quiz: { q: 'Why can\'t you just download programs from the internet on a school PC?', options: ['Because the internet is too slow', 'Because you are not an administrator, and the school wants to avoid programs nobody has checked', 'Because it costs money'], answer: 1 } },
-        { laer: true, quiz: { q: 'What is the Company Portal?', options: ['The school\'s own app store with approved apps', 'A website where you buy programs', 'A place where you hand in assignments'], answer: 0 } },
+        { laer: true, quiz: { q: 'Why can\'t you just download programs from the internet on a school PC?', options: ['Because the school network is too slow for big files', 'Because you are not an administrator on the PC', 'Because programs from the internet always cost money'], answer: 1 } },
+        { laer: true, quiz: { q: 'What is the Company Portal?', options: ['The school\'s own app store', 'An online shop where you buy programs', 'A place where you hand in assignments'], answer: 0 } },
         { laer: true, quiz: { q: 'You have clicked Install, and it says “Downloading”. What do you do?', options: ['Click Install a few more times', 'Restart the PC', 'Wait'], answer: 2 } },
         { text: 'Open <b>Terminal</b> and type <code>code .</code>. It doesn\'t work, because the app isn\'t on the PC yet. Read what it says.', hint: 'The terminal says that “code” is not recognised as a program. That is how a real PC answers when something isn\'t installed. (If you have installed the app before, the command works and you move on.)', check: S => S.ev('term-cmd', d => /^code$/i.test(d.alias) && (!d.ok || S.installed('vscode'))) },
         /* The portal may already be open (e.g. from the “Open Company Portal” dialog), and then no new fp-open comes */
@@ -367,9 +371,9 @@ const KURS_INSTALL = {
         { text: 'Search for the code editor. Remember that it is called <b>Visual Studio Code</b> in the portal.', hint: 'Type “code” or “visual” in the search box at the top right.', check: S => S.ev('fp-search', d => /code|visual|studio/i.test(d.query)) || S.ev('fp-filter', d => d.filter === 'Programming') || S.ev('install-start', d => d.id === 'vscode') || S.installed('vscode') },
         /* The state is accepted too: if the student clicked Install early, or installed it before, no new install-done comes */
         { text: 'Click <b>Install</b> on Visual Studio Code, and <b>wait</b> until the status says “✓ Installed”. Watch how it changes along the way.', hint: 'It takes a few seconds here. On a real PC it can take several minutes. Don\'t click more than once.', check: S => S.ev('install-done', d => d.id === 'vscode') || S.installed('vscode') },
-        { text: 'Open the <b>Start menu</b>. <b>Code</b> is there now, together with the other apps. Open it.', hint: 'Click the Windows logo on the taskbar. Installed apps turn up in the Start menu by themselves.', check: S => S.ev('startmenu-open') && (S.ev('window-open', d => d.app === 'kode') || S.ev('kode-open', d => d.via === 'startmenu')) },
+        { text: 'Open the <b>Start menu</b>. <b>Code</b> is there now, together with the other apps. Click Code to open it.', hint: 'Click the Windows logo on the taskbar. Installed apps turn up in the Start menu by themselves.', check: S => S.ev('startmenu-open') && (S.ev('window-open', d => d.app === 'kode') || S.ev('kode-open', d => d.via === 'startmenu')) },
         { text: 'Go back to the terminal and type <code>code .</code> once more. Now the command works.', check: S => S.ev('term-cmd', d => d.ok && /^code$/i.test(d.alias)) },
-        { quiz: { q: 'You can\'t find the app in the Company Portal. What is most likely?', options: ['It doesn\'t exist at all', 'It is called something different from what you searched for', 'The PC is too old'], answer: 1 } }
+        { quiz: { q: 'You can\'t find the app in the Company Portal. What should you try first?', options: ['Downloading it from a website instead', 'Searching with a shorter or different name', 'Restarting the PC and searching again'], answer: 1 } }
       ]
     },
     {
@@ -383,8 +387,8 @@ const KURS_INSTALL = {
         { text: 'Click <b>Install</b> and wait. This time the installation <b>fails</b>. Read the error message and the error code.', check: S => S.ev('install-failed', d => d.id === 'geogebra') || ['failed', 'installed'].includes(FP('geogebra')) },
         { text: 'Click <b>Retry</b>. It usually works the second time.', hint: 'The button is where the Install button was.', check: S => S.ev('install-done', d => d.id === 'geogebra') || S.installed('geogebra') },
         { text: 'Click the <b>Installed</b> category on the left to see everything that is installed on the PC.', check: S => S.ev('fp-filter', d => d.filter === 'Installed') },
-        { quiz: { q: 'The installation fails three times in a row. What do you do?', options: ['Give up and do something else', 'Write down the error code and the name of the app, and tell your teacher or IT', 'Try to download the program from the internet instead'], answer: 1 } },
-        { quiz: { q: 'Why is it useful to keep the error code?', options: ['It gives you extra tries', 'It tells IT what went wrong, so they can help you', 'It removes the error'], answer: 1 } }
+        { quiz: { q: 'The installation fails three times in a row. What do you do?', options: ['Give up and do something else instead', 'Note the error code and tell your teacher', 'Download the program from the internet instead'], answer: 1 } },
+        { quiz: { q: 'Why is it useful to keep the error code?', options: ['It gives you more tries at installing', 'It shows IT what went wrong', 'It removes the error the next time you try'], answer: 1 } }
       ]
     }
   ]
@@ -422,8 +426,9 @@ addMasterProg('p3', {
   setup: F => { F.ensureFolder(P_KODE); F.ensureFolder(['This PC', 'Documents', 'My projects']); },
   goals: [
     { text: 'Go to the Code folder with an <b>absolute</b> path (the one that starts with C:\\)', check: S => S.ev('term-cd', d => /^c:/i.test(d.arg) && ends(d.path, 'Code')) },
-    { text: 'Go to <b>My projects</b> with a relative path and quotation marks', check: S => S.ev('term-cd', d => ends(d.path, 'My projects') && !/^c:/i.test(d.arg)) },
-    { text: 'List what is in <b>another</b> folder without going there', check: S => cmd(S, d => d.name === 'Get-ChildItem' && ((d.args[0] || '') + (d.opts.path || '')).length > 1) }
+    { text: 'Go to <b>My projects</b> with a relative path and quotation marks', check: S => S.ev('term-cd', d => ends(d.path, 'My projects') && !/^([a-z]:|[\\/~])/i.test(d.arg)) },
+    /* A path that points somewhere other than where the student is: not empty, not . or .\ alone, no wildcards */
+    { text: 'List what is in <b>another</b> folder without going there', check: S => cmd(S, d => d.name === 'Get-ChildItem' && (a => !!a && !/^\.[\\/]?$/.test(a) && !/[*?]/.test(a))((d.args[0] || '') + (d.opts.path || ''))) }
   ]
 }, ['Navigate to a folder with a space in its name on your own PC, with quotation marks and with Tab.']);
 
@@ -447,7 +452,7 @@ addMasterProg('pi', {
 addMasterProg('p4', {
   title: 'Write, save, run',
   intro: 'Make a program from scratch that asks something and answers. No step-by-step instructions.',
-  setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('master.py'); },
+  setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('master.py'); },
   goals: [
     { text: 'Create the file <b>master.py</b> in the Code folder', check: S => S.fileIn('master.py', P_KODE) },
     { text: 'The program must use <b>input()</b> and <b>print()</b>', check: S => noenFil('master.py', c => /input\s*\(/.test(c) && /print\s*\(/.test(c)) },
@@ -458,7 +463,7 @@ addMasterProg('p4', {
 addMasterProg('p5', {
   title: 'Find and fix the bug',
   intro: 'A program is broken. Read the error message, find the line, and get it working.',
-  setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('master-bug.py'); F.ensureFile(P_KODE, 'master-bug.py', MESTERFEIL); },
+  setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('master-bug.py'); F.ensureFile(P_KODE, 'master-bug.py', MESTERFEIL); },
   goals: [
     /* If the student fixed the bug before the first run, the error message can't come. Then a run without errors is accepted. */
     { text: 'Run <b>master-bug.py</b> and look at the error message', check: S => ran(S, 'master-bug.py') },
@@ -470,7 +475,7 @@ addMasterProg('p5', {
 addMasterProg('p6', {
   title: 'Set up a project',
   intro: 'Build a project folder with data and code, and run it from the right place.',
-  setup: F => { F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'masterproject']); if (p) F.purge(p.id); },
+  setup: F => { harKode(); F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'masterproject']); if (p) F.purge(p.id); },
   goals: [
     { text: 'Create the folder <b>masterproject</b> with a subfolder <b>data</b>', check: S => S.folderIn('masterproject', P_KODE) && S.folderIn('data', [...P_KODE, 'masterproject']) },
     { text: 'Create a text file in <b>data</b> with at least two lines', check: S => { const f = S.folder([...P_KODE, 'masterproject', 'data']); return !!f && FS.children(f.id).some(c => c.type === 'file' && (c.content || '').split('\n').filter(x => x.trim()).length >= 2); } },
@@ -481,7 +486,7 @@ addMasterProg('p6', {
 addMasterProg('p7', {
   title: 'The script that asks',
   intro: 'Make a PowerShell script that asks the user something and answers with their name.',
-  setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('master.ps1'); },
+  setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('master.ps1'); },
   goals: [
     { text: 'Create <b>master.ps1</b> with both <b>Read-Host</b> and <b>Write-Host</b>', check: S => noenFil('master.ps1', c => /read-host/i.test(c) && /write-host/i.test(c)) },
     { text: 'Run the script the right way, with <b>.\\</b> in front of the name', check: S => S.ev('ps1-run', d => same(d.file, 'master.ps1') && d.ok) },
@@ -495,10 +500,10 @@ const REPETISJON_PROG = [
   { id: 'pr2', kurs: 'p1', text: 'Go to <b>Documents</b> and then home again with <code>cd ~</code>.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents')) && S.ev('term-cd', d => homeArg(d.arg)) },
   { id: 'pr3', kurs: 'p2', text: 'Create the folder <b>weektest</b> in the Code folder, and delete it again.', setup: F => { F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'weektest']); if (p) F.purge(p.id); }, check: S => S.ev('term-new', d => /weektest/i.test(d.name)) && S.ev('term-rm', d => /weektest/i.test(d.name)) },
   { id: 'pr4', kurs: 'p2', text: 'Create the file <b>week.txt</b> with some text in it, and show what is in it with <code>cat</code>.', setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('week.txt'); }, check: S => noenFil('week.txt', c => c.trim().length > 0) && S.ev('term-cat', d => /week\.txt/i.test(d.name)) },
-  { id: 'pr5', kurs: 'p3', text: 'Use <code>tree</code> to see the structure of the Code folder.', check: S => S.ev('term-tree') },
+  { id: 'pr5', kurs: 'p3', text: 'Use <code>tree /F</code> to see the structure of the Code folder, with the files.', check: S => S.ev('term-tree') },
   { id: 'pr6', kurs: 'p4', text: 'Create <b>week.py</b> that prints your name, and run it.', setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('week.py'); }, check: S => ran(S, 'week.py', d => d.ok && d.output.trim().length > 1) },
   { id: 'pr7', kurs: 'p5', text: 'Run <b>week-bug.py</b>, find the bug, fix it and run it again.', setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('week-bug.py'); F.ensureFile(P_KODE, 'week-bug.py', 'name = "Ola"\nprint("Hello " + nme)\n'); }, check: S => ran(S, 'week-bug.py', d => d.ok) && (ran(S, 'week-bug.py', d => !d.ok) || S.ev('kode-save', d => same(d.name, 'week-bug.py'))) },
-  { id: 'pr8', kurs: 'p6', text: 'Send the output from a Python program to a file with <code>&gt;</code>.', check: S => S.ev('term-redirect') },
+  { id: 'pr8', kurs: 'p6', text: 'Send the output from a Python program to a file with <code>&gt;</code>.', check: S => S.ev('term-redirect', d => d.cmd === 'python') },
   { id: 'pr9', kurs: 'p7', text: 'Run a PowerShell script with <code>.\\</code> in front of the name.', setup: F => { F.ensureFolder(P_KODE); F.ensureFile(P_KODE, 'week.ps1', 'Write-Host "Weekly script"\n'); }, check: S => S.ev('ps1-run', d => d.ok) }
 ];
 

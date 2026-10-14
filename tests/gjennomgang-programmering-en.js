@@ -102,8 +102,8 @@
 
     await play('p12', 'p12o1', [
       [strip('Run <code>average.py</code>'), async () => { await run(kd); await run('python average.py'); }],
-      ['Add a line', async () => { write('average.py', 'numbers = [4, 8, 6, 2]\nsum = 0\nfor n in numbers:\n    sum = sum + n\nprint(sum, len(numbers))\naverage = sum / 2\nprint("The average is", average)\n'); await run('python average.py'); }],
-      ['Fix it', async () => { write('average.py', 'numbers = [4, 8, 6, 2]\nsum = 0\nfor n in numbers:\n    sum = sum + n\naverage = sum / len(numbers)\nprint("The average is", average)\n'); await run('python average.py'); }]
+      ['Add a line', async () => { write('average.py', 'numbers = [4, 8, 6, 2]\ntotal = 0\nfor n in numbers:\n    total = total + n\nprint(total, len(numbers))\naverage = total / 2\nprint("The average is", average)\n'); await run('python average.py'); }],
+      ['Fix it', async () => { write('average.py', 'numbers = [4, 8, 6, 2]\ntotal = 0\nfor n in numbers:\n    total = total + n\naverage = total / len(numbers)\nprint("The average is", average)\n'); await run('python average.py'); }]
     ]);
     const TY = 'try:\n    age = int(input("How old are you? "))\n    print("In ten years you will be", age + 10)\nexcept ValueError:\n    print("Type your age as a number, for example 14.")\n';
     await play('p12', 'p12o2', [

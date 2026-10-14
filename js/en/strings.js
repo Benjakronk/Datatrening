@@ -464,7 +464,7 @@ Object.assign(I18N.en, {
   "Eksemplarer:": "Copies:",
   "Dokumentet er på 1 side.": "The document is 1 page long.",
   "Dokumentet er på {0} sider.": "The document is {0} pages long.",
-  "Velger du «Print to PDF», lages det en PDF-fil på PC-en i stedet for papir. PDF ser lik ut overalt og kan ikke redigeres.": "If you choose “Print to PDF”, a PDF file is made on the PC instead of paper. A PDF looks the same everywhere and can’t be edited.",
+  "Velger du «Print to PDF», lages det en PDF-fil på PC-en i stedet for papir. PDF ser lik ut overalt og endres ikke ved et uhell.": "If you choose “Print to PDF”, a PDF file is made on the PC instead of paper. A PDF looks the same everywhere and doesn’t get changed by accident.",
   "Sendt til skriveren (1 eksemplar). Hent utskriften i kopirommet.": "Sent to the printer (1 copy). Collect your printout in the copy room.",
   "Sendt til skriveren ({0} eksemplarer). Hent utskriften i kopirommet.": "Sent to the printer ({0} copies). Collect your printout in the copy room.",
   "Lagre PDF som": "Save PDF As",
@@ -648,7 +648,8 @@ Object.assign(I18N.en, {
   "python <fil.py>\n  Kjører et Python-program.\n  python --version   viser versjonen": "python <file.py>\n  Runs a Python program.\n  python --version   shows the version",
   "code <mappe eller fil>\n  Åpner Kode-editoren.\n  code .        åpner mappen du står i\n  code hei.py   åpner en fil": "code <folder or file>\n  Opens the Code editor.\n  code .          opens the folder you are in\n  code hello.py   opens a file",
   "explorer <mappe>\n  Åpner Filutforsker.\n  explorer .    mappen du står i": "explorer <folder>\n  Opens File Explorer.\n  explorer .    the folder you are in",
-  "tree\n  Tegner mappestrukturen som et tre.": "tree\n  Draws the folder structure as a tree.",
+  "tree [sti] [/F]\n  Tegner mappestrukturen som et tre.\n  tree      bare mappene\n  tree /F   mappene og filene i dem": "tree [path] [/F]\n  Draws the folder structure as a tree.\n  tree      folders only\n  tree /F   folders and the files in them",
+  "Read-Host \"spørsmål\"\n  Spør brukeren og venter på svar.\n  $navn = Read-Host \"Hva heter du\"   lagrer svaret i $navn": "Read-Host \"question\"\n  Asks the user and waits for an answer.\n  $name = Read-Host \"What is your name\"   stores the answer in $name",
   "Test-Path <sti>\n  Svarer True hvis stien finnes, ellers False.": "Test-Path <path>\n  Answers True if the path exists, otherwise False.",
   "Select-String (sls) <tekst> <fil>\n  Søker etter tekst i filer. Kan også brukes etter |:\n  ls | Select-String py": "Select-String (sls) <text> <file>\n  Searches for text in files. Can also be used after |:\n  ls | Select-String py",
   "Measure-Object (measure)\n  Teller. ls | measure   teller elementer": "Measure-Object (measure)\n  Counts. ls | measure   counts items",
@@ -856,5 +857,8 @@ Object.assign(I18N.en, {
   "Pakk ut": "Extract",
   "Pakket ut {0} filer til «{1}».": "Extracted {0} files to \"{1}\".",
   "ZIP-filen er ugyldig.": "The ZIP file is invalid.",
-  "Det er for mange filer til å komprimere her (maks {0}).": "There are too many files to compress here (max {0})."
+  "Det er for mange filer til å komprimere her (maks {0}).": "There are too many files to compress here (max {0}).",
+  "Et navn eller ord med årstall er noe av det første som blir prøvd.": "A name or word with a year is one of the first things that gets tried.",
+  "Gjentakelser gjør passordet lettere å gjette.": "Repetition makes the password easier to guess.",
+  "[Øvings-PC: «{0}» følger med Python og trenger ikke installeres. Skriv bare import {0} i programmet.]": "[Practice PC: \"{0}\" comes with Python and doesn't need installing. Just write import {0} in your program.]"
 });

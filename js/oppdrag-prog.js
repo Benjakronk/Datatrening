@@ -19,6 +19,8 @@ const noenFil = (name, test) => FS.findAll(c => c.type === 'file' && same(c.name
 /* Write-Host bruker en $variabel (ikke inni enkle anførselstegn, der skrives $navn ut som tekst) */
 const brukerVar = src => (src || '').split('\n').some(l => /^\s*write-host\b/i.test(l) && /\$\w/.test(l.replace(/'[^']*'/g, '')));
 const FP = id => window.Firmaportal ? Firmaportal.statusOf(id) : 'installed';
+/* Kurs etter Firmaportalen bruker code. Hopper eleven rett dit, regnes editoren som installert. */
+const harKode = () => { if (window.Firmaportal && Firmaportal.markInstalled) Firmaportal.markInstalled('vscode'); };
 const MESTERFEIL = 'tall = [1, 2, 3]\nsum = 0\nfor t in tall:\n    sum = sum + t\nprint("Summen er" sum)\n';
 
 const KURS_PROG = [
@@ -54,8 +56,8 @@ const KURS_PROG = [
           { text: 'Skriv <code>ls</code> igjen. Nå ser du det som ligger i Dokumenter.', check: S => cmd(S, d => d.name === 'Get-ChildItem' && ends(d.cwd, 'Documents')) },
           { text: 'Gå ett nivå opp: <code>cd ..</code> (to punktum betyr «mappen over»).', check: S => S.ev('term-cd', d => /^\.\.[\\/]?$/.test(d.arg)) },
           { text: 'Gå inn i Bilder med <code>cd Pictures</code>, og så hjem igjen med <code>cd ~</code>.', hint: 'Tegnet ~ (tilde) betyr hjemmemappen. På norsk tastatur: AltGr + ¨ (tasten ved siden av Å), deretter mellomrom.', check: S => S.ev('term-cd', d => ends(d.path, 'Pictures')) && S.ev('term-cd', d => homeArg(d.arg) && HOME_RX.test(d.path)) },
-          { quiz: { q: 'Hva gjør kommandoen cd .. ?', options: ['Går ett nivå opp, til mappen over', 'Lister filene', 'Sletter mappen'], answer: 0 } },
-          { quiz: { q: 'Ledeteksten viser PS C:\\Users\\Elev\\Documents>. Hvor står du?', options: ['I hjemmemappen', 'I mappen Documents (Dokumenter)', 'På skrivebordet'], answer: 1 } }
+          { quiz: { q: 'Hva gjør kommandoen cd .. ?', options: ['Går ett nivå opp', 'Lister filene i mappen', 'Sletter mappen du står i'], answer: 0 } },
+          { quiz: { q: 'Ledeteksten viser PS C:\\Users\\Elev\\Documents>. Hvor står du?', options: ['I hjemmemappen (Elev)', 'I Documents (Dokumenter)', 'På skrivebordet (Desktop)'], answer: 1 } }
         ]
       },
       {
@@ -88,17 +90,18 @@ const KURS_PROG = [
       <tr><td><code>mv fra til</code></td><td>Flytter (<code>Move-Item</code>)</td></tr>
       <tr><td><code>ren gammel ny</code></td><td>Gir nytt navn (<code>Rename-Item</code>)</td></tr>
       <tr><td><code>rm fil</code></td><td>Sletter (<code>Remove-Item</code>). <b>Går ikke via papirkurven!</b></td></tr>
-      <tr><td><code>tree</code></td><td>Tegner mappestrukturen</td></tr>
+      <tr><td><code>tree /F</code></td><td>Tegner mappestrukturen med filene (uten <code>/F</code> vises bare mappene)</td></tr>
       <tr><td><code>explorer .</code></td><td>Åpner mappen du står i, i Filutforsker</td></tr></table>
       <p>Punktumet <code>.</code> betyr «mappen jeg står i». Tekst med mellomrom eller spesialtegn settes i anførselstegn: <code>'print("Hei")'</code>.</p>`,
     oppdrag: [
       {
         id: 'p2o1', title: 'Lag et prosjekt',
-        setup: F => { F.ensureFolder(['Denne PC-en', 'Dokumenter']); },
+        /* En hello.py fra en tidligere runde ville gjort New-Item-steget ferdig med en gang */
+        setup: F => { F.ensureFolder(['Denne PC-en', 'Dokumenter']); const h = F.resolve([...P_KODE, 'hello.py']); if (h) F.purge(h.id); },
         steps: [
           { laer: true, quiz: { q: 'Hvilken kommando lager en ny mappe?', options: ['cat', 'mkdir', 'rm'], answer: 1 } },
-          { laer: true, quiz: { q: 'Hva gjør > i  echo \'hei\' > fil.txt ?', options: ['Sender utskriften til filen i stedet for skjermen', 'Sammenligner to tall', 'Åpner filen i Kode'], answer: 0 } },
-          { laer: true, quiz: { q: 'Hva er forskjellen på rm i terminalen og Delete i Filutforsker?', options: ['Ingen forskjell', 'rm flytter filen til Nedlastinger', 'rm sletter for godt, uten papirkurv'], answer: 2 } },
+          { laer: true, quiz: { q: 'Hva gjør > i  echo \'hei\' > fil.txt ?', options: ['Sender utskriften til filen', 'Sammenligner to tall med hverandre', 'Åpner filen i Kode-editoren'], answer: 0 } },
+          { laer: true, quiz: { q: 'Hva er forskjellen på rm i terminalen og Delete i Filutforsker?', options: ['Ingen forskjell, begge bruker papirkurven', 'rm flytter filen til Nedlastinger', 'rm sletter for godt, uten papirkurv'], answer: 2 } },
           { text: 'Gå til Dokumenter i terminalen: <code>cd ~\\Documents</code>.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents')) },
           { text: 'Lag en mappe for koden din: <code>mkdir Kode</code>.', check: S => S.folderIn('Kode', ['Denne PC-en', 'Dokumenter']) },
           { text: 'Gå inn i den: <code>cd Kode</code>.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents\\Kode')) },
@@ -120,7 +123,7 @@ const KURS_PROG = [
           { text: 'Gi kopien nytt navn: <code>ren kopi.py test.py</code>.', check: S => S.fileIn('test.py', P_KODE) && !S.fileIn('kopi.py', P_KODE) },
           { text: 'Lag mappen <code>gammelt</code>: <code>mkdir gammelt</code>.', check: S => S.folderIn('gammelt', P_KODE) },
           { text: 'Flytt filen inn i mappen: <code>mv test.py gammelt</code>.', hint: 'Forsvant test.py? Skrev du mappenavnet feil, fikk filen det nye navnet i stedet. Skriv ls, og gi den navnet tilbake med ren, for eksempel <code>ren gamelt test.py</code>.', check: S => S.fileIn('test.py', [...P_KODE, 'gammelt']) },
-          { text: 'Se strukturen: <code>tree</code>.', check: S => S.ev('term-tree') },
+          { text: 'Se strukturen med filene: <code>tree /F</code>. (Uten <code>/F</code> viser tree bare mappene.)', check: S => S.ev('term-tree') },
           /* Også godkjent: eleven slettet hele mappen med rm -Recurse gammelt (da er filen borte, og neste steg går av seg selv) */
           { text: 'Slett filen: <code>rm gammelt\\test.py</code>. (Skråstreken går også: <code>rm gammelt/test.py</code>.)', hint: 'Er filen allerede borte? Gå videre og slett mappen: <code>rm gammelt</code>.', check: S => !S.fileIn('test.py', [...P_KODE, 'gammelt']) && S.ev('term-rm') },
           { text: 'Slett den tomme mappen: <code>rm gammelt</code>.', check: S => !S.folderIn('gammelt', P_KODE) },
@@ -138,7 +141,7 @@ const KURS_PROG = [
       <h4>Absolutt sti</h4>
       <p>En <b>absolutt sti</b> starter helt fra toppen, med stasjonen: <code>C:\\Users\\Elev\\Documents\\Kode</code>. Den peker alltid på samme sted, uansett hvor du står.</p>
       <h4>Relativ sti</h4>
-      <p>En <b>relativ sti</b> starter fra mappen du står i: <code>Documents\\Kode</code> betyr «Documents inni her, og så Kode». <code>..\\Bilder</code> betyr «opp ett nivå, så inn i Bilder».</p>
+      <p>En <b>relativ sti</b> starter fra mappen du står i: <code>Documents\\Kode</code> betyr «Documents inni her, og så Kode». <code>..\\Pictures</code> betyr «opp ett nivå, så inn i Pictures (Bilder)».</p>
       <table><tr><th>Tegn</th><th>Betyr</th></tr><tr><td><code>.</code></td><td>mappen jeg står i</td></tr><tr><td><code>..</code></td><td>mappen over</td></tr><tr><td><code>~</code></td><td>hjemmemappen (C:\\Users\\Elev)</td></tr><tr><td><code>\\</code></td><td>skille mellom mapper (skråstrek / virker også)</td></tr></table>
       <h4>Mellomrom i navn</h4>
       <p>Har mappen mellomrom i navnet, må stien i anførselstegn: <code>cd "Mine prosjekter"</code>. Eller bruk <kbd>Tab</kbd>, så setter terminalen anførselstegnene for deg. Derfor unngår programmerere mellomrom i mappenavn.</p>`,
@@ -158,7 +161,7 @@ const KURS_PROG = [
           { text: 'Mappen «Mine prosjekter» ligger ved siden av Kode og har mellomrom i navnet. Gå dit: <code>cd "..\\Mine prosjekter"</code> (eller skriv <code>cd ..\\Mi</code> og trykk Tab).', check: S => S.ev('term-cd', d => ends(d.path, 'Mine prosjekter')) },
           { text: 'List innholdet i en annen mappe uten å gå dit: <code>ls ~\\Documents</code>', check: S => cmd(S, d => d.name === 'Get-ChildItem' && /documents/i.test((d.args[0] || '') + (d.opts.path || ''))) },
           { text: 'Gå til Kode med relativ sti fra der du står: <code>cd ..\\Kode</code>, og bekreft med <code>pwd</code>.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents\\Kode')) && cmd(S, d => d.name === 'Get-Location') },
-          { quiz: { q: 'Hvilken av disse er en absolutt sti?', options: ['..\\Kode', 'Documents\\Kode', 'C:\\Users\\Elev\\Documents\\Kode'], answer: 2 } },
+          { quiz: { q: 'Hvilken av disse er en absolutt sti?', options: ['..\\Users\\Elev\\Documents\\Kode', 'Elev\\Documents\\Kode', 'C:\\Users\\Elev\\Documents\\Kode'], answer: 2 } },
           { quiz: { q: 'Hva betyr ~ i terminalen?', options: ['Mappen over', 'Hjemmemappen din', 'Papirkurven'], answer: 1 } }
         ]
       }
@@ -177,11 +180,11 @@ const KURS_PROG = [
     oppdrag: [
       {
         id: 'p4o1', title: 'Første program i Kode', lukk: ['kode'],
-        setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('hilsen.py'); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('hilsen.py'); },
         steps: [
-          { laer: true, quiz: { q: 'Hva gjør  code .  i terminalen?', options: ['Kjører programmet', 'Åpner mappen du står i, i Kode-editoren', 'Sletter filen'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hva gjør  code .  i terminalen?', options: ['Kjører alle programmene i mappen', 'Åpner mappen i Kode-editoren', 'Lager en ny tom kodefil her'], answer: 1 } },
           { laer: true, quiz: { q: 'Hvilken versjon av programmet kjører  python fil.py ?', options: ['Den som er lagret på disken', 'Den du ser i editoren, også ulagret', 'Begge'], answer: 0 } },
-          { laer: true, quiz: { q: 'Hva bruker Python innrykk (4 mellomrom) til?', options: ['Pynt', 'Å lage kommentarer', 'Å vise hvilke linjer som hører til en if, løkke eller funksjon'], answer: 2 } },
+          { laer: true, quiz: { q: 'Hva bruker Python innrykk (4 mellomrom) til?', options: ['Bare for at koden skal se ryddigere ut', 'Å gjøre linjene om til kommentarer som ikke kjøres', 'Å vise hva som hører til en if eller løkke'], answer: 2 } },
           { text: 'I terminalen: gå til Kode-mappen (<code>cd ~\\Documents\\Kode</code>) og åpne den i editoren: <code>code .</code>', check: S => S.ev('kode-open', d => d.name === 'Kode') },
           { text: 'Lag en ny fil i Kode: klikk <b>Ny fil</b> og kall den <code>hilsen.py</code>.', check: S => S.fileIn('hilsen.py', P_KODE) },
           { text: 'Skriv et program med en variabel og en utskrift, for eksempel:<br><code>navn = "Ola"</code><br><code>print("Hei,", navn)</code>', check: S => /=/.test(S.kodeText()) && /print\s*\(/.test(S.kodeText()) },
@@ -193,13 +196,13 @@ const KURS_PROG = [
       },
       {
         id: 'p4o2', title: 'Program med input',
-        setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('alder.py'); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('alder.py'); },
         steps: [
           { text: 'Lag filen <code>alder.py</code> i Kode-mappen (i Kode eller med <code>New-Item</code>).', check: S => S.fileIn('alder.py', P_KODE) },
           { text: 'Skriv et program som spør om alder med <code>input()</code>, gjør svaret om til tall med <code>int()</code>, og skriver ut hvor gammel du blir neste år. Lagre.', hint: 'alder = int(input("Hvor gammel er du? "))\nprint("Neste år blir du", alder + 1)', check: S => /input\s*\(/.test(innhold(P_KODE, 'alder.py')) && /int\s*\(/.test(innhold(P_KODE, 'alder.py')) },
           { text: 'Kjør programmet i terminalen og svar på spørsmålet.', check: S => ran(S, 'alder.py', d => d.ok && d.usedInput) },
           { text: 'Kjør det igjen, men skriv et ord i stedet for et tall. Les feilmeldingen: <b>ValueError</b>.', check: S => ran(S, 'alder.py', d => d.error === 'ValueError') },
-          { quiz: { q: 'Hvorfor trengs int() rundt input()?', options: ['input() gir alltid tekst, int() gjør den om til tall', 'int() skriver ut svaret', 'Det trengs ikke'], answer: 0 } }
+          { quiz: { q: 'Hvorfor trengs int() rundt input()?', options: ['input() gir tekst, int() gjør den til tall', 'int() skriver svaret ut på skjermen igjen', 'Det trengs ikke, input() gir alltid tall'], answer: 0 } }
         ]
       }
     ]
@@ -228,15 +231,15 @@ NameError: name 'nvn' is not defined</pre>
       {
         id: 'p5o1', title: 'Les feilmeldingen',
         setup: F => {
-          F.ensureFolder(P_KODE);
+          harKode(); F.ensureFolder(P_KODE);
           F.silentRemoveAll('feil1.py'); F.silentRemoveAll('feil2.py');
           F.ensureFile(P_KODE, 'feil1.py', 'navn = "Ola"\nprint("Hei", nvn)\n');
           F.ensureFile(P_KODE, 'feil2.py', 'tall = 7\nif tall > 5\n    print("stort tall")\n');
         },
         steps: [
           { laer: true, quiz: { q: 'Hvor i en traceback står typen feil og forklaringen?', options: ['I nederste linje', 'I øverste linje', 'I filnavnet'], answer: 0 } },
-          { laer: true, quiz: { q: 'Programmet gir SyntaxError. Hva betyr det som regel?', options: ['PC-en er tom for minne', 'Kodens grammatikk er feil, for eksempel manglende ) eller :', 'Filen finnes ikke'], answer: 1 } },
-          { laer: true, quiz: { q: 'Hva betyr  NameError: name \'nvn\' is not defined ?', options: ['nvn er et for kort navn', 'Filen mangler', 'Python finner ikke noe som heter nvn: skrivefeil, eller variabelen er ikke laget ennå'], answer: 2 } },
+          { laer: true, quiz: { q: 'Programmet gir SyntaxError. Hva betyr det som regel?', options: ['PC-en har gått tom for minne underveis', 'Grammatikken er feil, f.eks. mangler :', 'Filen du prøver å kjøre, finnes ikke'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hva betyr  NameError: name \'nvn\' is not defined ?', options: ['Navnet nvn er for kort, det må ha fire bokstaver', 'Filen feil1.py mangler i Kode-mappen', 'Python finner ingen variabel som heter nvn'], answer: 2 } },
           /* Retter eleven feilen før første kjøring, kan feilmeldingen ikke komme igjen. Da godtas en kjøring uten feil,
              og rettingen sjekkes på filen (ikke bare på lagre-hendelsen). Å lage variabelen nvn er også en riktig retting. */
           { text: 'I Kode-mappen ligger <code>feil1.py</code>. Kjør den: <code>python feil1.py</code>. Les nederste linje i feilmeldingen.', check: S => ran(S, 'feil1.py', d => d.error === 'NameError' || d.ok) },
@@ -244,16 +247,16 @@ NameError: name 'nvn' is not defined</pre>
           { text: 'Kjør igjen. Nå skal det virke.', check: S => ran(S, 'feil1.py', d => d.ok) },
           { text: 'Kjør <code>feil2.py</code>. Denne gangen er det en <b>SyntaxError</b>: Python viser linjen og hvor den gikk seg vill.', check: S => ran(S, 'feil2.py', d => d.error === 'SyntaxError' || d.ok) },
           { text: 'Rett feilen i editoren (hva mangler på slutten av if-linjen?), lagre og kjør igjen.', hint: 'En if-setning må slutte med kolon :', check: S => ran(S, 'feil2.py', d => d.ok) },
-          { quiz: { q: 'Hvor i feilmeldingen står linjenummeret?', options: ['I nederste linje', 'I linjen som starter med File "…", line …', 'Det står ikke'], answer: 1 } }
+          { quiz: { q: 'Hvor i feilmeldingen står linjenummeret?', options: ['I nederste linje, etter navnet på feilen', 'I linjen som starter med File', 'Det står ikke, du må telle selv'], answer: 1 } }
         ]
       },
       {
         id: 'p5o2', title: 'Uendelig løkke',
-        setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('evig.py'); F.ensureFile(P_KODE, 'evig.py', 'teller = 1\nwhile teller > 0:\n    print("Runde", teller)\n    teller = teller + 1\n'); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('evig.py'); F.ensureFile(P_KODE, 'evig.py', 'teller = 1\nwhile teller > 0:\n    print("Runde", teller)\n    teller = teller + 1\n'); },
         steps: [
           { text: 'Kjør <code>python evig.py</code>. Programmet stopper aldri. Stopp det med <kbd>Ctrl</kbd>+<kbd>C</kbd> i terminalen.', hint: 'Hold Ctrl nede og trykk C mens programmet kjører. Rakk du det ikke før øvings-PC-en stoppet programmet selv? Kjør det igjen og trykk Ctrl+C med en gang.', check: S => S.ev('term-ctrlc', d => d.running) && ran(S, 'evig.py', d => d.error === 'KeyboardInterrupt') },
           { text: 'Åpne <code>evig.py</code> i editoren og endre løkka så den stopper etter 10 runder. Lagre og kjør.', hint: 'Endre betingelsen: while teller <= 10:', check: S => ran(S, 'evig.py', d => d.ok && /Runde\D*10(?!\d)/.test(d.output) && !/Runde\D*11(?!\d)/.test(d.output)) },
-          { quiz: { q: 'Programmet ditt henger. Hva gjør du?', options: ['Lukker PC-en', 'Trykker Ctrl+C i terminalen', 'Venter til det blir ferdig'], answer: 1 } }
+          { quiz: { q: 'Programmet ditt henger. Hva gjør du?', options: ['Slår av PC-en med strømknappen', 'Trykker Ctrl+C i terminalen', 'Venter til det blir ferdig'], answer: 1 } }
         ]
       }
     ]
@@ -274,24 +277,25 @@ NameError: name 'nvn' is not defined</pre>
       <pre style="background:#fff;border:1px solid #e5e7eb;padding:8px;font-size:12px">with open("data/navn.txt") as f:
     linjer = f.readlines()
 print("Antall navn:", len(linjer))</pre>
+      <p>På en ekte PC kjører ▶-knappen i VS Code programmet fra mappen du har åpnet i editoren. Stå derfor i prosjektmappen når du skriver <code>code .</code>.</p>
       <h4>Utskrift til fil</h4>
       <p><code>python main.py &gt; resultat.txt</code> sender alt programmet skriver ut til filen i stedet for skjermen.</p>`,
     oppdrag: [
       {
         id: 'p6o1', title: 'Et lite prosjekt',
-        setup: F => { F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'prosjekt']); if (p) F.purge(p.id); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'prosjekt']); if (p) F.purge(p.id); },
         steps: [
-          { laer: true, quiz: { q: 'Hva er en prosjektmappe?', options: ['En mappe med koden og undermapper for data og annet som hører til programmet', 'En mappe for alle fag', 'Papirkurven'], answer: 0 } },
-          { laer: true, quiz: { q: 'open("data/navn.txt") gir FileNotFoundError, men filen finnes. Hva er mest sannsynlig?', options: ['Python er ikke installert', 'Du kjører programmet fra feil mappe: stien er relativ til der du står', 'Filen er for stor'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hva er en prosjektmappe?', options: ['En mappe med koden og dataene til ett program', 'En mappe der du samler alt skolearbeidet ditt', 'En mappe som lages av seg selv når Python installeres'], answer: 0 } },
+          { laer: true, quiz: { q: 'open("data/navn.txt") gir FileNotFoundError, men filen finnes. Hva er mest sannsynlig?', options: ['Python er ikke installert på PC-en', 'Du kjører programmet fra feil mappe', 'Filen er for stor til at Python kan åpne den'], answer: 1 } },
           { text: 'Stå i Kode-mappen i terminalen og lag prosjektmappen: <code>mkdir prosjekt</code>', check: S => S.folderIn('prosjekt', P_KODE) },
           { text: 'Lag en undermappe for data: <code>mkdir prosjekt\\data</code>', check: S => S.folderIn('data', [...P_KODE, 'prosjekt']) },
           { text: 'Lag <code>prosjekt\\data\\navn.txt</code> med minst tre navn, ett på hver linje. Bruk Kode, eller <code>Add-Content prosjekt\\data\\navn.txt Ola</code> tre ganger med ulike navn.', check: S => lines(innhold([...P_KODE, 'prosjekt', 'data'], 'navn.txt')) >= 3 },
           { text: 'Lag <code>prosjekt\\main.py</code> som åpner <code>data/navn.txt</code>, teller linjene og skriver ut antallet. Se «Les først» for kode.', check: S => { const c = innhold([...P_KODE, 'prosjekt'], 'main.py'); return /open\s*\(/.test(c) && /print\s*\(/.test(c); } },
           { text: 'Gå inn i prosjektmappen (<code>cd prosjekt</code>) og kjør: <code>python main.py</code>', hint: 'Får du FileNotFoundError? Da står du i feil mappe: stien data/navn.txt er relativ til der du kjører fra.', check: S => ran(S, 'main.py', d => d.ok && ends(d.path, 'prosjekt\\main.py') && d.output.trim().length > 0) },
-          { text: 'Send utskriften til en fil: <code>python main.py &gt; resultat.txt</code>. Ingenting vises på skjermen, det havnet i filen.', check: S => S.ev('term-redirect', d => same(d.file, 'resultat.txt')) },
+          { text: 'Send utskriften til en fil: <code>python main.py &gt; resultat.txt</code>. Ingenting vises på skjermen, det havnet i filen.', check: S => S.ev('term-redirect', d => same(d.file, 'resultat.txt') && d.cmd === 'python') },
           { text: 'Se resultatet: <code>cat resultat.txt</code>', check: S => S.ev('term-cat', d => same(d.name, 'resultat.txt')) },
-          { text: 'Gå opp til Kode-mappen (<code>cd ..</code>) og tegn strukturen med <code>tree</code>.', check: S => S.ev('term-tree') && cmd(S, d => d.name === 'tree' && ends(d.cwd, 'Kode')) },
-          { quiz: { q: 'main.py åpner "data/navn.txt". Fra hvilken mappe må du kjøre programmet?', options: ['Fra mappen der main.py ligger (prosjektmappen)', 'Fra data-mappen', 'Fra hjemmemappen'], answer: 0 } }
+          { text: 'Gå opp til Kode-mappen (<code>cd ..</code>) og tegn strukturen med filene: <code>tree /F</code>.', check: S => S.ev('term-tree') && cmd(S, d => d.name === 'tree' && ends(d.cwd, 'Kode')) },
+          { quiz: { q: 'main.py åpner "data/navn.txt". Fra hvilken mappe må du kjøre programmet?', options: ['Fra mappen der main.py ligger', 'Fra data-mappen, der navn.txt ligger', 'Fra hjemmemappen, der alt starter'], answer: 0 } }
         ]
       }
     ]
@@ -313,17 +317,17 @@ print("Antall navn:", len(linjer))</pre>
     oppdrag: [
       {
         id: 'p7o1', title: 'Ditt første skript',
-        setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('hei.ps1'); },
+        setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('hei.ps1'); },
         steps: [
-          { laer: true, quiz: { q: 'Hva er et PowerShell-skript?', options: ['Et Python-program', 'En .ps1-fil med kommandoer som kjøres samlet', 'En snarvei på skrivebordet'], answer: 1 } },
+          { laer: true, quiz: { q: 'Hva er et PowerShell-skript?', options: ['Et Python-program som kjøres i terminalen', 'En .ps1-fil med kommandoer', 'En snarvei til PowerShell på skrivebordet'], answer: 1 } },
           { laer: true, quiz: { q: '$navn er Kari. Hva skriver  Write-Host "Hei $navn"  ut?', options: ['Hei $navn', 'Hei Kari', 'En feilmelding'], answer: 1 } },
           { text: 'Lag <code>hei.ps1</code> i Kode-mappen med linjen <code>Write-Host "Hei fra skriptet"</code>. Lagre.', check: S => /Write-Host/i.test(innhold(P_KODE, 'hei.ps1')) },
           { text: 'Prøv å kjøre det ved å skrive bare <code>hei.ps1</code> i terminalen. Les feilmeldingen og forslaget nederst.', check: S => S.ev('term-cmd', d => !d.ok && /^hei\.ps1$/i.test(d.alias)) },
           { text: 'Kjør det riktig: <code>.\\hei.ps1</code>', check: S => S.ev('ps1-run', d => same(d.file, 'hei.ps1') && d.ok) },
           { text: 'Utvid skriptet med to linjer:<br><code>$navn = Read-Host "Hva heter du"</code><br><code>Write-Host "Hei $navn!"</code><br>Lagre, kjør, og svar på spørsmålet.', check: S => S.ev('ps1-run', d => same(d.file, 'hei.ps1') && d.ok && /\$\w+\s*=\s*Read-Host/i.test(d.source) && brukerVar(d.source)) },
           { text: 'Skript består av vanlige kommandoer. Sjekk et kortnavn til: <code>Get-Alias cd</code>', check: S => cmd(S, d => d.name === 'Get-Alias') },
-          { quiz: { q: 'Hvorfor må du skrive .\\hei.ps1 og ikke bare hei.ps1?', options: ['Fordi filen ligger i papirkurven', 'PowerShell kjører ikke skript fra mappen du står i uten at du sier det tydelig', 'Fordi navnet er for kort'], answer: 1 } },
-          { quiz: { q: 'Hva gjør Read-Host?', options: ['Skriver tekst til skjermen', 'Leser en fil', 'Spør brukeren om noe og gir svaret tilbake'], answer: 2 } }
+          { quiz: { q: 'Hvorfor må du skrive .\\hei.ps1 og ikke bare hei.ps1?', options: ['Fordi .\\ gjør at skriptet kjører raskere', 'Av sikkerhet: .\\ betyr «i denne mappen»', 'Fordi filen ellers åpnes i Notisblokk'], answer: 1 } },
+          { quiz: { q: 'Hva gjør Read-Host?', options: ['Skriver tekst ut på skjermen', 'Leser innholdet i en fil', 'Spør brukeren og gir svaret'], answer: 2 } }
         ]
       }
     ]
@@ -358,8 +362,8 @@ const KURS_INSTALL = {
       id: 'pio1', title: 'Installer koderedigeringsprogrammet', lukk: ['firmaportal','kode'],
       intro: 'Kode-editoren er ikke installert på denne PC-en ennå. Det skal du fikse selv, slik du må gjøre på en ekte skole-PC.',
       steps: [
-        { laer: true, quiz: { q: 'Hvorfor kan du ikke bare laste ned programmer fra nettet på en skole-PC?', options: ['Fordi nettet er for tregt', 'Fordi du ikke er administrator, og skolen vil unngå programmer ingen har sjekket', 'Fordi det koster penger'], answer: 1 } },
-        { laer: true, quiz: { q: 'Hva er Firmaportalen?', options: ['Skolens egen app-butikk med godkjente programmer', 'En nettside der du kjøper programmer', 'Et sted du leverer oppgaver'], answer: 0 } },
+        { laer: true, quiz: { q: 'Hvorfor kan du ikke bare laste ned programmer fra nettet på en skole-PC?', options: ['Fordi skolenettet er for tregt til store filer', 'Fordi du ikke er administrator på PC-en', 'Fordi programmer fra nettet alltid koster penger'], answer: 1 } },
+        { laer: true, quiz: { q: 'Hva er Firmaportalen?', options: ['Skolens egen app-butikk', 'En nettbutikk der du kjøper programmer', 'Et sted der du leverer inn oppgaver'], answer: 0 } },
         { laer: true, quiz: { q: 'Du har klikket Installer, og det står «Laster ned». Hva gjør du?', options: ['Klikker Installer noen ganger til', 'Starter PC-en på nytt', 'Venter'], answer: 2 } },
         { text: 'Åpne <b>Terminal</b> og skriv <code>code .</code>. Det virker ikke, for programmet finnes ikke på PC-en ennå. Les hva som står.', hint: 'Terminalen svarer at «code» ikke er gjenkjent som et program. Det er slik en ekte PC svarer når noe ikke er installert. (Har du installert programmet tidligere, virker kommandoen, og du går videre.)', check: S => S.ev('term-cmd', d => /^code$/i.test(d.alias) && (!d.ok || S.installed('vscode'))) },
         /* Portalen kan allerede være åpen (f.eks. fra «Åpne Firmaportalen»-dialogen), og da kommer ingen ny fp-open */
@@ -367,9 +371,9 @@ const KURS_INSTALL = {
         { text: 'Søk etter koderedigeringsprogrammet. Husk at det heter <b>Visual Studio Code</b> i portalen.', hint: 'Skriv «code» eller «visual» i søkefeltet øverst til høyre.', check: S => S.ev('fp-search', d => /code|visual|studio/i.test(d.query)) || S.ev('fp-filter', d => d.filter === 'Programmering') || S.ev('install-start', d => d.id === 'vscode') || S.installed('vscode') },
         /* Tilstanden godtas også: har eleven klikket Installer tidlig, eller installert før, kommer ingen ny install-done */
         { text: 'Klikk <b>Installer</b> på Visual Studio Code, og <b>vent</b> til statusen blir «✓ Installert». Følg med på hvordan den endrer seg underveis.', hint: 'Det tar noen sekunder her. På en ekte PC kan det ta flere minutter. Ikke klikk flere ganger.', check: S => S.ev('install-done', d => d.id === 'vscode') || S.installed('vscode') },
-        { text: 'Åpne <b>Start-menyen</b>. Nå ligger <b>Kode</b> der, sammen med de andre programmene.', hint: 'Klikk på Windows-logoen i oppgavelinjen. Installerte programmer dukker opp i Start-menyen av seg selv.', check: S => S.ev('startmenu-open') && (S.ev('window-open', d => d.app === 'kode') || S.ev('kode-open', d => d.via === 'startmenu')) },
+        { text: 'Åpne <b>Start-menyen</b>. Nå ligger <b>Kode</b> der, sammen med de andre programmene. Klikk på Kode for å åpne den.', hint: 'Klikk på Windows-logoen i oppgavelinjen. Installerte programmer dukker opp i Start-menyen av seg selv.', check: S => S.ev('startmenu-open') && (S.ev('window-open', d => d.app === 'kode') || S.ev('kode-open', d => d.via === 'startmenu')) },
         { text: 'Gå tilbake til terminalen og skriv <code>code .</code> en gang til. Nå virker kommandoen.', check: S => S.ev('term-cmd', d => d.ok && /^code$/i.test(d.alias)) },
-        { quiz: { q: 'Du finner ikke programmet i Firmaportalen. Hva er mest sannsynlig?', options: ['Det finnes ikke i det hele tatt', 'Det heter noe annet enn du søkte etter', 'PC-en er for gammel'], answer: 1 } }
+        { quiz: { q: 'Du finner ikke programmet i Firmaportalen. Hva bør du prøve først?', options: ['Laste det ned fra en nettside i stedet', 'Søke med et kortere eller annet navn', 'Starte PC-en på nytt og søke igjen'], answer: 1 } }
       ]
     },
     {
@@ -383,8 +387,8 @@ const KURS_INSTALL = {
         { text: 'Klikk <b>Installer</b> og vent. Denne gangen <b>feiler</b> installasjonen. Les feilmeldingen og feilkoden.', check: S => S.ev('install-failed', d => d.id === 'geogebra') || ['failed', 'installed'].includes(FP('geogebra')) },
         { text: 'Klikk <b>Prøv igjen</b>. Som oftest går det bra andre gangen.', hint: 'Knappen står der Installer-knappen sto.', check: S => S.ev('install-done', d => d.id === 'geogebra') || S.installed('geogebra') },
         { text: 'Klikk på kategorien <b>Installert</b> til venstre for å se alt som er installert på PC-en.', check: S => S.ev('fp-filter', d => d.filter === 'Installert') },
-        { quiz: { q: 'Installasjonen feiler tre ganger på rad. Hva gjør du?', options: ['Gir opp og gjør noe annet', 'Skriver ned feilkoden og navnet på programmet, og sier fra til læreren eller IT', 'Prøver å laste ned programmet fra nettet i stedet'], answer: 1 } },
-        { quiz: { q: 'Hvorfor er det nyttig å ta vare på feilkoden?', options: ['Den gir deg ekstra forsøk', 'Den forteller IT hva som gikk galt, så de kan hjelpe deg', 'Den fjerner feilen'], answer: 1 } }
+        { quiz: { q: 'Installasjonen feiler tre ganger på rad. Hva gjør du?', options: ['Gir opp og gjør noe annet i stedet', 'Noterer feilkoden og sier fra til læreren', 'Laster ned programmet fra nettet i stedet'], answer: 1 } },
+        { quiz: { q: 'Hvorfor er det nyttig å ta vare på feilkoden?', options: ['Den gir deg flere forsøk på å installere', 'Den viser IT hva som gikk galt', 'Den fjerner feilen neste gang du prøver'], answer: 1 } }
       ]
     }
   ]
@@ -422,8 +426,9 @@ addMasterProg('p3', {
   setup: F => { F.ensureFolder(P_KODE); F.ensureFolder(['Denne PC-en', 'Dokumenter', 'Mine prosjekter']); },
   goals: [
     { text: 'Gå til Kode-mappen med en <b>absolutt</b> sti (den som starter med C:\\)', check: S => S.ev('term-cd', d => /^c:/i.test(d.arg) && ends(d.path, 'Kode')) },
-    { text: 'Gå til <b>Mine prosjekter</b> med en relativ sti og anførselstegn', check: S => S.ev('term-cd', d => ends(d.path, 'Mine prosjekter') && !/^c:/i.test(d.arg)) },
-    { text: 'List innholdet i en <b>annen</b> mappe uten å gå dit', check: S => cmd(S, d => d.name === 'Get-ChildItem' && ((d.args[0] || '') + (d.opts.path || '')).length > 1) }
+    { text: 'Gå til <b>Mine prosjekter</b> med en relativ sti og anførselstegn', check: S => S.ev('term-cd', d => ends(d.path, 'Mine prosjekter') && !/^([a-z]:|[\\/~])/i.test(d.arg)) },
+    /* En sti som peker et annet sted enn der eleven står: ikke tom, ikke . eller .\ alene, ikke jokertegn */
+    { text: 'List innholdet i en <b>annen</b> mappe uten å gå dit', check: S => cmd(S, d => d.name === 'Get-ChildItem' && (a => !!a && !/^\.[\\/]?$/.test(a) && !/[*?]/.test(a))((d.args[0] || '') + (d.opts.path || ''))) }
   ]
 }, ['Naviger til en mappe med mellomrom i navnet på din egen PC, med anførselstegn og med Tab.']);
 
@@ -447,7 +452,7 @@ addMasterProg('pi', {
 addMasterProg('p4', {
   title: 'Skriv, lagre, kjør',
   intro: 'Lag et program fra bunnen som spør om noe og svarer. Ingen oppskrift.',
-  setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('mester.py'); },
+  setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('mester.py'); },
   goals: [
     { text: 'Lag filen <b>mester.py</b> i Kode-mappen', check: S => S.fileIn('mester.py', P_KODE) },
     { text: 'Programmet skal bruke <b>input()</b> og <b>print()</b>', check: S => noenFil('mester.py', c => /input\s*\(/.test(c) && /print\s*\(/.test(c)) },
@@ -458,7 +463,7 @@ addMasterProg('p4', {
 addMasterProg('p5', {
   title: 'Finn og fiks feilen',
   intro: 'Et program er ødelagt. Les feilmeldingen, finn linjen, og få det til å virke.',
-  setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('mesterfeil.py'); F.ensureFile(P_KODE, 'mesterfeil.py', MESTERFEIL); },
+  setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('mesterfeil.py'); F.ensureFile(P_KODE, 'mesterfeil.py', MESTERFEIL); },
   goals: [
     /* Har eleven rettet feilen før første kjøring, kan feilmeldingen ikke komme. Da godtas en kjøring uten feil. */
     { text: 'Kjør <b>mesterfeil.py</b> og se feilmeldingen', check: S => ran(S, 'mesterfeil.py') },
@@ -470,7 +475,7 @@ addMasterProg('p5', {
 addMasterProg('p6', {
   title: 'Sett opp et prosjekt',
   intro: 'Bygg en prosjektmappe med data og kode, og kjør den fra riktig sted.',
-  setup: F => { F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'mesterprosjekt']); if (p) F.purge(p.id); },
+  setup: F => { harKode(); F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'mesterprosjekt']); if (p) F.purge(p.id); },
   goals: [
     { text: 'Lag mappen <b>mesterprosjekt</b> med en undermappe <b>data</b>', check: S => S.folderIn('mesterprosjekt', P_KODE) && S.folderIn('data', [...P_KODE, 'mesterprosjekt']) },
     { text: 'Lag en tekstfil i <b>data</b> med minst to linjer', check: S => { const f = S.folder([...P_KODE, 'mesterprosjekt', 'data']); return !!f && FS.children(f.id).some(c => c.type === 'file' && (c.content || '').split('\n').filter(x => x.trim()).length >= 2); } },
@@ -481,7 +486,7 @@ addMasterProg('p6', {
 addMasterProg('p7', {
   title: 'Skriptet som spør',
   intro: 'Lag et PowerShell-skript som spør brukeren om noe og svarer med navnet.',
-  setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('mester.ps1'); },
+  setup: F => { harKode(); F.ensureFolder(P_KODE); F.silentRemoveAll('mester.ps1'); },
   goals: [
     { text: 'Lag <b>mester.ps1</b> med både <b>Read-Host</b> og <b>Write-Host</b>', check: S => noenFil('mester.ps1', c => /read-host/i.test(c) && /write-host/i.test(c)) },
     { text: 'Kjør skriptet riktig, med <b>.\\</b> foran navnet', check: S => S.ev('ps1-run', d => same(d.file, 'mester.ps1') && d.ok) },
@@ -495,10 +500,10 @@ const REPETISJON_PROG = [
   { id: 'pr2', kurs: 'p1', text: 'Gå til <b>Documents</b> og deretter hjem igjen med <code>cd ~</code>.', check: S => S.ev('term-cd', d => ends(d.path, 'Documents')) && S.ev('term-cd', d => homeArg(d.arg)) },
   { id: 'pr3', kurs: 'p2', text: 'Lag mappen <b>ukesprove</b> i Kode-mappen, og slett den igjen.', setup: F => { F.ensureFolder(P_KODE); const p = F.resolve([...P_KODE, 'ukesprove']); if (p) F.purge(p.id); }, check: S => S.ev('term-new', d => /ukesprove/i.test(d.name)) && S.ev('term-rm', d => /ukesprove/i.test(d.name)) },
   { id: 'pr4', kurs: 'p2', text: 'Lag filen <b>uke.txt</b> med tekst i, og vis innholdet med <code>cat</code>.', setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('uke.txt'); }, check: S => noenFil('uke.txt', c => c.trim().length > 0) && S.ev('term-cat', d => /uke\.txt/i.test(d.name)) },
-  { id: 'pr5', kurs: 'p3', text: 'Bruk <code>tree</code> for å se strukturen i Kode-mappen.', check: S => S.ev('term-tree') },
+  { id: 'pr5', kurs: 'p3', text: 'Bruk <code>tree /F</code> for å se strukturen i Kode-mappen, med filene.', check: S => S.ev('term-tree') },
   { id: 'pr6', kurs: 'p4', text: 'Lag <b>uke.py</b> som skriver ut navnet ditt, og kjør den.', setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('uke.py'); }, check: S => ran(S, 'uke.py', d => d.ok && d.output.trim().length > 1) },
   { id: 'pr7', kurs: 'p5', text: 'Kjør <b>ukesfeil.py</b>, finn feilen, rett den og kjør på nytt.', setup: F => { F.ensureFolder(P_KODE); F.silentRemoveAll('ukesfeil.py'); F.ensureFile(P_KODE, 'ukesfeil.py', 'navn = "Ola"\nprint("Hei " + nvn)\n'); }, check: S => ran(S, 'ukesfeil.py', d => d.ok) && (ran(S, 'ukesfeil.py', d => !d.ok) || S.ev('kode-save', d => same(d.name, 'ukesfeil.py'))) },
-  { id: 'pr8', kurs: 'p6', text: 'Send utskriften fra et Python-program til en fil med <code>&gt;</code>.', check: S => S.ev('term-redirect') },
+  { id: 'pr8', kurs: 'p6', text: 'Send utskriften fra et Python-program til en fil med <code>&gt;</code>.', check: S => S.ev('term-redirect', d => d.cmd === 'python') },
   { id: 'pr9', kurs: 'p7', text: 'Kjør et PowerShell-skript med <code>.\\</code> foran navnet.', setup: F => { F.ensureFolder(P_KODE); F.ensureFile(P_KODE, 'uke.ps1', 'Write-Host "Ukens skript"\n'); }, check: S => S.ev('ps1-run', d => d.ok) }
 ];
 

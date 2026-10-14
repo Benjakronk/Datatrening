@@ -101,7 +101,7 @@ const Pyth = (() => {
     function block() {
       if (peek().t !== 'NEWLINE') { const s = simpleStmts(); return s; }
       next();
-      if (peek().t !== 'INDENT') err('expected an indented block', peek());
+      if (peek().t !== 'INDENT') throw new PyError('IndentationError', 'expected an indented block', peek().line);
       next();
       const stmts = [];
       while (peek().t !== 'DEDENT' && peek().t !== 'EOF') stmts.push(...statement());
@@ -218,6 +218,8 @@ const Pyth = (() => {
             else args.push(expr());
             if (isOp(',')) next(); else break;
           }
+          /* print("a" b): to uttrykk etter hverandre uten komma, samme hint som ekte Python */
+          if (!isOp(')') && ['NAME', 'STR', 'FSTR', 'NUM'].includes(peek().t)) err('invalid syntax. Perhaps you forgot a comma?');
           expectOp(')');
           e = { k: 'call', func: e, args, kwargs, line: t.line };
         } else if (isOp('[')) {
@@ -275,7 +277,7 @@ const Pyth = (() => {
         }
       }
       if (tok.t === 'NEWLINE' || tok.t === 'EOF') err('invalid syntax', tok);
-      if (tok.t === 'INDENT') err('unexpected indent', tok);
+      if (tok.t === 'INDENT') throw new PyError('IndentationError', 'unexpected indent', tok.line);
       err('invalid syntax', tok);
     }
     function comprehension(elt, line) { next(); const target = targetList(); if (!isKw('in')) err('invalid syntax'); next(); const iter = orExpr(); let cond = null; if (isKw('if')) { next(); cond = orExpr(); } return { elt, target, iter, cond, line }; }
@@ -307,7 +309,7 @@ const Pyth = (() => {
     const stmts = [];
     while (peek().t !== 'EOF') {
       if (peek().t === 'NEWLINE') { next(); continue; }
-      if (peek().t === 'INDENT') err('unexpected indent');
+      if (peek().t === 'INDENT') throw new PyError('IndentationError', 'unexpected indent', peek().line);
       if (peek().t === 'DEDENT') { next(); continue; }
       stmts.push(...statement());
     }
@@ -436,7 +438,7 @@ const Pyth = (() => {
   function toFloat(v, line) {
     if (typeof v === 'boolean') return new F(v ? 1 : 0);
     if (typeof v === 'number') return new F(v); if (isF(v)) return v;
-    if (typeof v === 'string') { const s = v.trim().replace(',', '.'); if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(s)) throw new PyError('ValueError', 'could not convert string to float: ' + repr(v), line); return new F(parseFloat(s)); }
+    if (typeof v === 'string') { const s = v.trim(); if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(s)) throw new PyError('ValueError', 'could not convert string to float: ' + repr(v), line); return new F(parseFloat(s)); }
     throw new PyError('TypeError', "float() argument must be a string or a real number, not '" + typeName(v) + "'", line);
   }
   function formatSpec(v, spec, line) {
@@ -478,7 +480,16 @@ const Pyth = (() => {
   /* fn(args, kwargs, ctx, line) kan være generator (yield for input/print) eller vanlig funksjon */
   B('print', function* (args, kw, ctx) {
     const sep = kw.sep !== undefined ? str(kw.sep) : ' ', end = kw.end !== undefined ? str(kw.end) : '\n';
-    yield { type: 'out', text: args.map(str).join(sep) + end };
+    const text = args.map(str).join(sep) + end;
+    /* print(..., file=f) skriver til filen i stedet for skjermen */
+    if (kw.file !== undefined && kw.file !== null) {
+      const f = kw.file;
+      if (!(f instanceof FileObj)) throw new PyError('AttributeError', "'" + typeName(f) + "' object has no attribute 'write'", ctx.line);
+      if (f.closed) throw new PyError('ValueError', 'I/O operation on closed file.', ctx.line);
+      if (!f.mode.includes('w') && !f.mode.includes('a')) throw new PyError('io.UnsupportedOperation', 'not writable', ctx.line);
+      f.buffer += text; return;
+    }
+    yield { type: 'out', text };
   });
   B('input', function* (args, kw, ctx, line) {
     const line0 = args.length ? str(args[0]) : '';
@@ -511,10 +522,12 @@ const Pyth = (() => {
     if (a.length > 1 && a[1] !== null) { const p = a[1]; const m = Math.pow(10, p); return new F(Math.round(x * m) / m); }
     const r = Math.round(x); return (Math.abs(x % 1) === 0.5 && r % 2 !== 0) ? r - 1 : r;
   });
-  B('min', (a, k, c, line) => { const xs = a.length === 1 ? toList(a[0], line) : a; if (!xs.length) throw new PyError('ValueError', 'min() arg is an empty sequence', line); return xs.reduce((m, x) => compare('<', x, m, line) ? x : m); });
-  B('max', (a, k, c, line) => { const xs = a.length === 1 ? toList(a[0], line) : a; if (!xs.length) throw new PyError('ValueError', 'max() arg is an empty sequence', line); return xs.reduce((m, x) => compare('>', x, m, line) ? x : m); });
+  /* key= (f.eks. max(d, key=d.get)) kaller funksjonen på hvert element og sammenligner svarene */
+  function* keyed(xs, k, c, line) { const out = []; for (const x of xs) out.push(k.key !== undefined && k.key !== null ? yield* callValue(k.key, [x], {}, c, line) : x); return out; }
+  B('min', function* (a, k, c, line) { const xs = a.length === 1 ? toList(a[0], line) : a; if (!xs.length) throw new PyError('ValueError', 'min() arg is an empty sequence', line); const ks = yield* keyed(xs, k, c, line); let bi = 0; ks.forEach((v, i) => { if (compare('<', v, ks[bi], line)) bi = i; }); return xs[bi]; });
+  B('max', function* (a, k, c, line) { const xs = a.length === 1 ? toList(a[0], line) : a; if (!xs.length) throw new PyError('ValueError', 'max() arg is an empty sequence', line); const ks = yield* keyed(xs, k, c, line); let bi = 0; ks.forEach((v, i) => { if (compare('>', v, ks[bi], line)) bi = i; }); return xs[bi]; });
   B('sum', (a, k, c, line) => toList(a[0], line).reduce((s, x) => binop('+', s, x, line), a.length > 1 ? a[1] : 0));
-  B('sorted', (a, k, c, line) => { const xs = toList(a[0], line).slice(); xs.sort((x, y) => compare('<', x, y, line) ? -1 : compare('>', x, y, line) ? 1 : 0); if (k.reverse && truthy(k.reverse)) xs.reverse(); return xs; });
+  B('sorted', function* (a, k, c, line) { const xs = toList(a[0], line).slice(); const ks = yield* keyed(xs, k, c, line); const idx = xs.map((_, i) => i); idx.sort((i, j) => compare('<', ks[i], ks[j], line) ? -1 : compare('>', ks[i], ks[j], line) ? 1 : i - j); const r = idx.map(i => xs[i]); if (k.reverse && truthy(k.reverse)) r.reverse(); return r; });
   B('reversed', (a, k, c, line) => toList(a[0], line).reverse());
   B('enumerate', (a, k, c, line) => toList(a[0], line).map((x, i) => new Tuple([i + (a.length > 1 ? a[1] : 0), x])));
   B('zip', (a, k, c, line) => { const ls = a.map(x => toList(x, line)); const n = Math.min(...ls.map(l => l.length)); const out = []; for (let i = 0; i < n; i++) out.push(new Tuple(ls.map(l => l[i]))); return out; });
@@ -652,6 +665,7 @@ const Pyth = (() => {
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   function* callValue(f, args, kw, ctx, line) {
+    if (f && f.boundMethod) return yield* callMethod(f.obj, f.name, args, kw, ctx, line);
     if (f instanceof Builtin) {
       const r = f.fn(args, kw, ctx, line);
       if (r && typeof r.next === 'function' && typeof r[Symbol.iterator] === 'function') return yield* r;

@@ -107,8 +107,8 @@
     /* ---------- p12 ---------- */
     await play('p12', 'p12o1', [
       ['Kjør <code>snitt.py</code>'.replace(/<[^>]+>/g, ''), async () => { await run(kd); await run('python snitt.py'); }],
-      ['Legg inn en linje', async () => { write('snitt.py', 'tall = [4, 8, 6, 2]\nsum = 0\nfor t in tall:\n    sum = sum + t\nprint(sum, len(tall))\nsnitt = sum / 2\nprint("Snittet er", snitt)\n'); await run('python snitt.py'); }],
-      ['Rett det', async () => { write('snitt.py', 'tall = [4, 8, 6, 2]\nsum = 0\nfor t in tall:\n    sum = sum + t\nsnitt = sum / len(tall)\nprint("Snittet er", snitt)\n'); await run('python snitt.py'); }]
+      ['Legg inn en linje', async () => { write('snitt.py', 'tall = [4, 8, 6, 2]\ntotal = 0\nfor t in tall:\n    total = total + t\nprint(total, len(tall))\nsnitt = total / 2\nprint("Snittet er", snitt)\n'); await run('python snitt.py'); }],
+      ['Rett det', async () => { write('snitt.py', 'tall = [4, 8, 6, 2]\ntotal = 0\nfor t in tall:\n    total = total + t\nsnitt = total / len(tall)\nprint("Snittet er", snitt)\n'); await run('python snitt.py'); }]
     ]);
     const TA = 'try:\n    alder = int(input("Hvor gammel er du? "))\n    print("Om ti år er du", alder + 10)\nexcept ValueError:\n    print("Skriv alderen med tall, for eksempel 14.")\n';
     await play('p12', 'p12o2', [
