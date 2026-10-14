@@ -161,6 +161,8 @@ Object.assign(I18N.en, {
   "Neste kurs →": "Next course →",
   "Se fremdriften din": "See your progress",
   "Start oppdraget på nytt": "Restart the task",
+  "Du har fullført dette oppdraget før. Klikk på et steg for å hoppe dit og gjøre det på nytt.": "You have completed this task before. Click a step to jump to it and do it again.",
+  "Hopp til dette steget": "Jump to this step",
   "Kursoversikt": "Course overview",
   "📖 Les først: {0}": "📖 Read first: {0}",
   "Jeg har lest teksten": "I've read the text",

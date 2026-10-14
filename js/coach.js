@@ -263,6 +263,17 @@ const Coach = (() => {
       render();
     } else { save(); render(); }
   }
+  /* Et oppdrag eleven har fullført før, kan gjennomgås fritt: klikk på et steg for å hoppe dit,
+     framover eller bakover. Hendelser fra før hoppet teller ikke for steget eleven hopper til. */
+  function canJump() { const a = P.active; return !!(a && a.mode === 'oppdrag' && P.done[a.opp]); }
+  function jumpTo(i) {
+    const a = P.active; const o = oppOf(a);
+    if (!o || !canJump() || i < 0 || i >= o.steps.length || i === a.step) return;
+    a.step = i; stepStart = Bus.log.length; stepTime = now();
+    hintOpen = false; wrongOpt = null; quizOrder = null; P.lock = null;
+    save(); render();
+    Bus.emit('oppdrag-hopp', { id: a.opp, step: i });
+  }
   /* Eleven velger selv når den vil gå til teksten: åpner «Les først» og ruller dit */
   function goToLaer() {
     const body = document.getElementById('coach-body'); const det = body.querySelector('details.laer');
@@ -320,9 +331,15 @@ const Coach = (() => {
     const laerOpen = (curStep && curStep.laer) || locked || (a.step === 0 && oi === 1 && !P.done[o.id]);
     if (k.laer) body.appendChild(laerBox(k, laerOpen, locked));
     const done = a.step >= o.steps.length;
+    const jump = canJump();
+    if (jump) body.appendChild(el(`<p class="muted jump-info">${T('Du har fullført dette oppdraget før. Klikk på et steg for å hoppe dit og gjøre det på nytt.')}</p>`));
     o.steps.forEach((st, i) => {
       const cls = i < a.step ? 'done' : i === a.step ? 'active' : 'locked';
       const d = el(`<div class="step ${cls}"><div class="num">${i < a.step ? '✓' : i + 1}</div><div class="txt"></div></div>`);
+      if (jump && i !== a.step) {
+        d.classList.add('jump'); d.title = T('Hopp til dette steget');
+        d.addEventListener('click', () => jumpTo(i));
+      }
       const txt = d.querySelector('.txt');
       if (st.quiz) {
         txt.innerHTML = `<div><b>${st.laer ? T('Teori') : T('Spørsmål')}:</b> ${esc(st.quiz.q)}</div>`;
@@ -566,7 +583,7 @@ const Coach = (() => {
     Bus.on((type, d) => {
       /* Under høyreklikk-oppdraget: fortell hva eleven høyreklikket på, så de ser at menyen avhenger av elementet */
       if (type === 'ctxmenu' && d && d.label && P.active && P.active.opp === 'k1o4') Toast.show(T('Høyreklikk på {0} ✓', d.label), 2200);
-      if (type !== 'oppdrag-start' && type !== 'quiz' && type !== 'hint' && type !== 'master-start' && type !== 'rep-start') check();
+      if (type !== 'oppdrag-start' && type !== 'quiz' && type !== 'hint' && type !== 'master-start' && type !== 'rep-start' && type !== 'oppdrag-hopp') check();
     });
     render();
   }
@@ -575,6 +592,6 @@ const Coach = (() => {
   function setName(v) { P.name = (v || T('Elev')).trim() || T('Elev'); save(); render(); }
   function startFirst() { if (!P.active) startOppdrag(KL[0].id, KL[0].oppdrag[0].id); else render(); }
 
-  return { init, render, check, startOppdrag, startMaster, startRep, skipRep, resetProgress, progress: () => P, reportCode, reportText, needsName, setName, startFirst, theoryDone, theoryCount, S };
+  return { init, render, check, startOppdrag, jumpTo, startMaster, startRep, skipRep, resetProgress, progress: () => P, reportCode, reportText, needsName, setName, startFirst, theoryDone, theoryCount, S };
 })();
 window.Coach = Coach;

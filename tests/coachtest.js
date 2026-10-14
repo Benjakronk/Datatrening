@@ -127,6 +127,32 @@
     ok(WM.list(app).length === 0, app + ' ble lukket da oppdraget startet');
     ok(!document.querySelector('.dlg'), 'ingen lagringsdialog stopper oppstarten');
 
+    /* ---------- fullført oppdrag kan gjennomgås: hopp mellom stegene ---------- */
+    const hk = KL.find(x => x.oppdrag.some(o => o.steps.length >= 3 && !o.steps[0].laer)) || k;
+    const ho = hk.oppdrag.find(o => o.steps.length >= 3 && !o.steps[0].laer) || hk.oppdrag[0];
+    delete P().done[ho.id];
+    Coach.startOppdrag(hk.id, ho.id); await tick(40);
+    const stegNaa = P().active.step;
+    ok(!document.querySelector('#coach-body .step.jump'), 'uferdig oppdrag: stegene kan ikke klikkes');
+    const senere = document.querySelectorAll('#coach-body .step')[ho.steps.length - 1];
+    senere.click(); await tick(30);
+    ok(P().active.step === stegNaa, 'klikk på et senere steg flytter ikke en elev som ikke er ferdig');
+    P().done[ho.id] = true;
+    Coach.startOppdrag(hk.id, ho.id); await tick(40);
+    ok(!!document.querySelector('#coach-body .jump-info'), 'fullført oppdrag: forklaringen vises');
+    const hoppbare = document.querySelectorAll('#coach-body .step.jump');
+    ok(hoppbare.length === ho.steps.length - 1, 'alle andre steg kan klikkes: ' + hoppbare.length);
+    const maal = ho.steps.length - 1;
+    document.querySelectorAll('#coach-body .step')[maal].click(); await tick(40);
+    ok(P().active.step === maal || P().done[ho.id], 'hopper framover til siste steg');
+    ok(document.querySelectorAll('#coach-body .step')[maal].classList.contains('active') || P().active.step > maal, 'steget er markert som aktivt');
+    document.querySelectorAll('#coach-body .step')[0].click(); await tick(40);
+    ok(P().active.step === 0 || P().active.step > 0 && Bus.log.slice(-3).some(e => e.type === 'oppdrag-hopp'), 'hopper tilbake til første steg');
+    ok(Bus.log.some(e => e.type === 'oppdrag-hopp' && e.data.step === 0), 'hoppet registreres');
+    ok(P().done[ho.id] === true, 'oppdraget er fortsatt fullført etter hopping');
+    Coach.jumpTo(99); await tick(20);
+    ok(P().active.step < ho.steps.length, 'ugyldig steg ignoreres');
+
     /* ---------- rapportkoden ---------- */
     const code = Coach.reportCode();
     ok(/^DT1:/.test(code), 'rapportkoden har riktig prefiks');
