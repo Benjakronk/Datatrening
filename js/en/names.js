@@ -16,6 +16,8 @@ Object.assign(I18N.en, {
   'Notater': 'Notes',
   'E-post': 'Mail',
   'Skrivetrening': 'Typing Practice',
+  'Kabal': 'Solitaire',
+  'Minesveiper': 'Minesweeper',
   'Firmaportalen': 'Company Portal',
   'Introduksjon': 'Introduction',
 

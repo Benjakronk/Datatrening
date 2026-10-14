@@ -6,7 +6,7 @@ const WM = (() => {
   const PIN_KEY = 'dt-pinned' + (window.DT_PAGE ? '-' + window.DT_PAGE : '');
   let PINNED = (() => { try { return JSON.parse(localStorage.getItem(PIN_KEY) || 'null') || null; } catch (e) { return null; } })() || (window.DT_PINNED || ['explorer', 'skriv', 'nettleser', 'innlevering']).slice();
   function savePinned() { try { localStorage.setItem(PIN_KEY, JSON.stringify(PINNED)); } catch (e) { /* ignorer */ } }
-  const APPNAMES = { explorer: T('Filutforsker'), skriv: T('Skriv'), nettleser: T('Nettleser'), innlevering: T('Innleveringer'), papirkurv: T('Papirkurv'), bilder: T('Bilder'), viewer: T('Filvisning'), innstillinger: T('Innstillinger'), taskmgr: T('Oppgavebehandling'), terminal: T('Terminal'), kode: T('Kode'), notater: T('Notater'), epost: T('E-post'), skrivetrening: T('Skrivetrening'), firmaportal: T('Firmaportalen'), intro: T('Introduksjon') };
+  const APPNAMES = { explorer: T('Filutforsker'), skriv: T('Skriv'), nettleser: T('Nettleser'), innlevering: T('Innleveringer'), papirkurv: T('Papirkurv'), bilder: T('Bilder'), viewer: T('Filvisning'), innstillinger: T('Innstillinger'), taskmgr: T('Oppgavebehandling'), terminal: T('Terminal'), kode: T('Kode'), notater: T('Notater'), epost: T('E-post'), skrivetrening: T('Skrivetrening'), kabal: T('Kabal'), minesveiper: T('Minesveiper'), firmaportal: T('Firmaportalen'), intro: T('Introduksjon') };
   const FS_ICON = '<svg viewBox="0 0 16 16" width="18" height="18"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="#333" stroke-width="1.6"/></svg>';
 
   const layer = () => document.getElementById('windows');
@@ -241,6 +241,7 @@ const WM = (() => {
     if (window.Kode) apps.splice(1, 0, ['kode', T('Kode')]);
     if (window.Terminal) apps.splice(2, 0, ['terminal', T('Terminal')]);
     if (window.Firmaportal) apps.push(['firmaportal', T('Firmaportalen')]);
+    if (window.Spill) apps.push(['kabal', T('Kabal')], ['minesveiper', T('Minesveiper')]);
     if (window.Intro) apps.push(['intro', T('Introduksjon')]);
     apps.filter(([app]) => !window.Apps || Apps.available(app)).forEach(([app, name]) => {
       const a = el(`<div class="sm-app">${Icons.app(app, 36)}<span>${esc(name)}</span></div>`);
